@@ -1,0 +1,99 @@
+    console.log(`Processing ${currentUserData.doModulesToTest} DO modules`);
+    for (let i = 1; i <= currentUserData.doModulesToTest; i++) {
+        console.log(`Processing DO module ${i}`);
+        // Get module details for this DO module
+        const moduleDetails = doModulesDetails[i-1] || {};
+        const subrack = moduleDetails.subrack || 'N/A';
+        const slot = moduleDetails.slot || 'N/A';
+        const serial = moduleDetails.serial || 'N/A';
+        const partNo = moduleDetails.partNo || 'N/A';
+
+        // --- 2. Load, fill, and flatten PDF for current DO module ---
+        const templateUrl = `./PDF/DO/DF1725IED FAT Test Record DO${i}.pdf`;
+        const templateBytes = await fetch(templateUrl).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch template: ${res.statusText}`);
+            return res.arrayBuffer();
+        });
+
+        const currentPdf = await PDFDocument.load(templateBytes);
+        const currentForm = currentPdf.getForm();
+
+        // Fill basic module info
+        currentForm.getTextField(`DO No ${i}`).setText(i.toString());
+        currentForm.getTextField('RTUSerialNumber').setText(currentUserData.rtuSerial || 'N/A');
+        currentForm.getTextField('ContractNo').setText(currentUserData.contractNo || 'N/A');
+        currentForm.getTextField('TesterName').setText(currentUserData.name || 'N/A');
+        currentForm.getTextField(`Subrack No ${i}`).setText(subrack);
+        currentForm.getTextField(`Slot No ${i}`).setText(slot);
+        currentForm.getTextField(`SN ${i}`).setText(serial);
+        currentForm.getTextField(`Part No ${i}`).setText(partNo);
+
+        // Get the test results for this specific module
+        const moduleResults = doTestResults[i] || {};
+        const moduleType = moduleResults.type || 'CO-16-A';
+        const channelCount = moduleType === 'CO-16-A' ? 16 : 8;
+        
+        // Fill quality inspection checkboxes
+        try {
+            // Get saved quality inspection results
+            const quality1 = moduleResults.qualityInspections?.quality1 || 'NO';
+            const quality2 = moduleResults.qualityInspections?.quality2 || 'NO';
+
+            // Set quality inspection checkboxes (same numbering as DI)
+            if (quality1 === 'OK') {
+                currentForm.getCheckBox(`Check_Box_DO_${i}_1`).check();
+            } else {
+                currentForm.getCheckBox(`Check_Box_DO_${i}_2`).check();
+            }
+            
+            if (quality2 === 'OK') {
+                currentForm.getCheckBox(`Check_Box_DO_${i}_3`).check();
+            } else {
+                currentForm.getCheckBox(`Check_Box_DO_${i}_4`).check();
+            }
+        } catch (e) {
+            console.warn(`Could not set quality inspection checkboxes for DO module ${i}:`, e);
+        }
+
+        // Fill protocol values from the saved test results
+        for (let j = 1; j <= channelCount; j++) {
+            const fieldNameIEC101 = `DO_${i}_IEC101_${j}`;
+            const fieldNameIEC104 = `DO_${i}_IEC104_${j}`;
+            const fieldNameDNP3 = `DO_${i}_DNP3_${j}`;
+            
+            // Get values from saved results
+            const fieldValueIEC101 = moduleResults.iec101Values?.[`DO_${i}_IEC101_${j}`] || '';
+            const fieldValueIEC104 = moduleResults.iec104Values?.[`DO_${i}_IEC104_${j}`] || '';
+            const fieldValueDNP3 = moduleResults.dnp3Values?.[`DO_${i}_DNP3_${j}`] || '';
+            
+            try {
+                if (fieldValueIEC101) currentForm.getTextField(fieldNameIEC101).setText(fieldValueIEC101);
+                if (fieldValueIEC104) currentForm.getTextField(fieldNameIEC104).setText(fieldValueIEC104);
+                if (fieldValueDNP3) currentForm.getTextField(fieldNameDNP3).setText(fieldValueDNP3);
+            } catch (e) {
+                console.error(`Failed to process DO module ${i}:`, e);
+                throw e; // Re-throw to stop the process
+            }
+        }
+
+        if (moduleResults.checkboxValues) {
+            for (const [fieldName, isChecked] of Object.entries(moduleResults.checkboxValues)) {
+                try {
+                    const pdfField = currentForm.getCheckBox(fieldName);
+                    if (isChecked) {
+                        pdfField.check();
+                    } else {
+                        pdfField.uncheck();
+                    }
+                } catch (e) {
+                    console.warn(`Could not find PDF checkbox field ${fieldName}`);
+                }
+            }
+        }
+
+        currentForm.flatten(); // optional but good for final PDFs
+
+        // --- 3. Copy filled page from current PDF into the main PDF ---
+        const [filledPage] = await pdfDoc.copyPages(currentPdf, [0]);
+        pdfDoc.addPage(filledPage);
+    }

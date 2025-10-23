@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT - Bill of Quantity</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Added styles for the new row layout */
+        .input-group {
+            display: flex;
+            flex-direction: column; /* Stack the rows vertically */
+            gap: 1.5rem; /* Space between the rows */
+            margin-bottom: 1.5rem;
+        }
+        .input-row {
+            display: flex;
+            flex-wrap: wrap; /* Allows items to wrap on smaller screens */
+            gap: 1rem; /* Space between items in a row */
+            justify-content: space-between;
+        }
+        .input-row .form-group {
+            flex: 1; /* Allow items to grow */
+            min-width: 160px; /* Prevent items from becoming too narrow */
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        // Initialize jsPDF after loading
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.jspdf && window.jspdf.jsPDF) {
+                window.jsPDF = window.jspdf.jsPDF;
+            } else {
+                console.warn("jsPDF library not fully loaded. PDF features might not work.");
+            }
+        });
+    </script>
+</head>
+<body>
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" onerror="this.onerror=null; this.src='https://placehold.co/100x60/cccccc/ffffff?text=Logo'; this.alt='Logo Placeholder';" />
+
+    <div id="bqPageContainer" class="page-container">
+        <h1>Bill of Quantity</h1>
+        <div class="control-panel">
+            <div class="input-group">
+        <!-----First Row of Input--------------------->
+                <div class="input-row">
+                    <div class="form-group">
+                        <label for="subrackCount">Subrack Quantity</label>
+                        <input type="number" id="subrackCount" min="0" max="40" value="0" />
+                    </div>              
+                    <div class="form-group">
+                        <label for="processorCount">Processor Quantity</label>
+                        <input type="number" id="processorCount" min="0" max="40" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label for="powerCount">Power Supply Quantity</label>
+                        <input type="number" id="powerCount" min="0" max="40" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label for="comCount">COM-6-A Quantity</label>
+                        <input type="number" id="comCount" min="0" max="40" value="0" />
+                    </div>      
+                </div>
+            <!-----Second Row of Input------------------->
+                    <div class="input-row">
+                        <div class="form-group">
+                            <label for="diCount">Number of DI Modules</label>
+                            <input type="number" id="diCount" min="0" max="40" value="0" />
+                        </div>
+                        <div class="form-group">
+                            <label for="doCount">Number of DO Modules</label>
+                            <input type="number" id="doCount" min="0" max="40" value="0" />
+                        </div>
+                        <div class="form-group">
+                            <label for="aiCount">Number of AI Modules</label>
+                            <input type="number" id="aiCount" min="0" max="40" value="0" />
+                        </div>
+                        <div class="form-group">
+                            <label for="aoCount">Number of AO Modules</label>
+                            <input type="number" id="aoCount" min="0" max="40" value="0" />
+                        </div>
+                    </div>
+            </div>
+            <button id="generateBtn">Generate Sheets</button>
+            <button id="clearBtn">Clear All</button>
+        </div>
+        
+        <div id="sheetsContainer" class="sheet-container">
+            <!-- Module sheets will be generated here -->
+        </div>
+
+        <div class="control-panel">
+            <button id="submitBtn" onclick="goToNext()">Save & Continue</button>
+            <button id="exportBtn" type="button">Export Configuration</button>
+            <button id="backBtn">Back</button>
+        </div>
+    </div>
+
+    <script src="BQ.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
+    <canvas id="pdf-canvas" style="display: none;"></canvas>
+    <script src="https://unpkg.com/pdf-lib@^1.16.0"></script>
+    <script src="https://unpkg.com/pdf-lib@1.16.0/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+    <script src="rtudetail.js"></script>
+</body>
+</html>

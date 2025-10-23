@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Style will refer to style.css document-->
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT</title>
+    <!-- Add PDF generation libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+    // Initialize jsPDF after loading
+      window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <script src="https://unpkg.com/pdf-lib@^1.16.0"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+
+</head>
+<body>
+    <!-- Logo at top right -->
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <!-- RTU Info Page -->
+<div id="Dummy&CESFunctionalTest">
+   <h1 style="text-align: center;">
+    Dummy Breaker, CES & Buzzer Functional Test
+   </h1>
+   
+   <!-- Container for dynamic processor sections -->
+   <div id="Dummy&CESFunctionalTestsection"></div>
+   
+   <div style="margin-top: 20px; text-align: center;">
+    <button onclick="SelectAll()">
+     Select All (OK)
+    </button>
+    <button onclick="clearAll()">
+     Clear All
+    </button>
+   </div>
+   <!-- Add the submit button panel at the bottom -->
+  <div class="control-panel">
+      <button id="submitBtn" onclick="goToFunctionalityAI()">
+          Save &amp; Continue
+      </button>
+      <button onclick="goToPreviousPage()">  <!-- Changed function name -->
+          Back
+      </button>
+  </div>
+  </div>
+
+<script src="Dummy&CESFunctionalTest.js"></script> 
+<script src="navigationGuard.js"></script>
+</body>
+</html>

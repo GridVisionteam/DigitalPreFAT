@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+      window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <script src="https://unpkg.com/pdf-lib@^1.16.0"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+</head>
+<body>
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <!-- Main DO Page -->
+    <div id="functionalityDOPage" class="page-container">
+        <h1>Functional Test – Digital Output Module</h1>
+<div class="universal-nav-container">
+    <button class="universal-nav-toggle">Navigation</button>
+    <div class="universal-nav">
+        <div class="module-selectors">
+            <!-- DI Module Selector -->
+            <div class="module-selector">
+                <label for="diModuleJump">DI Module:</label>
+                <select id="diModuleJump" onchange="navigateToModule('DI', this.value)" required>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+                <span id="diModuleCounter"></span>
+            </div>
+            
+            <!-- DO Module Selector -->
+            <div class="module-selector">
+                <label for="doModuleJump">DO Module:</label>
+                <select id="doModuleJump" onchange="navigateToModule('DO', this.value)" required>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+                <span id="doModuleCounter"></span>
+            </div>
+            
+            <!-- AI Module Selector -->
+            <div class="module-selector">
+                <label for="aiModuleJump">AI Module:</label>
+                <select id="aiModuleJump" onchange="navigateToModule('AI', this.value)" required>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+                <span id="aiModuleCounter"></span>
+            </div>
+        </div>
+    </div>
+</div>
+        <p>
+            DO No. : <span id="doNoInput"></span>
+        </p>
+        <div class="quality-inspection">
+            <label>Quality Inspection:</label>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">No.</th>
+                        <th style="text-align: center;">Quality Inspection</th>
+                        <th style="text-align: center;">OK</th>
+                        <th style="text-align: center;">NO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align: center;">1</td>
+                        <td style="text-align: left;">The module is free from defect e.g. scratches, deformities, corrosion, broken.</td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality1" value="OK" data-quality-item="1" checked>
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality1" value="NO" data-quality-item="2">
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center;">2</td>
+                        <td style="text-align: left;">The jumper is set as per approved drawing.</td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality2" value="OK" data-quality-item="3" checked>
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality2" value="NO" data-quality-item="4">
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="notes">Notes: Please refer Mastersheet for this functional test result.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" style="text-align: center;">No.</th>
+                    <th colspan="2" style="text-align: center;">Double Command [1,2]</th>
+                    <th colspan="3" style="text-align: center;">IOA/Index</th>
+                </tr>
+                <tr>
+                    <th colspan="2" style="text-align: center;">Single Command [1]</th>
+                    <th style="text-align: center;">IEC101</th>
+                    <th style="text-align: center;">IEC104</th>
+                    <th style="text-align: center;">DNP3</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="SelectAll()">Select All</button>
+            <button onclick="clearAll()">Clear All</button>
+        </div>
+        
+        <div class="control-panel">
+            <button id="submitBtn" onclick="handleDOTestSubmission()">Save &amp; Continue</button>
+            <button onclick="goToPreviousPage()">Back</button>
+        </div>
+    </div>
+
+    <!-- CO-8-A Configuration Page -->
+    <div id="do8Page" class="page-container hidden">
+        <h1>Digital Output Module (CO-8-A)</h1>
+        <div class="universal-nav-container">
+            <button class="universal-nav-toggle">Navigation</button>
+            <div class="universal-nav">
+                <div class="module-selectors">
+                    <!-- DI Module Selector -->
+                    <div class="module-selector">
+                        <label for="diModuleJump">DI Module:</label>
+                        <select id="diModuleJump" onchange="navigateToModule('DI', this.value)" required>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                        <span id="diModuleCounter"></span>
+                    </div>
+                    
+                    <!-- DO Module Selector -->
+                    <div class="module-selector">
+                        <label for="doModuleJump">DO Module:</label>
+                        <select id="doModuleJump" onchange="navigateToModule('DO', this.value)" required>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                        <span id="doModuleCounter"></span>
+                    </div>
+                    
+                    <!-- AI Module Selector -->
+                    <div class="module-selector">
+                        <label for="aiModuleJump">AI Module:</label>
+                        <select id="aiModuleJump" onchange="navigateToModule('AI', this.value)" required>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                        <span id="aiModuleCounter"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p>DO No. : <span id="do8NoInput"></span></p>
+        <div class="quality-inspection">
+            <label>Quality Inspection:</label>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">No.</th>
+                        <th style="text-align: center;">Quality Inspection</th>
+                        <th style="text-align: center;">OK</th>
+                        <th style="text-align: center;">NO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align: center;">1</td>
+                        <td style="text-align: left;">The module is free from defect e.g. scratches, deformities, corrosion, broken.</td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality1" value="OK" data-quality-item="1" checked>
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality1" value="NO" data-quality-item="2">
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center;">2</td>
+                        <td style="text-align: left;">The jumper is set as per approved drawing.</td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality2" value="OK" data-quality-item="3" checked>
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                        <td style="text-align: center;">
+                            <label class="toggle-button">
+                                <input type="radio" name="quality2" value="NO" data-quality-item="4">
+                                <span class="toggle-text"></span>
+                            </label>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="notes">Notes: Please refer Mastersheet for this functional test result.</p>        
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2" style="text-align: center;">No.</th>
+                    <th colspan="2" style="text-align: center;">Double Command [1,2]</th>
+                    <th colspan="3" style="text-align: center;">IOA/Index</th>
+                </tr>
+                <tr>
+                    <th colspan="2" style="text-align: center;">Single Command [1]</th>
+                    <th style="text-align: center;">IEC101</th>
+                    <th style="text-align: center;">IEC104</th>
+                    <th style="text-align: center;">DNP3</th>
+                </tr>
+            </thead>
+            <tbody id="do8TableBody"></tbody>
+        </table>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="SelectAllDO8()">Select All</button>
+            <button onclick="clearAllDO8()">Clear All</button>
+        </div>
+        
+        <div class="control-panel">
+            <button id="submitBtnDO8" onclick="handleDO8TestSubmission()">Save &amp; Continue</button>
+            <button onclick="goToPreviousPage()">Back</button>
+        </div>
+    </div>
+    <script src="FunctionalityDOPage.js"></script>
+    <script src="universalNav.js"></script> 
+    <script src="navigationGuard.js"></script>
+</body>
+</html>

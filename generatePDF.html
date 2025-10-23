@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate PDF Report</title>
+    <!-- Use CDN with local fallback -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+    <script>
+        // Fallback for PDF-Lib if CDN fails
+        if (typeof PDFLib === 'undefined') {
+            document.write('<script src="pdf-lib.min.js"><\/script>');
+        }
+        // Fallback for downloadjs if CDN fails
+        if (typeof download === 'undefined') {
+            document.write('<script src="download.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page">
+    
+    <div class="pdf-generation-container">
+        <h1>PDF Generation</h1>
+        <div class="status-box">
+            <p id="generationStatus">Ready to generate PDF report...</p>
+            <div class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button id="generatePdfBtn" onclick="generateFinalPdf()">Generate PDF Report</button>
+            <button id="StartNewSession" onclick="startNewSession()">Start New Session</button>
+            <button onclick="window.location.href='signature.html'">Back</button>
+        </div>
+    </div>
+
+    <script src="commonFunctions.js"></script>
+    <script src="generateJSON.js"></script>
+    <script src="generatePDF.js"></script>
+    
+    <script>
+        // Expose the function to the global scope
+        window.startNewSession = startNewSession;
+        
+        // Modified to use the external JSON generation functions
+        async function generateFinalPdf() {
+            const statusElement = document.getElementById('generationStatus');
+            const progressBar = document.getElementById('progressBar');
+            
+            try {
+                statusElement.textContent = "Loading user data...";
+                progressBar.style.width = '10%';
+                
+                // Load user data
+                const userData = loadUserData();
+                
+                statusElement.textContent = "Generating PDF and JSON...";
+                progressBar.style.width = '30%';
+                
+                // Generate the PDF
+                await generateFinalPDF(userData);
+                
+                // Also generate JSON backup using the external function
+                generateJsonFile();
+                
+                statusElement.textContent = "PDF and JSON generated successfully!";
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#4CAF50';
+                
+            } catch (error) {
+                statusElement.textContent = "Generation failed: " + error.message;
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#f44336';
+                console.error("Generation failed:", error);
+            }
+        }
+    </script>
+    
+    <style>
+        .pdf-generation-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .status-box {
+            background-color: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            width: 0;
+            background-color: #2196F3;
+            border-radius: 4px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        
+        .button-container {
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,86 @@
+//DI PAGE MODIFIER
+const oldDINumber = 1;
+const newDINumber = 2;
+const protocols = ["0mA","4mA","8mA","12mA","16mA","20mA","IEC101", "IEC104", "DNP3"];
+const FONT_NAME = font.Times; // Times New Roman
+const FONT_SIZE = 8;
+
+function cloneField(oldName, newName, applyWhiteStyle = false) {
+    const oldField = this.getField(oldName);
+    if (oldField) {
+        this.addField(newName, "text", 0, oldField.rect);
+        const newField = this.getField(newName);
+        newField.value = oldField.value;
+        newField.textFont = FONT_NAME;
+        newField.textSize = FONT_SIZE;
+        newField.alignment = "center"; // Center text
+
+        if (applyWhiteStyle) {
+            newField.fillColor = color.white;     // Solid white background
+            newField.strokeColor = color.white;   // White border
+            newField.borderWidth = 1;              // Border thickness (adjust if needed)
+        } else {
+            newField.fillColor = color.transparent;  // No background
+            newField.strokeColor = color.transparent; // No border
+        }
+
+        this.removeField(oldName);
+    }
+}
+
+// Fields without white background or border
+cloneField.call(this, `AI No ${oldDINumber}`, `AI No ${newDINumber}`);
+cloneField.call(this, `Subrack No ${oldDINumber}`, `Subrack No ${newDINumber}`);
+cloneField.call(this, `Slot No ${oldDINumber}`, `Slot No ${newDINumber}`);
+cloneField.call(this, `SN ${oldDINumber}`, `SN ${newDINumber}`);
+
+// Fields WITH white background and white border
+cloneField.call(this, `Part No ${oldDINumber}`, `Part No ${newDINumber}`, true);
+cloneField.call(this, `RecordSheetNo ${oldDINumber}`, `RecordSheetNo ${newDINumber}`, true);
+
+// Process all protocol fields
+for (let i = 1; i <= 8; i++) {
+    protocols.forEach(protocol => {
+        const oldName = `AI_${oldDINumber}_${protocol}_${i}`;
+        const newName = `AI_${newDINumber}_${protocol}_${i}`;
+        const field = this.getField(oldName);
+
+        if (field) {
+            const val = field.value;
+            if (!this.getField(newName)) {
+                this.addField(newName, "text", 0, field.rect);
+            }
+
+            const newField = this.getField(newName);
+            newField.value = val;
+            newField.alignment = "center";         // Center text horizontally
+            this.removeField(oldName);
+        }
+    });
+}
+
+// ====================== IMPROVED CHECKBOX CLONING ======================
+// Clone all checkboxes for FT 1-4 and numbers 1-16
+for (let ft = 1; ft <= 4; ft++) {
+    const oldCheckboxName2 = `Check_Box_AI_${oldDINumber}_${ft}`;
+    const newCheckboxName2 = `Check_Box_AI_${newDINumber}_${ft}`;
+    const oldCheckbox2 = this.getField(oldCheckboxName2);
+
+    if (oldCheckbox2) {
+        const checkboxValue2 = oldCheckbox2.value; // Store checked/unchecked state
+        const checkboxRect2 = oldCheckbox2.rect;   // Store position & size
+
+        // Remove the old checkbox
+        this.removeField(oldCheckboxName2);
+
+        // Create new checkbox if it doesn't exist
+        if (!this.getField(newCheckboxName2)) {
+            this.addField(newCheckboxName2, "checkbox", 0, checkboxRect2);
+            const newCheckbox2 = this.getField(newCheckboxName2);
+            newCheckbox2.value = checkboxValue2; // Set checked/unchecked state
+        }
+    } else {
+        console.println(`WARNING: Checkbox not found: ${oldCheckboxName2}`);
+    }
+}
+// ====================================================================

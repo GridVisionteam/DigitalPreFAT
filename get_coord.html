@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Coordinate Finder</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; }
+        #image-container { 
+            display: inline-block; 
+            border: 2px solid #ccc;
+            cursor: crosshair; 
+            margin-top: 20px;
+        }
+        #coords-display { 
+            margin-top: 15px; 
+            font-size: 1.5em; 
+            font-weight: bold; 
+            color: #d9534f;
+        }
+        img { display: block; } /* Removes extra space below image */
+    </style>
+</head>
+<body>
+    <h2>Image Coordinate Finder</h2>
+    <p>Upload your PNG template and then move your mouse over it.</p>
+    <input type="file" id="image-loader" accept="image/png">
+    
+    <div id="coords-display">(x, y) = (0, 0)</div>
+    
+    <div id="image-container"></div>
+
+    <script>
+        const imageLoader = document.getElementById('image-loader');
+        const container = document.getElementById('image-container');
+        const coordsDisplay = document.getElementById('coords-display');
+
+        imageLoader.addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Clear previous image if any
+                container.innerHTML = ''; 
+                
+                const img = new Image();
+                img.onload = function() {
+                    container.appendChild(img);
+                }
+                img.src = event.target.result;
+
+                // Add mouse move listener to get coordinates
+                img.addEventListener('mousemove', function(e) {
+                    // offsetX/Y gives coordinates relative to the element itself
+                    const x = e.offsetX;
+                    const y = e.offsetY;
+                    coordsDisplay.textContent = `(x, y) = (${x}, ${y})`;
+                });
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        }, false);
+    </script>
+</body>
+</html>
