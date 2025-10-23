@@ -1,0 +1,724 @@
+const { PDFDocument, rgb } = PDFLib;
+// Initialize with empty data structures
+if (!window.diTestResults) window.diTestResults = {};
+if (!window.diModuleTypes) window.diModuleTypes = {};
+
+function setupDIModuleTypeListeners() {
+    const diModuleTypeSelects = document.querySelectorAll('#diModuleType');
+    diModuleTypeSelects.forEach(select => {
+        select.addEventListener('change', handleDIModuleTypeChange);
+    });
+}
+
+function handleDIModuleTypeChange() {
+    const moduleType = this.value;
+    
+    // Save current data before switching
+    saveCurrentModuleData();
+    
+    // Update the module type in our tracking object
+    window.diModuleTypes[window.currentDIModule] = moduleType;
+    sessionStorage.setItem('diModuleTypes', JSON.stringify(window.diModuleTypes));
+
+    // Switch to the selected page
+    if (moduleType === 'DI-16') {
+        showFunctionalityDI16Page();
+    } else {
+        showFunctionalityDIPage();
+    }
+}
+
+function saveCurrentModuleData() {
+    if (document.getElementById('FunctionalityDIPage').style.display !== 'none') {
+        saveDITestData(window.currentDIModule);
+    } else if (document.getElementById('di16Page').style.display !== 'none') {
+        saveDI16TestData(window.currentDIModule);
+    }
+}
+
+
+function showFunctionalityDIPage() {
+    // Initialize module tracking
+    window.diModulesToTest = parseInt(sessionStorage.getItem('diModulesToTest')) || 0;
+    window.currentDIModule = parseInt(sessionStorage.getItem('currentDIModule')) || 1;
+    
+    // Make page visible
+    document.getElementById('FunctionalityDIPage').style.display = 'block';
+    document.getElementById('di16Page').style.display = 'none';
+
+    // Set module info
+    document.getElementById('diModuleType').value = window.diModuleTypes[window.currentDIModule] || 'DI-32';
+    document.getElementById("diNoInput").value = window.currentDIModule;
+    
+    // Update the title
+    const titleElement = document.querySelector("#FunctionalityDIPage h1");
+    if (titleElement) {
+        titleElement.textContent = 
+            `2.0 Functional Test – Digital Input Module (DI-32) (${window.currentDIModule} of ${window.diModulesToTest})`;
+    }
+
+    // Generate rows if not already present
+    if (document.getElementById('tableBody').children.length === 0) {
+        generateDIRows();
+    }
+
+    // Load existing data if available
+    if (window.diTestResults[window.currentDIModule] && 
+        window.diTestResults[window.currentDIModule].type === 'DI-32') {
+        loadDITestData(window.currentDIModule);
+    } else {
+        // Clear the form but don't overwrite any existing data
+        clearAll();
+    }
+    
+    setupDIModuleTypeListeners();
+}
+
+
+function showFunctionalityDI16Page() {
+    // Hide DI-32 page and show DI-16 page
+    document.getElementById('FunctionalityDIPage').style.display = 'none';
+    document.getElementById('di16Page').style.display = 'block';
+
+    // Set module info
+    document.querySelector('#di16Page #diModuleType').value = 'DI-16';
+    document.getElementById("di16NoInput").value = window.currentDIModule;
+    document.querySelector("#di16Page h1").textContent = 
+        `2.0 Functional Test – Digital Input Module (DI-16) (${window.currentDIModule} of ${window.diModulesToTest})`;
+
+    // Generate rows if not already present
+    const tableBody = document.getElementById('di16TableBody');
+    if (tableBody.children.length === 0) {
+        generateDI16Rows();
+    }
+
+    // Load existing data if available
+    if (window.diTestResults[window.currentDIModule] && 
+        window.diTestResults[window.currentDIModule].type === 'DI-16') {
+        loadDI16TestData(window.currentDIModule);
+    } else {
+        // Clear the form but don't overwrite any existing data
+        clearAllDI16();
+    }
+    
+    setupDIModuleTypeListeners();
+}
+
+function generateDIRows() {
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) {
+        console.error("Table body not found - check HTML structure");
+        return;
+    }
+
+    tableBody.innerHTML = '';
+    
+    for (let i = 0; i < 16; i++) {
+        const row = document.createElement("tr");
+        
+        // Left channels (1-16)
+        row.innerHTML += `
+            <td>${i + 1}</td>
+            <td><input type="checkbox" class="di-test-checkbox"></td>
+            <td><input type="checkbox" class="di-test-checkbox"></td>
+            <td><input type="text" class="di-test-input"></td>
+            <td><input type="text" class="di-test-input"></td>
+            <td><input type="text" class="di-test-input"></td>
+        `;
+        
+        // Right channels (17-32)
+        row.innerHTML += `
+            <td>${i + 17}</td>
+            <td><input type="checkbox" class="di-test-checkbox"></td>
+            <td><input type="checkbox" class="di-test-checkbox"></td>
+            <td><input type="text" class="di-test-input"></td>
+            <td><input type="text" class="di-test-input"></td>
+            <td><input type="text" class="di-test-input"></td>
+        `;
+        
+        tableBody.appendChild(row);
+    }
+
+    // Add event listeners safely
+    document.querySelectorAll('.di-test-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSubmitButtonState);
+    });
+}
+
+function generateDI16Rows() {
+    const tableBody = document.querySelector("#di16TableBody");
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = ''; // Clear existing content
+    
+    for (let i = 0; i < 16; i++) {
+        const row = document.createElement("tr");
+        
+        // Number column
+        row.innerHTML += `<td>${i + 1}</td>`;
+        
+        // Checkboxes and text inputs
+        row.innerHTML += `
+            <td style="text-align: center;"><input type="checkbox"></td>
+            <td style="text-align: center;"><input type="checkbox"></td>
+            <td><input type="text" style="width: 100px; text-align: center;"></td>
+            <td><input type="text" style="width: 100px; text-align: center;"></td>
+            <td><input type="text" style="width: 100px; text-align: center;"></td>
+        `;
+        
+        tableBody.appendChild(row);
+    }
+    
+    // Add event listeners to checkboxes
+    const checkboxes = tableBody.querySelectorAll("input[type='checkbox']");
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateDI16SubmitButtonState);
+    });
+}
+
+function SelectAll() {
+    const rows = document.querySelectorAll("#tableBody tr");
+    let allChecked = true;
+    
+    // First check if all checkboxes are already checked
+    rows.forEach(row => {
+        const checkboxes = row.querySelectorAll("td:nth-child(2) input[type='checkbox'], td:nth-child(3) input[type='checkbox'], td:nth-child(8) input[type='checkbox'], td:nth-child(9) input[type='checkbox']");
+        checkboxes.forEach(cb => {
+            if (!cb.checked) allChecked = false;
+        });
+    });
+    
+    // Then toggle based on current state
+    rows.forEach(row => {
+        const checkboxes = row.querySelectorAll("td:nth-child(2) input[type='checkbox'], td:nth-child(3) input[type='checkbox'], td:nth-child(8) input[type='checkbox'], td:nth-child(9) input[type='checkbox']");
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+    });
+    
+    updateSubmitButtonState();
+}
+
+function clearAll() {
+    // Clear all checkboxes
+    const checkboxes = document.querySelectorAll('.di-test-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    // Clear all text inputs
+    const textInputs = document.querySelectorAll('.di-test-input');
+    textInputs.forEach(input => {
+        input.value = '';
+    });
+    
+    updateSubmitButtonState();
+}
+
+function updateSubmitButtonState() {
+    const submitBtn = document.getElementById('submitBtn');
+    if (!submitBtn) return;
+    
+    // Enable the button by default (modify this logic if you need different behavior)
+    submitBtn.disabled = false;
+}
+
+function SelectAllDI16() {
+    const checkboxes = document.querySelectorAll("#di16TableBody input[type='checkbox']");
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+    
+    updateDI16SubmitButtonState();
+}
+
+function clearAllDI16() {
+    const checkboxes = document.querySelectorAll("#di16TableBody input[type='checkbox']");
+    checkboxes.forEach(cb => cb.checked = false);
+
+    const textInputs = document.querySelectorAll("#di16TableBody input[type='text']");
+    textInputs.forEach(input => input.value = '');
+
+    updateDI16SubmitButtonState();
+}
+
+function updateDI16SubmitButtonState() {
+    const submitBtn = document.getElementById('submitBtnDI16');
+    if (submitBtn) {
+        const checkboxes = document.querySelectorAll("#di16TableBody input[type='checkbox']");
+        submitBtn.disabled = !Array.from(checkboxes).every(cb => cb.checked);
+    }
+}
+
+function saveDITestData(moduleNumber) {
+    if (!window.diTestResults[moduleNumber] || window.diTestResults[moduleNumber].type !== 'DI-32') {
+        window.diTestResults[moduleNumber] = {
+            inputs: [],
+            type: 'DI-32'
+        };
+    }
+
+    const inputs = document.querySelectorAll("#tableBody input");
+    window.diTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
+        return input.type === 'checkbox' ? input.checked : input.value;
+    });
+
+    sessionStorage.setItem('diTestResults', JSON.stringify(window.diTestResults));
+}
+
+function saveDI16TestData(moduleNumber) {
+    if (!window.diTestResults[moduleNumber] || window.diTestResults[moduleNumber].type !== 'DI-16') {
+        window.diTestResults[moduleNumber] = {
+            inputs: [],
+            type: 'DI-16'
+        };
+    }
+
+    const inputs = document.querySelectorAll("#di16TableBody input");
+    window.diTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
+        return input.type === 'checkbox' ? input.checked : input.value;
+    });
+
+    sessionStorage.setItem('diTestResults', JSON.stringify(window.diTestResults));
+}
+
+function loadDITestData(moduleNumber) {
+    const saved = window.diTestResults[moduleNumber];
+    if (!saved || saved.type !== 'DI-32') return;
+
+    const inputs = document.querySelectorAll("#tableBody input");
+    saved.inputs.forEach((value, idx) => {
+        const input = inputs[idx];
+        if (!input) return;
+
+        if (input.type === 'checkbox') {
+            input.checked = !!value;
+        } else {
+            input.value = value;
+        }
+    });
+    updateSubmitButtonState();
+}
+
+async function handleDITestSubmission() {
+    // Get all checkboxes in the current table
+    const checkboxes = document.querySelectorAll("#tableBody input[type='checkbox']");
+    let allChecked = true;
+    
+    // Check if all checkboxes are ticked
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            allChecked = false;
+        }
+    });
+    
+    if (!allChecked) {
+        alert("Please tick all checkboxes before continuing.");
+        return;
+    }
+    
+    // Save the current module's test data
+    saveDITestData(window.currentDIModule);
+    window.diModuleTypes[window.currentDIModule] = 'DI-32';
+    
+    // Generate PDF page for this module
+    //await generateDITestPDF(window.currentDIModule);
+    
+    // Move to next module or final page
+    window.currentDIModule++;
+    sessionStorage.setItem('currentDIModule', window.currentDIModule);
+    
+    if (window.currentDIModule > window.diModulesToTest) {
+        // Generate and download final PDF before navigation
+        const userData = loadUserData();
+        await generateFinalPDF(userData);
+        // All DI modules tested, go to DO page
+        //window.location.href = 'FunctionalityDOPage.html';
+    } else {
+        // Check module type for next module
+        const nextType = window.diModuleTypes[window.currentDIModule] || 'DI-32';
+        if (nextType === 'DI-16') {
+            showFunctionalityDI16Page();
+        } else {
+            showFunctionalityDIPage();
+        }
+    }
+}
+
+function saveDI16TestData(moduleNumber) {
+    if (!window.diTestResults) window.diTestResults = {};
+    window.diTestResults[moduleNumber] = {
+        inputs: Array.from(document.querySelectorAll("#di16TableBody input")).map(input => {
+            return input.type === 'checkbox' ? input.checked : input.value;
+        }),
+        type: 'DI-16'
+    };
+    // Save to sessionStorage
+    sessionStorage.setItem('diTestResults', JSON.stringify(window.diTestResults));
+}
+
+function loadDI16TestData(moduleNumber) {
+    const saved = window.diTestResults[moduleNumber];
+    if (!saved || saved.type !== 'DI-16') return;
+
+    const inputs = document.querySelectorAll("#di16TableBody input");
+    saved.inputs.forEach((value, idx) => {
+        const input = inputs[idx];
+        if (!input) return;
+
+        if (input.type === 'checkbox') {
+            input.checked = !!value;
+        } else {
+            input.value = value;
+        }
+    });
+    updateDI16SubmitButtonState();
+}
+
+async function handleDI16TestSubmission() {
+    // Save data and continue to next module
+    saveDI16TestData(window.currentDIModule);
+    window.diModuleTypes[window.currentDIModule] = 'DI-16';
+    
+    // Generate PDF page for this module
+    //await generateDITestPDF(window.currentDIModule);
+    
+    window.currentDIModule++;
+    sessionStorage.setItem('currentDIModule', window.currentDIModule);
+    
+    if (window.currentDIModule > window.diModulesToTest) {
+        // Generate and download final PDF before navigation
+        const userData = loadUserData();
+        await generateFinalPDF(userData);
+        // All DI modules tested, go to DO page
+        //window.location.href = 'FunctionalityDOPage.html';
+    } else {
+        // Check module type for next module
+        const nextType = window.diModuleTypes[window.currentDIModule] || 'DI-32';
+        if (nextType === 'DI-16') {
+            showFunctionalityDI16Page();
+        } else {
+            showFunctionalityDIPage();
+        }
+    }
+}
+
+function goToPreviousDIModule() {
+    // Save current test data before navigating
+    const currentModuleType = document.getElementById('diModuleType').value;
+    if (currentModuleType === 'DI-16') {
+        saveDI16TestData(window.currentDIModule);
+    } else {
+        saveDITestData(window.currentDIModule);
+    }
+
+    // If we're on the first module, go back to BQ page
+    if (window.currentDIModule === 1) {
+        window.location.href = 'BQ.html';
+        return;
+    }
+
+    // Otherwise, go to previous module
+    window.currentDIModule--;
+    sessionStorage.setItem('currentDIModule', window.currentDIModule);
+
+    // Show the appropriate page based on module type
+    const previousModuleType = window.diModuleTypes[window.currentDIModule] || 'DI-32';
+    if (previousModuleType === 'DI-16') {
+        showFunctionalityDI16Page();
+    } else {
+        showFunctionalityDIPage();
+    }
+}
+
+function goToPreviousPage() {
+    // Save current test data before navigating
+    saveCurrentModuleData();
+
+    // If we're on the first module, go back to BQ page
+    if (window.currentDIModule === 1) {
+        window.location.href = 'BQ.html';
+        return;
+    }
+
+    // Go to previous module
+    window.currentDIModule--;
+    sessionStorage.setItem('currentDIModule', window.currentDIModule);
+
+    // Show the appropriate page based on module type
+    const previousModuleType = window.diModuleTypes[window.currentDIModule] || 'DI-32';
+    if (previousModuleType === 'DI-16') {
+        showFunctionalityDI16Page();
+    } else {
+        showFunctionalityDIPage();
+    }
+}
+
+// Initialize the page when loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Load saved test results if available
+    const savedResults = sessionStorage.getItem('diTestResults');
+    if (savedResults) {
+        window.diTestResults = JSON.parse(savedResults);
+    }
+    
+    // Load saved module types if available
+    const savedTypes = sessionStorage.getItem('diModuleTypes');
+    if (savedTypes) {
+        window.diModuleTypes = JSON.parse(savedTypes);
+    }
+
+    // Initialize with DI-32 page
+    showFunctionalityDIPage();
+});
+
+//---------------------------Generate PDF file-------------------------------------------------------------
+
+/*async function generateDITestPDF(moduleNumber) {
+    try {
+        // Load the template PDF first
+        const templateUrl = './DF1725IED FAT Test Record 1.pdf';
+        const templateResponse = await fetch(templateUrl);
+        const templateBytes = await templateResponse.arrayBuffer();
+        
+        // Load the existing PDF bytes from sessionStorage
+        let existingPdfBytes;
+        const savedPdf = sessionStorage.getItem('currentPdfBytes');
+        
+        if (savedPdf) {
+            // Convert base64 back to Uint8Array
+            const binaryString = atob(savedPdf);
+            existingPdfBytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                existingPdfBytes[i] = binaryString.charCodeAt(i);
+            }
+        } else {
+            // Create a new PDF if none exists
+            const tempDoc = await PDFDocument.create();
+            existingPdfBytes = await tempDoc.save();
+        }
+
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        const templateDoc = await PDFDocument.load(templateBytes);
+
+        // Copy the template page to our main PDF
+        const [templatePage] = await pdfDoc.copyPages(templateDoc, [0]);
+        pdfDoc.addPage(templatePage);
+
+        // Get module details from sessionStorage
+        const moduleData = JSON.parse(sessionStorage.getItem('moduleData') || '{}');
+        const diModules = moduleData.modules?.DI || [];
+        const moduleDetails = diModules.find(m => m.moduleNo === moduleNumber) || {};
+
+        const diNoInput = document.getElementById('diNoInput') || document.getElementById('di16NoInput');
+        const diNo = diNoInput ? diNoInput.value : moduleNumber;
+
+        // Fill in the module details on the new page
+        const form = pdfDoc.getForm();
+        try {
+            form.getTextField(`DI No`).setText(diNo || '');
+            form.getTextField(`Subrack No`).setText(moduleDetails.subrack || '');
+            form.getTextField(`Slot No`).setText(moduleDetails.slot || '');
+            form.getTextField(`SN`).setText(moduleDetails.serial || '');
+            
+            // Add test results
+            const testResults = window.diTestResults[moduleNumber] || {};
+            if (testResults.inputs) {
+                for (let i = 0; i < testResults.inputs.length; i++) {
+                    const value = testResults.inputs[i];
+                    const fieldName = `DI_${moduleNumber}_Test_${i+1}`;
+                    try {
+                        if (typeof value === 'boolean') {
+                            form.getCheckBox(fieldName).setValue(value);
+                        } else {
+                            form.getTextField(fieldName).setText(value);
+                        }
+                    } catch (e) {
+                        console.warn(`Field ${fieldName} not found in PDF template`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Error filling PDF form:", e);
+        }
+
+        // Flatten the form and save back to sessionStorage
+        form.flatten();
+        const updatedPdfBytes = await pdfDoc.save();
+        
+        // Convert to base64 for storage
+        const blob = new Blob([updatedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+        sessionStorage.setItem('currentPdfBytes', updatedBase64);
+
+    } catch (error) {
+        console.error("Error generating DI test PDF:", error);
+        throw error; // Re-throw to handle in calling function
+    }
+}*/
+
+
+// Add this new function to generate the final PDF:
+async function generateFinalPDF(currentUserData) {
+    try {
+        let templateUrl = './DF1725IED FAT Test Record.pdf';
+        let templateBytes = await fetch(templateUrl).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch template: ${res.statusText}`);
+            return res.arrayBuffer();
+        });
+
+        const { PDFDocument } = PDFLib;
+        const pdfDoc = await PDFDocument.load(templateBytes);
+        const form = pdfDoc.getForm();
+
+        // --- Fill Basic Information ---
+        form.getTextField('RTUSerialNumber').setText(currentUserData.rtuSerial || 'N/A');
+        form.getTextField('ContractNo').setText(currentUserData.contractNo || 'N/A');
+        form.getTextField('TesterName').setText(currentUserData.name || 'N/A');
+        form.getTextField('Experience').setText(currentUserData.experience || 'N/A');
+
+        // --- Fill Module Details ---
+        const moduleTypes = ['DI', 'DO', 'AI', 'AO'];
+        for (const type of moduleTypes) {
+            const sheet = document.querySelector(`.module-sheet[data-module-type="${type}"]`);
+            if (sheet) {
+                const rows = sheet.querySelectorAll('tbody tr');
+                rows.forEach((row, index) => {
+                    const moduleNo = index + 1;
+                    
+                    const partNo = row.querySelector('select[name$="_part_no"]')?.value || '';
+                    const subrack = row.querySelector('input[name$="_subrack"]')?.value || '';
+                    const slot = row.querySelector('input[name$="_slot"]')?.value || '';
+                    const serial = row.querySelector('input[name$="_serial"]')?.value || '';
+
+                    try {
+                        form.getTextField(`${type}_${moduleNo}_PartNo`).setText(partNo);
+                        form.getTextField(`${type}_${moduleNo}_Subrack`).setText(subrack);
+                        form.getTextField(`${type}_${moduleNo}_Slot`).setText(slot);
+                        form.getTextField(`${type}_${moduleNo}_Serial`).setText(serial);
+                    } catch (e) {
+                        console.warn(`Could not find PDF field for ${type} module ${moduleNo}. Error: ${e.message}`);
+                    }
+                });
+            }
+        }
+
+// --- --------------------Add a new page -------------------------------------
+        templateUrl = './DF1725IED FAT Test Record 1.pdf';
+        templateBytes = await fetch(templateUrl).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch template: ${res.statusText}`);
+            return res.arrayBuffer();
+        });
+
+        // Load the existing PDF to copy from
+        const existingPdf = await PDFDocument.load(templateBytes);
+
+        // Copy the first page (or other pages) from existing PDF
+        const [templatePage] = await pdfDoc.copyPages(existingPdf, [0]); // 0 = first page
+        const newPage = pdfDoc.addPage(templatePage);
+        const { width, height } = newPage.getSize();
+
+        // You can now draw content on the new page if needed
+        newPage.drawText('Additional Information Page', {
+            x: 50,
+            y: height - 50,
+            size: 24,
+        });
+
+        // Save the modified PDF
+        const pdfBytes = await pdfDoc.save();
+            
+        // --- Finalize and Download ---
+        form.flatten();
+        const modifiedPdfBytes = await pdfDoc.save();
+        
+        if (typeof download === 'function') {
+            download(modifiedPdfBytes, `RTU_Report_${currentUserData.rtuSerial || 'UnknownRTU'}.pdf`, 'application/pdf');
+        } else {
+            console.error("Download function is not defined. Offering fallback.");
+            const blob = new Blob([modifiedPdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            window.open(url);
+        }
+        } catch (error) {
+            console.error("PDF generation failed:", error);
+            showCustomAlert("Error: " + error.message);
+        }
+}
+
+
+//-------------Load UserData-------------------------------------------------------
+
+function loadUserData() {
+    const nameInput = document.getElementById('name');
+    const designationInput = document.getElementById('designation');
+    const experienceInput = document.getElementById('experience');
+    //formTiming.loginTime = new Date();
+
+    if (nameInput) nameInput.value = sessionStorage.getItem('session_name') || '';
+    if (designationInput) designationInput.value = sessionStorage.getItem('session_designation') || '';
+    if (experienceInput) experienceInput.value = sessionStorage.getItem('session_experience') || '';
+
+    const sessionUsername = sessionStorage.getItem('session_username');
+    const sessionRtuSerial = sessionStorage.getItem('session_rtuSerial');
+    const sessionName = sessionStorage.getItem('session_name');
+    const sessionDesignation = sessionStorage.getItem('session_designation');
+    const sessionExperience = sessionStorage.getItem('session_experience');
+    const sessionContractNo = sessionStorage.getItem('session_contractNo');
+    const sessiondiModulesToTest = sessionStorage.getItem('diModulesToTest');
+    const sessioncurrentDIModule = sessionStorage.getItem('currentDIModule');
+    const sessiondiModulesDetails = sessionStorage.getItem('diModulesDetails');
+
+    if (!sessionUsername || !sessionRtuSerial) {
+        showCustomAlert("Essential session data missing. Redirecting to login.");
+        setTimeout(() => { window.location.href = './index.html'; }, 2000);
+        return false;
+    }
+
+    userData = {
+        username: sessionUsername,
+        rtuSerial: sessionRtuSerial,
+        name: sessionName || 'N/A',
+        designation: sessionDesignation || 'N/A',
+        experience: sessionExperience || '0',
+        contractNo: sessionContractNo || 'N/A',
+        diModulesToTest: sessiondiModulesToTest,
+        currentDIModule: sessioncurrentDIModule,
+        diModulesDetails: sessiondiModulesDetails,
+    };
+    console.log("User data loaded:", userData);
+    return userData; // Make sure to return the userData object
+}
+
+function showCustomAlert(message) {
+    const existingAlert = document.getElementById('customAlertBox');
+    if (existingAlert) existingAlert.remove();
+    const messageBox = document.createElement('div');
+    messageBox.id = 'customAlertBox';
+    messageBox.textContent = message;
+    messageBox.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index:1001; text-align: center;";
+    document.body.appendChild(messageBox);
+    setTimeout(() => messageBox.remove(), 3000);
+}
+// --- Helper Download Function (if not defined elsewhere) ---
+if (typeof download === 'undefined') {
+    window.download = function(data, filename, type) {
+        const blob = new Blob([data], { type: type || 'application/octet-stream' });
+        if (navigator.msSaveBlob) { // For IE 10+
+            navigator.msSaveBlob(blob, filename);
+        } else {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+    }
+}
