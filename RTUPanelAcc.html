@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Style will refer to style.css document-->
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT</title>
+    <!-- Add PDF generation libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+    // Initialize jsPDF after loading
+      window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <script src="https://unpkg.com/pdf-lib@^1.16.0"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+
+</head>
+<body>
+    <!-- Logo at top right -->
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <!-- RTU Info Page -->
+<div class="RTU-Panel-Accesories">
+   <h1 style="text-align: center;">
+    RTU Panel Accesories
+   </h1>
+        <div class="RTUPanelAccesories">
+                <table>
+                    <thead>
+                        <tr>
+                            <th  style="text-align: center;">
+                            Item
+                            </th>
+                            <th  style="text-align: center;">
+                            Accessories
+                            </th>
+                            <th  style="text-align: center;">
+                            Brand
+                            </th>
+                            <th  style="text-align: center;">
+                            Model
+                            </th>
+                            <th  style="text-align: center;">
+                            Quantity
+                            </th>
+                            <th  style="text-align: center;">
+                            Datasheet
+                            </th>
+                            <th  style="text-align: center;">
+                            OK
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="RTUPanelAccesoriesTbody">
+                        <!---script-->
+                    </tbody>
+                </table>
+        </div>
+        <div style="text-align: center;">
+            <button onclick="SelectAll()">
+                Select All
+            </button>
+            <button onclick="clearAll()">
+                Clear All
+            </button>
+        </div>
+   <!-- Add the submit button panel at the bottom -->
+  <div class="control-panel">
+      <button id="submitBtn" onclick="handleRTUPanelAccSubmission()">
+          Save &amp; Continue
+      </button>
+      <button onclick="goToPreviousPage()">  <!-- Changed function name -->
+          Back
+      </button>
+  </div>
+  </div>
+<script src="commonFunctions.js"></script> 
+<script src="generatePDF.js"></script> 
+
+<script src="RTUPanelAcc.js"></script> 
+<script src="navigationGuard.js"></script>
+
+</body>
+</html>

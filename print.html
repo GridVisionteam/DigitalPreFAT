@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Document</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #pdfContainer {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .signature-field {
+            height: 100px;
+            margin-top: 50px;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+</head>
+<body>
+    <h1>Document Preview</h1>
+    <div id="pdfContainer">
+        <p>Preview of your PDF with signature will be generated when you click "Generate PDF".</p>
+        <div class="signature-field">
+            <p>Signature will be placed in the "SignatureField" of the PDF:</p>
+            <img id="pdfSignature" style="max-height: 80px;">
+        </div>
+    </div>
+    
+    <button id="generateButton">Generate PDF</button>
+    <button id="backButton">Back to Upload</button>
+
+    <script>
+        // Load the signature from localStorage
+        const signatureImage = localStorage.getItem('signatureImage');
+        if (signatureImage) {
+            document.getElementById('pdfSignature').src = signatureImage;
+        } else {
+            // No signature found, go back to upload page
+            window.location.href = 'test1.html';
+        }
+
+        document.getElementById('generateButton').addEventListener('click', generatePDF);
+        document.getElementById('backButton').addEventListener('click', () => {
+            window.location.href = 'test1.html';
+        });
+
+        async function generatePDF() {
+            try {
+                // Fetch the existing PDF
+                const pdfUrl = './PDF/Testing signature.pdf';
+                const existingPdfBytes = await fetch(pdfUrl).then(res => res.arrayBuffer());
+                
+                // Load the PDF
+                const pdfDoc = await PDFLib.PDFDocument.load(existingPdfBytes);
+                
+                // Get the form and field
+                const form = pdfDoc.getForm();
+                const signatureField = form.getField('SignatureField');
+                
+                if (!signatureField) {
+                    throw new Error('SignatureField not found in the PDF');
+                }
+                
+                // Embed the signature image
+                const signatureBytes = await fetch(signatureImage).then(res => res.arrayBuffer());
+                const signatureImageEmbed = await pdfDoc.embedPng(signatureBytes);
+                
+                // Set the signature field's image
+                signatureField.setImage(signatureImageEmbed);
+                
+                // Flatten the form to make the signature non-editable
+                form.flatten();
+                
+                // Save the PDF
+                const pdfBytes = await pdfDoc.save();
+                
+                // Download the PDF
+                download(new Blob([pdfBytes], { type: 'application/pdf' }), 'signed-document.pdf');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

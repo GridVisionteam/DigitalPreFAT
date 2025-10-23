@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Style will refer to style.css document-->
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT</title>
+    <!-- Add PDF generation libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+    // Initialize jsPDF after loading
+      window.jsPDF = window.jspdf.jsPDF;
+    </script>
+
+</head>
+<body>
+    <!-- Logo at top right -->
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+   
+    <!-- RTU Info Page -->
+    <div id="rtuPage" class="page-container">
+        <h1>RTU Information</h1>
+        <div class="control-panel" style="max-width: 600px; margin: auto;">
+            <div class="form-group">
+                <label for="projectName">Project Name</label>
+                <input type="text" id="projectName" />
+            </div>
+            <div class="form-group">
+                <label for="contractNo">Contract No.</label>
+                <input type="text" id="contractNo" />
+            </div>
+            <div class="form-group">
+                <label for="rtuSerial">RTU Serial No.</label>
+                <input type="text" id="rtuSerial" />
+            </div>
+            <button onclick="goToBQPage()">Next</button>
+            <button onclick="goBackToUserDetails()">Back</button>
+        </div>
+    </div>
+
+<script src="rtudetail.js"></script>
+<script src="main.js"></script>
+<script src="userdetail.js"></script> </body>
+</html>

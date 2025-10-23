@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #signaturePreview {
+            max-width: 300px;
+            max-height: 150px;
+            margin: 20px auto;
+            display: none;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Your Signature</h1>
+    <div class="upload-container">
+        <input type="file" id="signatureUpload" accept="image/*">
+        <p>or drag and drop your signature image here</p>
+        <img id="signaturePreview" alt="Signature Preview">
+    </div>
+    <button id="nextButton" disabled>Next</button>
+
+    <script>
+        const uploadInput = document.getElementById('signatureUpload');
+        const preview = document.getElementById('signaturePreview');
+        const nextButton = document.getElementById('nextButton');
+
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    preview.src = event.target.result;
+                    preview.style.display = 'block';
+                    nextButton.disabled = false;
+                    
+                    // Store the image data in localStorage for the next page
+                    localStorage.setItem('signatureImage', event.target.result);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle drag and drop
+        const uploadContainer = document.querySelector('.upload-container');
+        
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = '#4CAF50';
+        });
+
+        uploadContainer.addEventListener('dragleave', () => {
+            uploadContainer.style.borderColor = '#ccc';
+        });
+
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.style.borderColor = '#ccc';
+            
+            if (e.dataTransfer.files.length) {
+                uploadInput.files = e.dataTransfer.files;
+                const event = new Event('change');
+                uploadInput.dispatchEvent(event);
+            }
+        });
+
+        nextButton.addEventListener('click', () => {
+            window.location.href = 'print.html';
+        });
+    </script>
+</body>
+</html>

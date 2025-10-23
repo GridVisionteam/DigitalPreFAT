@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT - User Details</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
+</head>
+<body>
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />
+
+    <div id="userDetailsPage" class="page-container"> <h1>Tester Details</h1>
+        <div class="control-panel" style="max-width: 600px; margin: auto;">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" />
+            </div>
+            <div class="form-group">
+                <label for="designation">Designation</label>
+                <input type="text" id="designation" />
+            </div>
+            <div class="form-group">
+                <label for="experience">Years of Experience</label>
+                <input type="number" id="experience" min="0" max="60" />
+            </div>
+            <button onclick="goToRTUPage()">Next</button>
+            <button onclick="goBackToLogin()">Back</button>
+        </div>
+    </div>
+
+    <script src="userdetail.js"></script> </body>
+    </html>
