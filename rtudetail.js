@@ -47,9 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (projectNameInput) projectNameInput.value = getStoredValue('session_projectName');
 });
 
-function goBackToUserDetails() {
+function goToBack() {
     saveCurrentRTUDetails(); // Save current RTU details
-    window.location.href = './userdetail.html'; 
+    window.location.href = 'index.html'; 
 }
 
 function goToBQPage() {
@@ -66,6 +66,6 @@ function goToBQPage() {
         return;
     }
     saveCurrentRTUDetails();
-
+    navigationGuard.markPageAsCompleted();
     window.location.href = './BQ.html';
 }

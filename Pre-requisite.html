@@ -143,7 +143,6 @@
                 </tr>
             </thead>
             <tbody id="MeasuringEquipmentRecordTbody">
-                <!---script-->
             </tbody>
         </table>
 
@@ -186,16 +185,38 @@
 
    <!-- Add the submit button panel at the bottom -->
   <div class="control-panel">
-      <button id="submitBtn" onclick="goToNext()">
-          Save &amp; Continue
-      </button>
       <button onclick="goToPreviousPage()">  <!-- Changed function name -->
-          Back
+          Back (A)
+      </button>
+      <button id="submitBtn" onclick="goToNext()">
+          Save &amp; Continue (D)
       </button>
   </div>
   </div>
 
 <script src="Pre-requisite.js"></script> 
 <script src="navigationGuard.js"></script>
+<!-- Keyboard Shortcuts -->
+<script>
+    document.addEventListener('keydown', function(event) {
+        // Check if we're in an input field
+        const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+        
+        // Only trigger shortcuts if not typing in an input field
+        if (!isInputField) {
+            // 'D' key for Next (68 is keyCode for 'd', 100 is keyCode for 'D' with Shift)
+            if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                event.preventDefault();
+                goToNext();
+            }
+            // 'A' key for Back (65 is keyCode for 'a', 97 is keyCode for 'A' with Shift)
+            else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                event.preventDefault();
+                savePreRequisiteTestData(); // Save data first
+                goToPreviousPage();
+            }
+        }
+    });
+</script>
 </body>
 </html>

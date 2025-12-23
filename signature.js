@@ -182,5 +182,5 @@ function clearSignature() {
 
 // Add this function to handle navigation
 function goToPreviousPage() {
-    window.location.href = 'LimitofAuthority.html';
+    window.location.href = 'userdetail.html';
 }

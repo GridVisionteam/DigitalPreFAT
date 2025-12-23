@@ -1,0 +1,61 @@
+<!-- File: QualityInspectionProcessor.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT - Processor Quality</title>
+</head>
+<body>
+    <!-- Logo at top right -->
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <!-- Quality Inspection Page -->
+    <div id="QualityInspectionProcessor">
+        <h1 style="text-align: center;">
+            Processor Module - Quality Inspection
+        </h1>
+        <p>
+            Total Processor Card: <span id="ProcNoInput"></span>
+        </p>
+        
+        <!-- Container for dynamic processor sections -->
+        <div id="processorSections"></div>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="selectAllQuality()">Select All (OK)</button>
+            <button onclick="clearAllQuality()">Clear All</button>
+        </div>
+        
+        <!-- Navigation buttons -->
+        <div class="control-panel">
+            <button onclick="goToPowerSupplyPage()">Back to Power Supply (A)</button>
+            <button onclick="goToNext()">Save & Continue to Functionality Test (D)</button>
+        </div>
+    </div>
+
+    <script src="QualityInspectionProcessor.js"></script>
+    <script src="navigationGuard.js"></script>
+    
+    <!-- Keyboard Shortcuts -->
+    <script>
+        document.addEventListener('keydown', function(event) {
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            
+            if (!isInputField) {
+                // 'D' key for Next
+                if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                    event.preventDefault();
+                    goToNext();
+                }
+                // 'A' key for Back
+                else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    event.preventDefault();
+                    goToPowerSupplyPage();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!-- File: QualityInspectionDI.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT - DI Quality Inspection</title>
+    <style>
+        .module-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .module-header label {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .module-number {
+            color: #2196F3;
+        }
+        
+        .module-type {
+            color: #FF9800;
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo at top right -->
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <!-- Quality Inspection Page -->
+    <div id="QualityInspectionDI">
+        <h1 style="text-align: center;">
+            Digital Input Module - Quality Inspection
+        </h1>
+        <p>
+            Total DI Modules to test: <span id="diNoInput"></span>
+        </p>
+        
+        <!-- Quality inspection sections will be generated here -->
+        <div id="qualityInspectionSections"></div>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="selectAllQuality()">Select All (OK)</button>
+            <button onclick="clearAllQuality()">Clear All</button>
+        </div>
+        
+        <!-- Navigation buttons -->
+        <div class="control-panel">
+            <button onclick="goToPreviousPage()">Back (A)</button>
+            <button onclick="saveAndGoToFunctionality()">Save & Continue to Functionality Test (D)</button>
+        </div>
+    </div>
+
+    <script src="QualityInspectionDI.js"></script>
+    <script src="navigationGuard.js"></script>
+    
+    <!-- Keyboard Shortcuts -->
+    <script>
+        document.addEventListener('keydown', function(event) {
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            
+            if (!isInputField) {
+                // 'D' key for Next
+                if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                    event.preventDefault();
+                    saveAndGoToFunctionality();
+                }
+                // 'A' key for Back
+                else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    event.preventDefault();
+                    goToPreviousPage();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

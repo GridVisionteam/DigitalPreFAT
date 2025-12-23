@@ -1,5 +1,6 @@
 // Define the correct page sequence
 const PAGE_SEQUENCE = [
+    'BQ.html',
     'Pre-requisite.html',
     'ProductDeclaration.html',
     'TestSetup.html',
@@ -7,25 +8,42 @@ const PAGE_SEQUENCE = [
     'RTUPanelAcc.html',
     'PanelInformation.html',
     'SubrackInspection.html',
-    'FunctionalityPowerSupply.html',
-    'FunctionalityProcessor.html',
-    'FunctionalityCOM6.html',
+    'QualityInspectionPowerSupply.html',
+    'QualityInspectionProcessor.html',
+    'QualityInspectionCOM6.html',
+    'QualityInspectionDI.html',
+    'QualityInspectionDO.html',
+    'QualityInspectionAI.html',
+    'RTUPowerUp.html',
+    'ParameterSettingProc.html',
+    'ParameterSettingDI.html',   
+    'ParameterSettingDO.html', 
+    'ParameterSettingAI.html',
+    'ParameterSettingIEC101.html',
+    'ParameterSettingIEC104.html',
+    'FunctionalityTestPowerSupply.html',
+    'FunctionalityTestProcessor.html',
+    'FunctionalityTestCOM6.html',
     'FunctionalityDIPage.html',
     'FunctionalityDOPage.html',
     'Dummy&CESFunctionalTest.html',
     'FunctionalityAIPage.html',
-    'RTUPowerUp.html',
-    'ParameterSettingProc.html',
-    'ParameterSettingDI.html',
-    'ParameterSettingDO.html',
-    'ParameterSettingAI.html',
-    'ParameterSettingIEC101.html',
-    'ParameterSettingIEC104.html',
     'VirtualAlarmTest.html',
     'ChannelRedundacyTest.html',
     'LimitofAuthority.html',
+    'userdetail.html',
     'signature.html'
 ];
+
+// Function to reset all navigation completion marks
+function resetNavigationMarks() {
+    // Clear all completion marks
+    PAGE_SEQUENCE.forEach(page => {
+        localStorage.removeItem(`${page}_completed`);
+    });
+    
+    console.log('Navigation marks reset successfully');
+}
 
 // Function to check if navigation is allowed
 function checkNavigationPermission(targetPage = null) {
@@ -77,7 +95,6 @@ function checkNavigationPermission(targetPage = null) {
     return true;
 }
 
-
 // Function to mark current page as completed
 function markPageAsCompleted() {
     const currentPage = window.location.pathname.split('/').pop();
@@ -108,14 +125,6 @@ function isPageInSequence(page) {
     return PAGE_SEQUENCE.includes(page);
 }
 
-// Update the navigationGuard object at the bottom
-window.navigationGuard = {
-    checkNavigationPermission,
-    markPageAsCompleted,
-    markPageAsCompletedWithValidation,
-    isPageInSequence
-};
-
 function markPageAsCompletedWithValidation(targetPage = null) {
     const currentPage = window.location.pathname.split('/').pop();
     const currentIndex = PAGE_SEQUENCE.indexOf(currentPage);
@@ -139,3 +148,12 @@ function markPageAsCompletedWithValidation(targetPage = null) {
     localStorage.setItem(`${currentPage}_completed`, 'true');
     return true;
 }
+
+// Update the navigationGuard object at the bottom
+window.navigationGuard = {
+    checkNavigationPermission,
+    markPageAsCompleted,
+    markPageAsCompletedWithValidation,
+    isPageInSequence,
+    resetNavigationMarks  // Add the reset function
+};

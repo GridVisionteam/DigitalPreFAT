@@ -396,6 +396,18 @@ function generateRTUPanelAccessoriesRows() {
 
         okCheckbox.addEventListener('change', function() {
             datasheetSelect.value = this.checked ? 'YES' : 'NO';
+
+        // 2. Handle Quantity Input Rule
+        const quantityInput = row.querySelector(`input[name="accessory_${rowNumber}_quantity"]`);
+        if (this.checked) {
+            // If ticked, set default to 1 if currently empty
+            if (quantityInput.value === "") {
+                quantityInput.value = "1";
+            }
+        } else {
+            // If unticked, clear the value
+            quantityInput.value = "";
+        }
         });
     });
 }
@@ -539,6 +551,7 @@ function loadRTUPanelAccessoriesData() {
 }
 
 // Validation function for RTU Panel Accessories
+// Validation function for RTU Panel Accessories
 function validateRTUPanelAccessories() {
     let isValid = true;
     
@@ -552,15 +565,17 @@ function validateRTUPanelAccessories() {
         const okCheckbox = document.querySelector(`input[name="accessory_${itemNum}_ok"]`);
         
         if (okCheckbox && okCheckbox.checked) {
-            // Validate quantity
             const quantityInput = document.querySelector(`input[name="accessory_${itemNum}_quantity"]`);
-            if (quantityInput && (!quantityInput.value || isNaN(quantityInput.value))) {
+            const datasheetSelect = document.querySelector(`select[name="accessory_${itemNum}_datasheet"]`);
+
+            // Validate quantity: Cannot be Empty AND cannot be "0"
+            // We check if it exists, is empty, is not a number, or is less than or equal to 0
+            if (quantityInput && (!quantityInput.value || isNaN(quantityInput.value) || Number(quantityInput.value) <= 0)) {
                 quantityInput.style.borderColor = 'red';
                 isValid = false;
             }
 
             // Validate datasheet must be "YES"
-            const datasheetSelect = document.querySelector(`select[name="accessory_${itemNum}_datasheet"]`);
             if (datasheetSelect && datasheetSelect.value !== 'YES') {
                 datasheetSelect.style.borderColor = 'red';
                 isValid = false;
@@ -572,10 +587,12 @@ function validateRTUPanelAccessories() {
 }
 
 // Update the handleRTUPanelAccSubmission function to include more specific validation message
+// Update the handleRTUPanelAccSubmission function
 function handleRTUPanelAccSubmission() {
     // First validate the form
     if (!validateRTUPanelAccessories()) {
-        alert('For all checked items (OK), please ensure:\n1. Quantity is entered\n2. Datasheet is marked as "YES"');
+        // Updated Alert Message
+        alert('For all checked items (OK), please ensure:\n1. Quantity is valid (cannot be 0 or empty)\n2. Datasheet is marked as "YES"');
         return; // Stop navigation if validation fails
     }
     

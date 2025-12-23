@@ -83,7 +83,7 @@ function generateRTUPowerUpTestRows() {
             <td style="text-align: center;">${rowNumber}</td>
             <td style="text-align: left;">${item}</td>
             <td style="text-align: center;">
-                <input type="number" id="voltage_${rowNumber}" name="voltage_${rowNumber}" class="voltage-input">
+                <input type="number" step="any" id="voltage_${rowNumber}" name="voltage_${rowNumber}" class="voltage-input">
             </td>
             <td style="text-align: center;">
                 <label class="toggle-button">
@@ -211,12 +211,12 @@ function goToPreviousPage() {
         
         // Manually mark current page as not completed (since we're going back)
         localStorage.removeItem('RTUPowerUp.html_completed');
-        window.location.href = 'FunctionalityAIPage.html';
+        window.location.href = 'QualityInspectionAI.html';
     } else {
-        // If no AI modules, go directly to Dummy&CES page
+        // If no AI modules, go directly to QualityInspectionDO.html
         // Manually mark current page as not completed
         localStorage.removeItem('RTUPowerUp.html_completed');
-        window.location.href = 'Dummy&CESFunctionalTest.html';
+        window.location.href = 'QualityInspectionDO.html';
     }
 }
 
@@ -269,7 +269,7 @@ function validateRTUPowerUp() {
         
         // Check if voltage reading is provided if marked OK
         if (testOK && testOK.checked) {
-            if (!voltageInput.value) {
+            if (!voltageInput.value || voltageInput.value == 0) {
                 voltageInput.style.border = '1px solid red';
                 isValid = false;
             }

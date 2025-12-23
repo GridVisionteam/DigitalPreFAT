@@ -59,12 +59,12 @@
             setTimeout(() => messageBox.remove(), 3000);
         }
 
-        function goBackToLogin() {
+        function goToBack() {
             saveCurrentUserDetails(); // Save current details before going back
-            window.location.href = 'index.html';
+            window.location.href = 'LimitofAuthority.html';
         }
 
-        function goToRTUPage() {
+        function goToNext() {
             const name = document.getElementById("name").value.trim();
             const designation = document.getElementById("designation").value.trim();
             const experience = document.getElementById("experience").value.trim();
@@ -76,5 +76,6 @@
             saveCurrentUserDetails(); // Save details before proceeding
 
             // Navigate to the next page (e.g., rtuInfo.html)
-           window.location.href ='rtudetail.html';
+            navigationGuard.markPageAsCompleted();
+            window.location.href ='signature.html';
         }

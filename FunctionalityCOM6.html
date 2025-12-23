@@ -44,16 +44,93 @@
    </div>
    <!-- Add the submit button panel at the bottom -->
   <div class="control-panel">
-      <button id="submitBtn" onclick="goToFunctionalityDI()">
-          Save &amp; Continue
-      </button>
       <button onclick="goToPreviousPage()">  <!-- Changed function name -->
-          Back
+          Back (A)
+      </button>
+
+      <button id="submitBtn" onclick="goToFunctionalityDI()">
+          Save &amp; Continue (D)
       </button>
   </div>
   </div>
 
 <script src="FunctionalityCOM6.js"></script> 
 <script src="navigationGuard.js"></script>
+<!-- Keyboard Shortcuts -->
+<script>
+    document.addEventListener('keydown', function(event) {
+        // Check if we're in an input field
+        const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+        
+        // Only trigger shortcuts if not typing in an input field
+        if (!isInputField) {
+            // 'D' key for Next (68 is keyCode for 'd', 100 is keyCode for 'D' with Shift)
+            if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                event.preventDefault();
+                goToFunctionalityDI();
+            }
+            // 'A' key for Back (65 is keyCode for 'a', 97 is keyCode for 'A' with Shift)
+            else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                event.preventDefault();
+                goToPreviousPage();
+            }
+        }
+    });
+</script>
+<script>
+    // Listen for paste events on the document
+    document.addEventListener('paste', function (event) {
+        // Only run if the target is an input field inside one of our data tables
+        if (event.target.tagName === 'INPUT' && (event.target.closest('#tableBody') || event.target.closest('#di16TableBody'))) {
+            // Prevent the default single-field paste behavior
+            event.preventDefault();
+
+            // Get the clipboard data as text
+            const clipboardData = (event.clipboardData || window.clipboardData).getData('text');
+            
+            // Excel rows are separated by newlines (\n)
+            // Excel columns are separated by tabs (\t)
+            const rows = clipboardData.split(/\r\n|\n|\r/).filter(row => row.length > 0);
+            
+            // Get the starting position (the input you clicked on)
+            const startInput = event.target;
+            const startCell = startInput.closest('td');
+            const startRow = startCell.closest('tr');
+            const tableBody = startRow.closest('tbody');
+            
+            // Calculate the starting row and column index
+            const startRowIndex = Array.from(tableBody.children).indexOf(startRow);
+            const startCellIndex = Array.from(startRow.children).indexOf(startCell);
+
+            // Loop through the pasted rows
+            rows.forEach((rowData, rIndex) => {
+                const cells = rowData.split('\t');
+                const targetRow = tableBody.children[startRowIndex + rIndex];
+
+                if (targetRow) {
+                    // Loop through the pasted cells (columns)
+                    cells.forEach((cellData, cIndex) => {
+                        // Find the target cell based on the starting offset
+                        const targetCell = targetRow.children[startCellIndex + cIndex];
+                        
+                        if (targetCell) {
+                            // Find the input inside that cell
+                            const targetInput = targetCell.querySelector('input');
+                            
+                            // Only paste if an input exists and is editable
+                            if (targetInput && !targetInput.disabled && !targetInput.readOnly) {
+                                targetInput.value = cellData.trim();
+                                
+                                // Dispatch 'input' and 'change' events so your validation/saving logic knows data changed
+                                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>

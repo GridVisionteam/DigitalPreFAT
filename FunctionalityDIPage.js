@@ -3,7 +3,6 @@ const { PDFDocument, rgb } = PDFLib;
 if (!window.diTestResults) window.diTestResults = {};
 if (!window.diModuleTypes) window.diModuleTypes = {};
 
-
 function initializeModuleNavigation() {
     const moduleJump = document.getElementById('moduleJump');
     if (!moduleJump) return;
@@ -82,25 +81,25 @@ function handleDIModuleTypeChange() {
 }
 
 function saveCurrentModuleData() {
-    if (document.getElementById('FunctionalityDIPage').style.display !== 'none') {
+    const di32Page = document.getElementById('FunctionalityDIPage');
+    const di16Page = document.getElementById('di16Page');
+    
+    // Check which page is currently visible
+    if (di32Page && di32Page.style.display !== 'none') {
+        // DI-32 page is visible
         saveDITestData(window.currentDIModule);
-    } else if (document.getElementById('di16Page').style.display !== 'none') {
+        console.log('Saved DI-32 data for module', window.currentDIModule);
+    } else if (di16Page && di16Page.style.display !== 'none') {
+        // DI-16 page is visible
         saveDI16TestData(window.currentDIModule);
+        console.log('Saved DI-16 data for module', window.currentDIModule);
     }
 }
-
 
 function showFunctionalityDIPage() {
     // Initialize module tracking
     window.diModulesToTest = parseInt(localStorage.getItem('diModulesToTest')) || 0;
-    window.currentDIModule = parseInt(localStorage.getItem('currentDIModule')) || 1;
     
-    // Load saved module types if available
-    const savedTypes = localStorage.getItem('diModuleTypes');
-    if (savedTypes) {
-        window.diModuleTypes = JSON.parse(savedTypes);
-    }
-
     // Make page visible
     document.getElementById('FunctionalityDIPage').style.display = 'block';
     document.getElementById('di16Page').style.display = 'none';
@@ -113,7 +112,7 @@ function showFunctionalityDIPage() {
     const titleElement = document.querySelector("#FunctionalityDIPage h1");
     if (titleElement) {
         titleElement.textContent = 
-            `Digital Input Module (${moduleType}) (${window.currentDIModule} of ${window.diModulesToTest})`;
+            `Digital Input Module (${moduleType}) - Functional Test (${window.currentDIModule} of ${window.diModulesToTest})`;
     }
 
     // Generate rows if not already present
@@ -125,12 +124,9 @@ function showFunctionalityDIPage() {
         loadDITestData(window.currentDIModule);
     } else {
         // Only set defaults if this is a new module
-        document.querySelector('input[name="quality1"][value="OK"]').checked = true;
-        document.querySelector('input[name="quality2"][value="OK"]').checked = true;
         clearAll();
     }
 }
-
 
 function showFunctionalityDI16Page() {
     // Hide DI-32 page and show DI-16 page
@@ -140,7 +136,7 @@ function showFunctionalityDI16Page() {
     // Set module info
     document.getElementById("di16NoInput").textContent = window.currentDIModule;
     document.querySelector("#di16Page h1").textContent = 
-        `Digital Input Module (DI-16) (${window.currentDIModule} of ${window.diModulesToTest})`;
+        `Digital Input Module (DI-16) - Functional Test (${window.currentDIModule} of ${window.diModulesToTest})`;
 
     // Clear and regenerate rows
     const tableBody = document.getElementById('di16TableBody');
@@ -158,7 +154,7 @@ function showFunctionalityDI16Page() {
             dnp3Values: {},
             checkboxValues: {},
             type: 'DI-16',
-            qualityInspections: {}
+            qualityInspections: window.diTestResults[window.currentDIModule]?.qualityInspections || {}
         };
     }
 
@@ -167,8 +163,6 @@ function showFunctionalityDI16Page() {
         window.diTestResults[window.currentDIModule].type === 'DI-16') {
         loadDI16TestData(window.currentDIModule);
     } else {
-        document.querySelector('#di16Page input[name="quality1"][value="OK"]').checked = true;
-        document.querySelector('#di16Page input[name="quality2"][value="OK"]').checked = true;
         clearAllDI16();
     }
 }
@@ -330,20 +324,11 @@ function saveDITestData(moduleNumber) {
             iec101Values: {},
             iec104Values: {},
             dnp3Values: {},
-            checkboxValues: {}, // Add this to store checkbox values
+            checkboxValues: {},
             type: 'DI-32',
-            qualityInspections: {} // Add this to store quality inspection results
+            qualityInspections: window.diTestResults[moduleNumber]?.qualityInspections || {}
         };
     }
-
-    // Save quality inspection results
-    const quality1 = document.querySelector('input[name="quality1"][value="OK"]:checked') ? 'OK' : 'NO';
-    const quality2 = document.querySelector('input[name="quality2"][value="OK"]:checked') ? 'OK' : 'NO';
-    
-    window.diTestResults[moduleNumber].qualityInspections = {
-        quality1,
-        quality2
-    };
 
     // Save all inputs
     const inputs = document.querySelectorAll("#tableBody input");
@@ -379,7 +364,7 @@ function saveDITestData(moduleNumber) {
         }
     });
 
-    // Save protocol values (existing code)
+    // Save protocol values
     for (let i = 1; i <= 32; i++) {
         // IEC101
         const inputIEC101 = document.querySelector(`input[name="DI_${moduleNumber}_IEC101_${i}"]`);
@@ -403,30 +388,11 @@ function saveDITestData(moduleNumber) {
     localStorage.setItem('diTestResults', JSON.stringify(window.diTestResults));
 }
 
-
 function loadDITestData(moduleNumber) {
     const saved = window.diTestResults[moduleNumber];
     if (!saved || saved.type !== 'DI-32') return;
 
-    // Load quality inspection values
-    if (saved.qualityInspections) {
-        const quality1OK = document.querySelector('input[name="quality1"][value="OK"]');
-        const quality1NO = document.querySelector('input[name="quality1"][value="NO"]');
-        const quality2OK = document.querySelector('input[name="quality2"][value="OK"]');
-        const quality2NO = document.querySelector('input[name="quality2"][value="NO"]');
-        
-        if (quality1OK && quality1NO) {
-            quality1OK.checked = saved.qualityInspections.quality1 === 'OK';
-            quality1NO.checked = saved.qualityInspections.quality1 === 'NO';
-        }
-        
-        if (quality2OK && quality2NO) {
-            quality2OK.checked = saved.qualityInspections.quality2 === 'OK';
-            quality2NO.checked = saved.qualityInspections.quality2 === 'NO';
-        }
-    }
-
-    // Load table inputs (existing code)
+    // Load table inputs
     const inputs = document.querySelectorAll("#tableBody input");
     saved.inputs.forEach((value, idx) => {
         const input = inputs[idx];
@@ -441,28 +407,9 @@ function loadDITestData(moduleNumber) {
     updateSubmitButtonState();
 }
 
-
 function loadDI16TestData(moduleNumber) {
     const saved = window.diTestResults[moduleNumber];
     if (!saved || saved.type !== 'DI-16') return;
-
-    // Load quality inspection values
-    if (saved.qualityInspections) {
-        const quality1OK = document.querySelector('#di16Page input[name="quality1"][value="OK"]');
-        const quality1NO = document.querySelector('#di16Page input[name="quality1"][value="NO"]');
-        const quality2OK = document.querySelector('#di16Page input[name="quality2"][value="OK"]');
-        const quality2NO = document.querySelector('#di16Page input[name="quality2"][value="NO"]');
-        
-        if (quality1OK && quality1NO) {
-            quality1OK.checked = saved.qualityInspections.quality1 === 'OK';
-            quality1NO.checked = saved.qualityInspections.quality1 === 'NO';
-        }
-        
-        if (quality2OK && quality2NO) {
-            quality2OK.checked = saved.qualityInspections.quality2 === 'OK';
-            quality2NO.checked = saved.qualityInspections.quality2 === 'NO';
-        }
-    }
 
     // Load table inputs
     const inputs = document.querySelectorAll("#di16TableBody input");
@@ -480,8 +427,8 @@ function loadDI16TestData(moduleNumber) {
 }
 
 async function handleDITestSubmission() {
-    // First validate the quality inspection
-    if (!validateDIQualityInspection()) {
+    // Validate IOA index fields for IEC101 and IEC104
+    if (!validateIOAIndexFields()) {
         return; // Stop if validation fails
     }
 
@@ -504,6 +451,9 @@ async function handleDITestSubmission() {
     // Save the current module's test data
     saveDITestData(window.currentDIModule);
     window.diModuleTypes[window.currentDIModule] = 'DI-32';
+    
+    // Save the last module before navigating to DO page
+    localStorage.setItem('lastDIModule', window.currentDIModule);
     
     // Move to next module or final page
     window.currentDIModule++;
@@ -531,12 +481,12 @@ function saveDI16TestData(moduleNumber) {
     if (!window.diTestResults[moduleNumber] || window.diTestResults[moduleNumber].type !== 'DI-16') {
         window.diTestResults[moduleNumber] = {
             inputs: [],
-            iec101Values: {}, // Initialize as empty object
-            iec104Values: {}, // Initialize as empty object
-            dnp3Values: {},   // Initialize as empty object
+            iec101Values: {},
+            iec104Values: {},
+            dnp3Values: {},
             checkboxValues: {},
             type: 'DI-16',
-            qualityInspections: {}
+            qualityInspections: window.diTestResults[moduleNumber]?.qualityInspections || {}
         };
     } else {
         // Ensure all necessary objects exist even if the module data exists
@@ -553,15 +503,6 @@ function saveDI16TestData(moduleNumber) {
             window.diTestResults[moduleNumber].checkboxValues = {};
         }
     }
-
-    // Save quality inspection results from DI-16 page
-    const quality1 = document.querySelector('#di16Page input[name="quality1"][value="OK"]:checked') ? 'OK' : 'NO';
-    const quality2 = document.querySelector('#di16Page input[name="quality2"][value="OK"]:checked') ? 'OK' : 'NO';
-
-    window.diTestResults[moduleNumber].qualityInspections = {
-        quality1,
-        quality2
-    };
 
     // Save all inputs
     const inputs = document.querySelectorAll("#di16TableBody input");
@@ -583,7 +524,7 @@ function saveDI16TestData(moduleNumber) {
         }
     });
 
-    // Save protocol values - only for 16 channels (not 32 like in your current code)
+    // Save protocol values - only for 16 channels
     for (let i = 1; i <= 16; i++) {
         // IEC101
         const inputIEC101 = document.querySelector(`input[name="DI_${moduleNumber}_IEC101_${i}"]`);
@@ -608,8 +549,8 @@ function saveDI16TestData(moduleNumber) {
 }
 
 async function handleDI16TestSubmission() {
-    // First validate the quality inspection
-    if (!validateDIQualityInspection()) {
+    // Validate IOA index fields for IEC101 and IEC104
+    if (!validateIOAIndexFields()) {
         return; // Stop if validation fails
     }
 
@@ -628,10 +569,14 @@ async function handleDI16TestSubmission() {
         alert("Please tick all checkboxes before continuing.");
         return;
     }
+    
     // Save data and continue to next module
     saveDI16TestData(window.currentDIModule);
     window.diModuleTypes[window.currentDIModule] = 'DI-16';
     localStorage.setItem('diModuleTypes', JSON.stringify(window.diModuleTypes));
+    
+    // Save the last module before navigating to DO page
+    localStorage.setItem('lastDIModule', window.currentDIModule);
     
     window.currentDIModule++;
     localStorage.setItem('currentDIModule', window.currentDIModule);
@@ -651,34 +596,6 @@ async function handleDI16TestSubmission() {
     }
 }
 
-function goToPreviousDIModule() {
-    // Save current test data before navigating
-    const currentModuleType = document.getElementById('diModuleType').value;
-    if (currentModuleType === 'DI-16') {
-        saveDI16TestData(window.currentDIModule);
-    } else {
-        saveDITestData(window.currentDIModule);
-    }
-
-    // If we're on the first module, go back to BQ page
-    if (window.currentDIModule === 1) {
-        window.location.href = 'BQ.html';
-        return;
-    }
-
-    // Otherwise, go to previous module
-    window.currentDIModule--;
-    localStorage.setItem('currentDIModule', window.currentDIModule);
-
-    // Show the appropriate page based on module type
-    const previousModuleType = window.diModuleTypes[window.currentDIModule] || 'DI-32';
-    if (previousModuleType === 'DI-16') {
-        showFunctionalityDI16Page();
-    } else {
-        showFunctionalityDIPage();
-    }
-}
-
 function goToPreviousPage() {
     // Save current test data before navigating
     if (document.getElementById('FunctionalityDIPage').style.display !== 'none') {
@@ -687,14 +604,9 @@ function goToPreviousPage() {
         saveDI16TestData(window.currentDIModule);
     }
 
-    // If we're coming from DO page, we need to adjust the counter
-    if (window.location.href.includes('FunctionalityDOPage.html')) {
-        window.currentDIModule = parseInt(localStorage.getItem('currentDIModule')) || 1;
-    }
-
-    // If we're on the first module, go back to BQ page
+    // If we're on the first module, go back to Quality Inspection page
     if (window.currentDIModule === 1) {
-        window.location.href = 'FunctionalityCOM6.html';
+        window.location.href = 'FunctionalityTestCOM6.html';
         return;
     }
 
@@ -729,7 +641,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize module tracking
     window.diModulesToTest = parseInt(localStorage.getItem('diModulesToTest')) || 0;
-    window.currentDIModule = parseInt(localStorage.getItem('currentDIModule')) || 1;
+    
+    // Check if we're returning from DO page
+    const returningFromDO = localStorage.getItem('returningToDI') === 'true';
+    localStorage.removeItem('returningToDI'); // Clear the flag
+    
+    if (returningFromDO) {
+        // Use the last DI module (but ensure it doesn't exceed total modules)
+        const lastDIModule = parseInt(localStorage.getItem('lastDIModule')) || window.diModulesToTest;
+        window.currentDIModule = Math.min(lastDIModule, window.diModulesToTest);
+    } else {
+        window.currentDIModule = parseInt(localStorage.getItem('currentDIModule')) || 1;
+    }
+    
+    // Ensure currentDIModule doesn't exceed total modules
+    if (window.currentDIModule > window.diModulesToTest) {
+        window.currentDIModule = window.diModulesToTest;
+    }
+    
+    localStorage.setItem('currentDIModule', window.currentDIModule);
     
     // Load saved module types if available
     const savedTypes = localStorage.getItem('diModuleTypes');
@@ -755,144 +685,112 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-//-------------Load UserData-------------------------------------------------------
+// Removed quality inspection validation functions - they're now in QualityInspectionDI.js
 
-function loadUserData() {
-    const nameInput = document.getElementById('name');
-    const designationInput = document.getElementById('designation');
-    const experienceInput = document.getElementById('experience');
-    //formTiming.loginTime = new Date();
+// Validate IOA index fields for IEC101 and IEC104 only
+function validateIOAIndexFields() {
+    // Determine which page is currently visible
+    const di32Page = document.getElementById('FunctionalityDIPage');
+    const di16Page = document.getElementById('di16Page');
+    let currentPageContainer = null;
+    
+    if (di32Page && di32Page.style.display !== 'none') {
+        currentPageContainer = '#FunctionalityDIPage';
+    } else if (di16Page && di16Page.style.display !== 'none') {
+        currentPageContainer = '#di16Page';
+    } else {
+        // If no page is visible, return false
+        return false;
+    }
+    
+    // Get IEC101 and IEC104 input fields ONLY from the current page
+    const iec101Inputs = document.querySelectorAll(`${currentPageContainer} input[class*="di-test-input"][name*="IEC101"]`);
+    const iec104Inputs = document.querySelectorAll(`${currentPageContainer} input[class*="di-test-input"][name*="IEC104"]`);
+    
+    let isValid = true;
+    let emptyFields = [];
+    let duplicateFields = [];
 
-    if (nameInput) nameInput.value = localStorage.getItem('session_name') || '';
-    if (designationInput) designationInput.value = localStorage.getItem('session_designation') || '';
-    if (experienceInput) experienceInput.value = localStorage.getItem('session_experience') || '';
+    // Reset previous red borders on current page only
+    [...iec101Inputs, ...iec104Inputs].forEach(input => {
+        input.style.border = ''; // clear border
+    });
 
-    const sessionUsername = localStorage.getItem('session_username');
-    const sessionRtuSerial = localStorage.getItem('session_rtuSerial');
-    const sessionName = localStorage.getItem('session_name');
-    const sessionDesignation = localStorage.getItem('session_designation');
-    const sessionExperience = localStorage.getItem('session_experience');
-    const sessionContractNo = localStorage.getItem('session_contractNo');
-    const sessiondiModulesToTest = localStorage.getItem('diModulesToTest');
-    const sessioncurrentDIModule = localStorage.getItem('currentDIModule');
-    const sessiondiModulesDetails = localStorage.getItem('diModulesDetails');
+    // Check IEC101 fields for empty values on current page
+    iec101Inputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const channel = input.name.split('_').pop();
+            emptyFields.push(`IEC101 Channel ${channel}`);
+        }
+    });
+    
+    // Check IEC104 fields for empty values on current page
+    iec104Inputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const channel = input.name.split('_').pop();
+            emptyFields.push(`IEC104 Channel ${channel}`);
+        }
+    });
 
-    if (!sessionUsername || !sessionRtuSerial) {
-        showCustomAlert("Essential session data missing. Redirecting to login.");
-        setTimeout(() => { window.location.href = './index.html'; }, 2000);
+    if (!isValid) {
+        alert(`Please fill in all IOA index fields for IEC101 and IEC104 protocols.`);
         return false;
     }
 
-    const iec101Values = {};
-    const iec104Values = {};
-    const dnp3Values = {};
-    const savedResults = localStorage.getItem('diTestResults');
-    if (savedResults) {
-        const diTestResults = JSON.parse(savedResults);
-        for (const [moduleNum, moduleData] of Object.entries(diTestResults)) {
-            // IEC101
-            if (moduleData.iec101Values) {
-                for (const [key, value] of Object.entries(moduleData.iec101Values)) {
-                    iec101Values[key] = value;
-                }
+    // Check for duplicate values in IEC101 column - ONLY within current page
+    const iec101Values = Array.from(iec101Inputs).map(input => input.value.trim()).filter(val => val !== '');
+    const iec101Duplicates = findDuplicates(iec101Values);
+    if (iec101Duplicates.length > 0) {
+        isValid = false;
+        iec101Inputs.forEach(input => {
+            if (iec101Duplicates.includes(input.value.trim())) {
+                input.style.border = '2px solid red';
             }
-            // IEC104
-            if (moduleData.iec104Values) {
-                for (const [key, value] of Object.entries(moduleData.iec104Values)) {
-                    iec104Values[key] = value;
-                }
-            }
-            // DNP3
-            if (moduleData.dnp3Values) {
-                for (const [key, value] of Object.entries(moduleData.dnp3Values)) {
-                    dnp3Values[key] = value;
-                }
-            }
-        }
+        });
+        duplicateFields.push(`IEC101: Duplicate values found (${iec101Duplicates.join(', ')})`);
     }
 
-    userData = {
-        username: sessionUsername,
-        rtuSerial: sessionRtuSerial,
-        name: sessionName || 'N/A',
-        designation: sessionDesignation || 'N/A',
-        experience: sessionExperience || '0',
-        contractNo: sessionContractNo || 'N/A',
-        diModulesToTest: sessiondiModulesToTest,
-        currentDIModule: sessioncurrentDIModule,
-        diModulesDetails: sessiondiModulesDetails,
-        ...iec101Values,
-        ...iec104Values,
-        ...dnp3Values
-    };
-    
-    return userData;
+    // Check for duplicate values in IEC104 column - ONLY within current page
+    const iec104Values = Array.from(iec104Inputs).map(input => input.value.trim()).filter(val => val !== '');
+    const iec104Duplicates = findDuplicates(iec104Values);
+    if (iec104Duplicates.length > 0) {
+        isValid = false;
+        iec104Inputs.forEach(input => {
+            if (iec104Duplicates.includes(input.value.trim())) {
+                input.style.border = '2px solid red';
+            }
+        });
+        duplicateFields.push(`IEC104: Duplicate values found (${iec104Duplicates.join(', ')})`);
+    }
+
+    if (duplicateFields.length > 0) {
+        alert(`Duplicate IOA index values found:\n${duplicateFields.join('\n')}\n\nEach value must be unique within the current page.`);
+        return false;
+    }
+
+    return true;
 }
 
-function showCustomAlert(message) {
-    const existingAlert = document.getElementById('customAlertBox');
-    if (existingAlert) existingAlert.remove();
-    const messageBox = document.createElement('div');
-    messageBox.id = 'customAlertBox';
-    messageBox.textContent = message;
-    messageBox.style.cssText = "position:fixed; top:20px; left:50%; transform:translateX(-50%); background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index:1001; text-align: center;";
-    document.body.appendChild(messageBox);
-    setTimeout(() => messageBox.remove(), 3000);
-}
-// --- Helper Download Function (if not defined elsewhere) ---
-if (typeof download === 'undefined') {
-    window.download = function(data, filename, type) {
-        const blob = new Blob([data], { type: type || 'application/octet-stream' });
-        if (navigator.msSaveBlob) { // For IE 10+
-            navigator.msSaveBlob(blob, filename);
+// Helper function to find duplicate values in an array
+function findDuplicates(arr) {
+    const duplicates = [];
+    const seen = {};
+    
+    arr.forEach(value => {
+        if (seen[value]) {
+            if (!duplicates.includes(value)) {
+                duplicates.push(value);
+            }
         } else {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            seen[value] = true;
         }
-    }
+    });
+    
+    return duplicates;
 }
-// Add this validation function to FunctionalityDIPage.js
-function validateDIQualityInspection() {
-    let isValid = true;
-    const currentModule = window.currentDIModule;
-    const moduleType = window.diModuleTypes[currentModule] || 'DI-32';
-    
-    // Get the appropriate container based on module type
-    const container = moduleType === 'DI-16' ? '#di16Page' : '#FunctionalityDIPage';
-    
-    // Reset all error styles first
-    const quality1OK = document.querySelector(`${container} input[name="quality1"][value="OK"]`);
-    const quality1NO = document.querySelector(`${container} input[name="quality1"][value="NO"]`);
-    const quality2OK = document.querySelector(`${container} input[name="quality2"][value="OK"]`);
-    const quality2NO = document.querySelector(`${container} input[name="quality2"][value="NO"]`);
-    
-    // Check if any quality inspection is not OK
-    if ((quality1NO && quality1NO.checked) || !quality1OK?.checked) {
-        if (quality1NO) quality1NO.parentElement.style.border = '1px solid red';
-        isValid = false;
-    } else {
-        if (quality1OK) quality1OK.parentElement.style.border = '';
-        if (quality1NO) quality1NO.parentElement.style.border = '';
-    }
-    
-    if ((quality2NO && quality2NO.checked) || !quality2OK?.checked) {
-        if (quality2NO) quality2NO.parentElement.style.border = '1px solid red';
-        isValid = false;
-    } else {
-        if (quality2OK) quality2OK.parentElement.style.border = '';
-        if (quality2NO) quality2NO.parentElement.style.border = '';
-    }
-    
-    if (!isValid) {
-        alert('Please complete all required fields before continuing. All quality inspections must be marked OK.');
-    }
-    
-    return isValid;
-}
+
+// You'll need to update the navigation in your main flow to use QualityInspectionDI.html instead of FunctionalityDIPage.html for the first step

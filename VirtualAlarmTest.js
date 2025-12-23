@@ -45,20 +45,20 @@ function generateVirtualAlarmTestRows() {
         },
         {
             alarm: "DI Module Fail",
-            iec101IOA: "",
-            iec104IOA: "",
+            iec101IOA: "954",
+            iec104IOA: "954",
             editable: true
         },
         {
             alarm: "DO Module Fail",
-            iec101IOA: "",
-            iec104IOA: "",
+            iec101IOA: "955",
+            iec104IOA: "955",
             editable: true
         },
         {
             alarm: "AI Module Fail",
-            iec101IOA: "",
-            iec104IOA: "",
+            iec101IOA: "956",
+            iec104IOA: "956",
             editable: true
         },
         {
@@ -169,13 +169,18 @@ function loadVirtualAlarmTestData() {
 window.goToPreviousPage = function() {
     // Save the current test data
     saveVirtualAlarmTestData();
-    window.location.href = 'ParameterSettingIEC104.html'; // Update with actual previous page
+    window.location.href = 'FunctionalityAIPage.html'; // Update with actual previous page
 };
 
 function handleVirtualAlarmTestSubmission() {
     // First validate the form
     if (!validateVirtualAlarmTests()) {
         return; // Stop navigation if validation fails
+    }
+
+    // Validate IOA index fields for IEC101 and IEC104
+    if (!validateVirtualAlarmIOAIndexFields()) {
+        return; // Stop if validation fails
     }
     
     // Save the current test data
@@ -251,4 +256,118 @@ function validateVirtualAlarmTests() {
     }
     
     return isValid;
+}
+
+// Validate IOA index fields for IEC101 and IEC104 only
+function validateVirtualAlarmIOAIndexFields() {
+    // Get all IEC101 and IEC104 input fields
+    const iec101Inputs = document.querySelectorAll('input[name*="iec101IOA"]');
+    const iec104Inputs = document.querySelectorAll('input[name*="iec104IOA"]');
+    
+    let isValid = true;
+    let emptyFields = [];
+    let duplicateFields = [];
+
+    // Reset previous red borders
+    [...iec101Inputs, ...iec104Inputs].forEach(input => {
+        input.style.border = ''; // clear border
+    });
+
+    // Check IEC101 fields for empty values (only if checkbox is checked)
+    iec101Inputs.forEach(input => {
+        const checkboxName = input.name.replace('IOA', '');
+        const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
+        
+        if (checkbox && checkbox.checked && !input.value.trim()) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const alarmName = getAlarmNameFromInput(input);
+            emptyFields.push(`IEC101 ${alarmName}`);
+        }
+    });
+    
+    // Check IEC104 fields for empty values (only if checkbox is checked)
+    iec104Inputs.forEach(input => {
+        const checkboxName = input.name.replace('IOA', '');
+        const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
+        
+        if (checkbox && checkbox.checked && !input.value.trim()) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const alarmName = getAlarmNameFromInput(input);
+            emptyFields.push(`IEC104 ${alarmName}`);
+        }
+    });
+
+    if (!isValid) {
+        alert(`Please fill in all IOA index fields for checked protocols:\n${emptyFields.join('\n')}`);
+        return false;
+    }
+
+    // Check for duplicate values in IEC101 column (only for filled values)
+    const iec101Values = Array.from(iec101Inputs)
+        .map(input => input.value.trim())
+        .filter(val => val !== ''); // Only check non-empty values
+    
+    const iec101Duplicates = findDuplicates(iec101Values);
+    if (iec101Duplicates.length > 0) {
+        isValid = false;
+        iec101Inputs.forEach(input => {
+            if (iec101Duplicates.includes(input.value.trim()) && input.value.trim() !== '') {
+                input.style.border = '2px solid red';
+            }
+        });
+        duplicateFields.push(`IEC101: Duplicate values found (${iec101Duplicates.join(', ')})`);
+    }
+
+    // Check for duplicate values in IEC104 column (only for filled values)
+    const iec104Values = Array.from(iec104Inputs)
+        .map(input => input.value.trim())
+        .filter(val => val !== ''); // Only check non-empty values
+    
+    const iec104Duplicates = findDuplicates(iec104Values);
+    if (iec104Duplicates.length > 0) {
+        isValid = false;
+        iec104Inputs.forEach(input => {
+            if (iec104Duplicates.includes(input.value.trim()) && input.value.trim() !== '') {
+                input.style.border = '2px solid red';
+            }
+        });
+        duplicateFields.push(`IEC104: Duplicate values found (${iec104Duplicates.join(', ')})`);
+    }
+
+    if (duplicateFields.length > 0) {
+        alert(`Duplicate IOA index values found:\n${duplicateFields.join('\n')}\n\n`);
+        return false;
+    }
+
+    return true;
+}
+
+// Helper function to get alarm name from input element
+function getAlarmNameFromInput(input) {
+    const row = input.closest('tr');
+    if (row) {
+        const alarmCell = row.querySelector('td:first-child');
+        return alarmCell ? alarmCell.textContent.trim() : 'Unknown Alarm';
+    }
+    return 'Unknown Alarm';
+}
+
+// Helper function to find duplicate values in an array
+function findDuplicates(arr) {
+    const duplicates = [];
+    const seen = {};
+    
+    arr.forEach(value => {
+        if (seen[value]) {
+            if (!duplicates.includes(value)) {
+                duplicates.push(value);
+            }
+        } else {
+            seen[value] = true;
+        }
+    });
+    
+    return duplicates;
 }

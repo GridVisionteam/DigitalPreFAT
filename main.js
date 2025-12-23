@@ -10,7 +10,7 @@ function startNewSession() {
             console.log("All session data cleared");
             
             // Redirect to index.html
-            window.location.href = 'userdetail.html';
+            window.location.href = 'rtudetail.html';
         } catch (error) {
             console.error("Failed to start new session:", error);
             alert("Failed to start new session. Please try again.");
@@ -49,9 +49,9 @@ document.getElementById("logo").addEventListener("click", () => {
     window.location.href = 'index.html'; // Or just stay, or reload
 });
 
-function goToUserDetails() {
-    // Navigate directly to the user details page since login is no longer required
-    window.location.href = 'userdetail.html';
+function goToNext() {
+    // Navigate directly to the rtu details page since login is no longer required
+    window.location.href = 'rtudetail.html';
 }
 
 // Logo click returns to Login page

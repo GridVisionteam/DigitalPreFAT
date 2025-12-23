@@ -1,0 +1,61 @@
+<!-- File: FunctionalityTestCOM6.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT - COM-6-A Functionality</title>
+</head>
+<body>
+    <!-- Logo at top right -->
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <!-- Functionality Test Page -->
+    <div id="FunctionalityTestCOM6">
+        <h1 style="text-align: center;">
+            COM-6-A Module - Functionality Test
+        </h1>
+        <p>
+            Total COM-6-A: <span id="Com6NoInput"></span>
+        </p>
+        
+        <!-- Container for dynamic COM-6-A sections -->
+        <div id="com6Sections"></div>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="selectAllFunctionality()">Select All (OK)</button>
+            <button onclick="clearAllFunctionality()">Clear All</button>
+        </div>
+        
+        <!-- Navigation buttons -->
+        <div class="control-panel">
+            <button onclick="goToQualityPage()">Back to Quality Inspection (A)</button>
+            <button onclick="saveAndGoToDI()">Save & Continue to DI (D)</button>
+        </div>
+    </div>
+
+    <script src="FunctionalityTestCOM6.js"></script>
+    <script src="navigationGuard.js"></script>
+    
+    <!-- Keyboard Shortcuts -->
+    <script>
+        document.addEventListener('keydown', function(event) {
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            
+            if (!isInputField) {
+                // 'D' key for Next
+                if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                    event.preventDefault();
+                    saveAndGoToDI();
+                }
+                // 'A' key for Back
+                else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    event.preventDefault();
+                    goToQualityPage();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

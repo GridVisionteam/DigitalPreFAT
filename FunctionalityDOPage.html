@@ -20,90 +20,10 @@
     <!-- Main DO Page -->
     <div id="functionalityDOPage" class="page-container">
         <h1>Functional Test – Digital Output Module</h1>
-<div class="universal-nav-container">
-    <button class="universal-nav-toggle">Navigation</button>
-    <div class="universal-nav">
-        <div class="module-selectors">
-            <!-- DI Module Selector -->
-            <div class="module-selector">
-                <label for="diModuleJump">DI Module:</label>
-                <select id="diModuleJump" onchange="navigateToModule('DI', this.value)" required>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <span id="diModuleCounter"></span>
-            </div>
-            
-            <!-- DO Module Selector -->
-            <div class="module-selector">
-                <label for="doModuleJump">DO Module:</label>
-                <select id="doModuleJump" onchange="navigateToModule('DO', this.value)" required>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <span id="doModuleCounter"></span>
-            </div>
-            
-            <!-- AI Module Selector -->
-            <div class="module-selector">
-                <label for="aiModuleJump">AI Module:</label>
-                <select id="aiModuleJump" onchange="navigateToModule('AI', this.value)" required>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <span id="aiModuleCounter"></span>
-            </div>
-        </div>
-    </div>
-</div>
         <p>
             DO No. : <span id="doNoInput"></span>
         </p>
-        <div class="quality-inspection">
-            <label>Quality Inspection:</label>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="text-align: center;">No.</th>
-                        <th style="text-align: center;">Quality Inspection</th>
-                        <th style="text-align: center;">OK</th>
-                        <th style="text-align: center;">NO</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="text-align: center;">1</td>
-                        <td style="text-align: left;">The module is free from defect e.g. scratches, deformities, corrosion, broken.</td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality1" value="OK" data-quality-item="1" checked>
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality1" value="NO" data-quality-item="2">
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: center;">2</td>
-                        <td style="text-align: left;">The jumper is set as per approved drawing.</td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality2" value="OK" data-quality-item="3" checked>
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality2" value="NO" data-quality-item="4">
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
+        
         <p class="notes">Notes: Please refer Mastersheet for this functional test result.</p>
         
         <table>
@@ -129,95 +49,16 @@
         </div>
         
         <div class="control-panel">
-            <button id="submitBtn" onclick="handleDOTestSubmission()">Save &amp; Continue</button>
-            <button onclick="goToPreviousPage()">Back</button>
+            <button onclick="goToPreviousPage()">Back (A)</button>
+            <button id="submitBtn" onclick="handleDOTestSubmission()">Save &amp; Continue (D)</button>
         </div>
     </div>
 
     <!-- CO-8-A Configuration Page -->
     <div id="do8Page" class="page-container hidden">
         <h1>Digital Output Module (CO-8-A)</h1>
-        <div class="universal-nav-container">
-            <button class="universal-nav-toggle">Navigation</button>
-            <div class="universal-nav">
-                <div class="module-selectors">
-                    <!-- DI Module Selector -->
-                    <div class="module-selector">
-                        <label for="diModuleJump">DI Module:</label>
-                        <select id="diModuleJump" onchange="navigateToModule('DI', this.value)" required>
-                            <!-- Options will be populated by JavaScript -->
-                        </select>
-                        <span id="diModuleCounter"></span>
-                    </div>
-                    
-                    <!-- DO Module Selector -->
-                    <div class="module-selector">
-                        <label for="doModuleJump">DO Module:</label>
-                        <select id="doModuleJump" onchange="navigateToModule('DO', this.value)" required>
-                            <!-- Options will be populated by JavaScript -->
-                        </select>
-                        <span id="doModuleCounter"></span>
-                    </div>
-                    
-                    <!-- AI Module Selector -->
-                    <div class="module-selector">
-                        <label for="aiModuleJump">AI Module:</label>
-                        <select id="aiModuleJump" onchange="navigateToModule('AI', this.value)" required>
-                            <!-- Options will be populated by JavaScript -->
-                        </select>
-                        <span id="aiModuleCounter"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
         <p>DO No. : <span id="do8NoInput"></span></p>
-        <div class="quality-inspection">
-            <label>Quality Inspection:</label>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="text-align: center;">No.</th>
-                        <th style="text-align: center;">Quality Inspection</th>
-                        <th style="text-align: center;">OK</th>
-                        <th style="text-align: center;">NO</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="text-align: center;">1</td>
-                        <td style="text-align: left;">The module is free from defect e.g. scratches, deformities, corrosion, broken.</td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality1" value="OK" data-quality-item="1" checked>
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality1" value="NO" data-quality-item="2">
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="text-align: center;">2</td>
-                        <td style="text-align: left;">The jumper is set as per approved drawing.</td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality2" value="OK" data-quality-item="3" checked>
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                        <td style="text-align: center;">
-                            <label class="toggle-button">
-                                <input type="radio" name="quality2" value="NO" data-quality-item="4">
-                                <span class="toggle-text"></span>
-                            </label>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        
         <p class="notes">Notes: Please refer Mastersheet for this functional test result.</p>        
         <table>
             <thead>
@@ -242,12 +83,108 @@
         </div>
         
         <div class="control-panel">
-            <button id="submitBtnDO8" onclick="handleDO8TestSubmission()">Save &amp; Continue</button>
-            <button onclick="goToPreviousPage()">Back</button>
+            <button onclick="goToPreviousPage()">Back (A)</button>
+            <button id="submitBtnDO8" onclick="handleDO8TestSubmission()">Save &amp; Continue (D)</button>
         </div>
     </div>
+    
     <script src="FunctionalityDOPage.js"></script>
-    <script src="universalNav.js"></script> 
     <script src="navigationGuard.js"></script>
+    
+    <script>
+    document.addEventListener('keydown', function(event) {
+        // Check if we're in an input field
+        const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+        
+        // Only trigger shortcuts if not typing in an input field
+        if (!isInputField) {
+            // 'D' key for Next (68 is keyCode for 'd', 100 is keyCode for 'D' with Shift)
+            if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                event.preventDefault();
+                
+            
+                
+                // Check which page is currently visible and call appropriate function
+                const functionalityDOPage = document.getElementById('functionalityDOPage');
+                const do8Page = document.getElementById('do8Page');
+                
+                if (functionalityDOPage && functionalityDOPage.style.display !== 'none') {
+                    // Main DO page is visible
+                    handleDOTestSubmission();
+                } else if (do8Page && do8Page.style.display !== 'none') {
+                    // DO-8 page is visible
+                    handleDO8TestSubmission();
+                }
+            }
+            // 'A' key for Back (65 is keyCode for 'a', 97 is keyCode for 'A' with Shift)
+            else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                event.preventDefault();
+                
+            
+                
+                
+                goToPreviousPage();
+            }
+        }
+    });
+    </script>
+    
+    <script>
+    document.addEventListener('paste', function (event) {
+        // Check if the target is an input field inside any of our data tables
+        const isInTableBody = event.target.closest('#tableBody') || 
+                             event.target.closest('#do8TableBody');
+        
+        if (event.target.tagName === 'INPUT' && isInTableBody) {
+            // Prevent the default single-field paste behavior
+            event.preventDefault();
+
+            // Get the clipboard data as text
+            const clipboardData = (event.clipboardData || window.clipboardData).getData('text');
+            
+            // Excel rows are separated by newlines (\n)
+            // Excel columns are separated by tabs (\t)
+            const rows = clipboardData.split(/\r\n|\n|\r/).filter(row => row.length > 0);
+            
+            // Get the starting position (the input you clicked on)
+            const startInput = event.target;
+            const startCell = startInput.closest('td');
+            const startRow = startCell.closest('tr');
+            const tableBody = startRow.closest('tbody');
+            
+            // Calculate the starting row and column index
+            const startRowIndex = Array.from(tableBody.children).indexOf(startRow);
+            const startCellIndex = Array.from(startRow.children).indexOf(startCell);
+
+            // Loop through the pasted rows
+            rows.forEach((rowData, rIndex) => {
+                const cells = rowData.split('\t');
+                const targetRow = tableBody.children[startRowIndex + rIndex];
+
+                if (targetRow) {
+                    // Loop through the pasted cells (columns)
+                    cells.forEach((cellData, cIndex) => {
+                        // Find the target cell based on the starting offset
+                        const targetCell = targetRow.children[startCellIndex + cIndex];
+                        
+                        if (targetCell) {
+                            // Find the input inside that cell
+                            const targetInput = targetCell.querySelector('input');
+                            
+                            // Only paste if an input exists and is editable
+                            if (targetInput && !targetInput.disabled && !targetInput.readOnly) {
+                                targetInput.value = cellData.trim();
+                                
+                                // Dispatch 'input' and 'change' events so your validation/saving logic knows data changed
+                                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+    </script>
 </body>
 </html>

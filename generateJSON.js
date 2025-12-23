@@ -74,7 +74,9 @@ function generateJsonFile() {
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `RTU_Backup_${localStorage.getItem('session_rtuSerial') || 'UnknownRTU'}_${new Date().toISOString().split('T')[0]}.json`;
+        const now = new Date();
+        const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        a.download = `${dateformat}_RTU_Backup_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.json`;
         document.body.appendChild(a);
         a.click();
         

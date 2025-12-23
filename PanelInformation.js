@@ -72,11 +72,28 @@ function generatePhysicalInspectionRows() {
     const tbody = document.getElementById('physicalTbody');
     if (!tbody) return;
 
-    // Quality inspection items for panel
+    // Add panel type selection row at the top
+    const typeRow = document.createElement('tr');
+    typeRow.innerHTML = `
+        <td style="text-align: center;">-</td>
+        <td style="text-align: left;">Panel Type</td>
+        <td style="text-align: center;">
+            <select id="panelType" name="panelType" onchange="updatePanelDimensions()">
+                <option value="wall_mounted">Wall Mounted</option>
+                <option value="floor_standing">Floor Standing</option>
+            </select>
+        </td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+        <td style="text-align: center;">-</td>
+    `;
+    tbody.appendChild(typeRow);
+
+    // Quality inspection items for panel with default values (wall mounted defaults)
     const physicalItems = [
-        "Panel Height",
-        "Panel Width",
-        "Panel Depth"
+        { name: "Panel Height", id: "panelHeight", defaultValue: "900" },
+        { name: "Panel Width", id: "panelWidth", defaultValue: "800" },
+        { name: "Panel Depth", id: "panelDepth", defaultValue: "350" }
     ];
 
     physicalItems.forEach((item, index) => {
@@ -84,9 +101,9 @@ function generatePhysicalInspectionRows() {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="text-align: center;">${rowNumber}</td>
-            <td style="text-align: left;">${item}</td>
+            <td style="text-align: left;">${item.name}</td>
             <td style="text-align: center;">
-                <input type="number" name="physical_${rowNumber}" />
+                <input type="number" id="${item.id}" name="physical_${rowNumber}" value="${item.defaultValue}" />
             </td>
             <td style="text-align: center;">
                 ±5%
@@ -106,6 +123,27 @@ function generatePhysicalInspectionRows() {
         `;
         tbody.appendChild(row);
     });
+}
+
+function updatePanelDimensions() {
+    const panelTypeSelect = document.getElementById('panelType');
+    const panelHeight = document.getElementById('panelHeight');
+    const panelWidth = document.getElementById('panelWidth');
+    const panelDepth = document.getElementById('panelDepth');
+
+    if (!panelTypeSelect || !panelHeight || !panelWidth || !panelDepth) return;
+
+    if (panelTypeSelect.value === 'wall_mounted') {
+        // Wall mounted dimensions
+        panelHeight.value = '900';
+        panelWidth.value = '800';
+        panelDepth.value = '350';
+    } else if (panelTypeSelect.value === 'floor_standing') {
+        // Floor standing dimensions
+        panelHeight.value = '2300';
+        panelWidth.value = '800';
+        panelDepth.value = '800';
+    }
 }
 
 // Function to generate functional test rows for panel
@@ -153,6 +191,13 @@ function savePanelTestData() {
     window.panelTestResults.physicalInspections = window.panelTestResults.physicalInspections || {};
     window.panelTestResults.qualityTests = window.panelTestResults.qualityTests || {};
     window.panelTestResults.measurements = window.panelTestResults.measurements || {};
+    window.panelTestResults.panelType = window.panelTestResults.panelType || 'wall_mounted'; // Default value
+
+    // Save panel type
+    const panelTypeSelect = document.getElementById('panelType');
+    if (panelTypeSelect) {
+        window.panelTestResults.panelType = panelTypeSelect.value;
+    }
 
     // Save physical results (3 items) and measurements
     for (let itemNum = 1; itemNum <= 3; itemNum++) {
@@ -183,6 +228,13 @@ function loadPanelTestData() {
     window.panelTestResults.physicalInspections = window.panelTestResults.physicalInspections || {};
     window.panelTestResults.qualityTests = window.panelTestResults.qualityTests || {};
     window.panelTestResults.measurements = window.panelTestResults.measurements || {};
+    window.panelTestResults.panelType = window.panelTestResults.panelType || 'wall_mounted'; // Default value
+    
+    // Load panel type
+    const panelTypeSelect = document.getElementById('panelType');
+    if (panelTypeSelect && window.panelTestResults.panelType) {
+        panelTypeSelect.value = window.panelTestResults.panelType;
+    }
     
     // Load physical inspection results (3 items) and measurements
     for (let itemNum = 1; itemNum <= 3; itemNum++) {

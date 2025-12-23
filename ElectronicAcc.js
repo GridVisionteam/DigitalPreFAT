@@ -59,7 +59,7 @@ function generateElectronicAccessoriesRows() {
             datasheet: "",
             editable: true,
             brandOptions: ["DongFang"],
-            modelOptions: ["PLPT-110VDC"]
+            modelOptions: ["PLPT-110VDC", "PLPT-110V-A" ]
         },
         {
             item: "5",
@@ -76,8 +76,8 @@ function generateElectronicAccessoriesRows() {
             quantity: "",
             datasheet: "",
             editable: true,
-            brandOptions: ["APC","DongFang"],
-            modelOptions: ["PNET1GB", "DF-LPT-ETH"]
+            brandOptions: ["Dongfang","APC"],
+            modelOptions: ["DF-LPT-ETH", "PNET1GB"]
         },
         {
             item: "7",
@@ -86,7 +86,7 @@ function generateElectronicAccessoriesRows() {
             datasheet: "",
             editable: true,
             brandOptions: ["DongFang"],
-            modelOptions: ["DF1745MSN/DC24V"]
+            modelOptions: ["DF1745MSN/DC24V", "DF1745MS"]
         },
         {
             item: "8",
@@ -174,7 +174,7 @@ function generateElectronicAccessoriesRows() {
             ).join("");
             modelCell = `
                 <td style="text-align: center;">
-                    <select name="accessory_${rowNumber}_model" style="width: 120px;">
+                    <select name="accessory_${rowNumber}_model" style="width: 130px;">
                         ${optionsHtml}
                     </select>
                 </td>
@@ -244,9 +244,22 @@ function generateElectronicAccessoriesRows() {
                 }
             });
         }
-
+// UPDATED EVENT LISTENER
         okCheckbox.addEventListener('change', function() {
+            // 1. Set Datasheet to YES/NO
             datasheetSelect.value = this.checked ? 'YES' : 'NO';
+            
+            // 2. Handle Quantity Input
+            const quantityInput = row.querySelector(`input[name="accessory_${rowNumber}_quantity"]`);
+            if (this.checked) {
+                // If ticked, set default to 1 if currently empty
+                if (quantityInput.value === "") {
+                    quantityInput.value = "1";
+                }
+            } else {
+                // If unticked, clear the value
+                quantityInput.value = "";
+            }
         });
     });
 }
@@ -380,6 +393,7 @@ function clearAll() {
 }
 
 // Add this function to validate required fields
+// Updated Validation Function
 function validateElectronicAccessoriesFields() {
     let isValid = true;
     
@@ -392,12 +406,12 @@ function validateElectronicAccessoriesFields() {
     for (let itemNum = 1; itemNum <= 12; itemNum++) {
         const okCheckbox = document.querySelector(`input[name="accessory_${itemNum}_ok"]`);
         
-        if (okCheckbox.checked) {
+        if (okCheckbox && okCheckbox.checked) {
             const quantityInput = document.querySelector(`input[name="accessory_${itemNum}_quantity"]`);
             const datasheetSelect = document.querySelector(`select[name="accessory_${itemNum}_datasheet"]`);
             
-            // Validate quantity
-            if (!quantityInput.value || isNaN(quantityInput.value)) {
+            // Validate quantity: Cannot be blank AND cannot be "0"
+            if (!quantityInput.value || quantityInput.value.trim() === "" || parseInt(quantityInput.value) <= 0) {
                 quantityInput.style.borderColor = 'red';
                 isValid = false;
             }

@@ -4,10 +4,61 @@ function goToPreviousPage() {
 }
 
 function goToNextPage() {
+    // Validate all checkboxes are ticked before navigating
+    if (!validateTestSetupCheckboxes()) {
+        return; // Stop if validation fails
+    }
+    
     // Save checkbox states before navigating
     saveCheckboxStates();
     navigationGuard.markPageAsCompleted();
     window.location.href = 'ElectronicAcc.html';
+}
+
+// Function to validate all test setup checkboxes are ticked
+function validateTestSetupCheckboxes() {
+    const check1 = document.getElementById('check1');
+    const check2 = document.getElementById('check2');
+    const check3 = document.getElementById('check3');
+    const check4 = document.getElementById('check4');
+    
+    let allChecked = true;
+    
+    // Check each checkbox and apply error styling if not checked
+    if (!check1.checked) {
+        check1.parentElement.style.border = '1px solid red';
+        allChecked = false;
+    } else {
+        check1.parentElement.style.border = '';
+    }
+    
+    if (!check2.checked) {
+        check2.parentElement.style.border = '1px solid red';
+        allChecked = false;
+    } else {
+        check2.parentElement.style.border = '';
+    }
+    
+    if (!check3.checked) {
+        check3.parentElement.style.border = '1px solid red';
+        allChecked = false;
+    } else {
+        check3.parentElement.style.border = '';
+    }
+    
+    if (!check4.checked) {
+        check4.parentElement.style.border = '1px solid red';
+        allChecked = false;
+    } else {
+        check4.parentElement.style.border = '';
+    }
+    
+    if (!allChecked) {
+        alert('Please tick all checkboxes before continuing.');
+        return false;
+    }
+    
+    return true;
 }
 
 // Function to save checkbox states to localStorage in the required format
@@ -35,10 +86,49 @@ function loadCheckboxStates() {
         document.getElementById('check3').checked = results.connections.connection_3 === 'OK';
         document.getElementById('check4').checked = results.connections.connection_4 === 'OK';
     }
+    
+    // Clear any existing error borders when loading
+    clearCheckboxErrorBorders();
+}
+
+// Function to clear error borders from checkboxes
+function clearCheckboxErrorBorders() {
+    const check1 = document.getElementById('check1');
+    const check2 = document.getElementById('check2');
+    const check3 = document.getElementById('check3');
+    const check4 = document.getElementById('check4');
+    
+    if (check1) check1.parentElement.style.border = '';
+    if (check2) check2.parentElement.style.border = '';
+    if (check3) check3.parentElement.style.border = '';
+    if (check4) check4.parentElement.style.border = '';
+}
+
+// Add event listeners to checkboxes to clear error borders when checked
+function setupCheckboxEventListeners() {
+    const checkboxes = [
+        document.getElementById('check1'),
+        document.getElementById('check2'),
+        document.getElementById('check3'),
+        document.getElementById('check4')
+    ];
+    
+    checkboxes.forEach(checkbox => {
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    this.parentElement.style.border = '';
+                }
+            });
+        }
+    });
 }
 
 // Load saved states when page loads
-window.addEventListener('DOMContentLoaded', loadCheckboxStates);
+window.addEventListener('DOMContentLoaded', function() {
+    loadCheckboxStates();
+    setupCheckboxEventListeners();
+});
 
 // Make the image container responsive
 function adjustCheckpointPositions() {

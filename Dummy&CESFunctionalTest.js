@@ -198,7 +198,7 @@ function goToPreviousPage() {
     window.location.href = 'FunctionalityDOPage.html';
 }
 
-function goToFunctionalityAI() {
+function goToNext() {
     // First validate the form
     if (!validateDummyCesInspection()) {
         return;
@@ -222,7 +222,7 @@ function goToFunctionalityAI() {
         // Manually mark both current page and AI page as completed
         localStorage.setItem('Dummy&CESFunctionalTest.html_completed', 'true');
         localStorage.setItem('FunctionalityAIPage.html_completed', 'true');
-        window.location.href = 'RTUPowerUp.html';
+        window.location.href = 'VirtualAlarmTest.html';
     }
 }
 

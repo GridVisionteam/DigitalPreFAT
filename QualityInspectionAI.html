@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css"> 
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DF1725IED Pre-FAT - AI Quality Inspection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
+    <div id="QualityInspectionAI">
+        <h1 style="text-align: center;">
+            Analog Input Module - Quality Inspection
+        </h1>
+        <p>
+            Total AI Modules: <span id="aiNoInput"></span>
+        </p>
+        
+        <!-- Container for all AI module sections -->
+        <div id="aiSections">
+            <!-- AI module sections will be generated here dynamically -->
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <button onclick="selectAllQuality()">Select All (OK)</button>
+            <button onclick="clearAllQuality()">Clear All</button>
+        </div>
+        
+        <!-- Navigation buttons -->
+        <div class="control-panel">
+            <button onclick="goToPreviousPage()">Back (A)</button>
+            <button onclick="goToNext()">Save & Continue to Functionality Test (D)</button>
+        </div>
+    </div>
+
+    <script src="QualityInspectionAI.js"></script>
+    <script src="navigationGuard.js"></script>
+    
+    <!-- Keyboard Shortcuts -->
+    <script>
+        document.addEventListener('keydown', function(event) {
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            
+            if (!isInputField) {
+                if (event.key === 'd' || event.key === 'D') {
+                    event.preventDefault();
+                    goToNext();
+                }
+                else if (event.key === 'a' || event.key === 'A') {
+                    event.preventDefault();
+                    goToPreviousPage();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

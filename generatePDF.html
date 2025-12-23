@@ -32,16 +32,37 @@
         </div>
         
         <div class="button-container">
-            <button id="generatePdfBtn" onclick="generateFinalPdf()">Generate PDF Report</button>
+            <button id="backBtn" onclick="window.location.href='signature.html'">Back (A)</button>
             <button id="StartNewSession" onclick="startNewSession()">Start New Session</button>
-            <button onclick="window.location.href='signature.html'">Back</button>
+            <button id="generatePdfBtn" onclick="generateFinalPdf()">Generate PDF Report</button>
         </div>
     </div>
 
     <script src="commonFunctions.js"></script>
     <script src="generateJSON.js"></script>
     <script src="generatePDF.js"></script>
-    
+    <script>
+        // Function to handle back navigation
+        function goToBack() {
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.click();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            // Check if we're in an input field
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            
+            // Only trigger shortcuts if not typing in an input field
+            if (!isInputField) {
+                if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    event.preventDefault();
+                    goToBack();
+                }
+            }
+        });
+    </script>
     <script>
         // Expose the function to the global scope
         window.startNewSession = startNewSession;

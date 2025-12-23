@@ -27,19 +27,30 @@ function importData() {
                 // Store all data from JSON into localStorage
                 for (const key in jsonData) {
                     if (jsonData.hasOwnProperty(key)) {
-                        // Remove extra quotes from string values if present
-                        if (typeof jsonData[key] === 'string' && jsonData[key].startsWith('"') && jsonData[key].endsWith('"')) {
-                            jsonData[key] = jsonData[key].slice(1, -1);
+                        let value = jsonData[key];
+                        
+                        // Handle string values that might have extra quotes
+                        if (typeof value === 'string') {
+                            // Remove extra quotes if they exist
+                            if (value.startsWith('"') && value.endsWith('"')) {
+                                value = value.slice(1, -1);
+                            }
+                            localStorage.setItem(key, value);
+                        } else {
+                            // For objects/arrays, stringify them
+                            localStorage.setItem(key, JSON.stringify(value));
                         }
-                        localStorage.setItem(key, JSON.stringify(jsonData[key]));
                     }
                 }
+                
+                // RESET NAVIGATION MARKS - Clear all page completion status
+                resetNavigationMarks();
                 
                 // Show success message
                 alert('Data imported successfully!');
                 
                 // Redirect to userdetail.html
-                window.location.href = 'userdetail.html';
+                window.location.href = 'rtudetail.html';
                 
             } catch (error) {
                 console.error('Error parsing JSON file:', error);
@@ -56,6 +67,46 @@ function importData() {
     
     // Trigger file selection dialog
     fileInput.click();
+}
+
+// Function to reset all navigation completion marks
+function resetNavigationMarks() {
+    const PAGE_SEQUENCE = [
+        'BQ.html',
+        'Pre-requisite.html',
+        'ProductDeclaration.html',
+        'TestSetup.html',
+        'ElectronicAcc.html',
+        'RTUPanelAcc.html',
+        'PanelInformation.html',
+        'SubrackInspection.html',
+        'FunctionalityPowerSupply.html',
+        'FunctionalityProcessor.html',
+        'FunctionalityCOM6.html',
+        'FunctionalityDIPage.html',
+        'FunctionalityDOPage.html',
+        'Dummy&CESFunctionalTest.html',
+        'FunctionalityAIPage.html',
+        'RTUPowerUp.html',
+        'ParameterSettingProc.html',
+        'ParameterSettingDI.html',
+        'ParameterSettingDO.html',
+        'ParameterSettingAI.html',
+        'ParameterSettingIEC101.html',
+        'ParameterSettingIEC104.html',
+        'VirtualAlarmTest.html',
+        'ChannelRedundacyTest.html',
+        'LimitofAuthority.html',
+        'userdetail.html',
+        'signature.html'
+    ];
+    
+    // Clear all completion marks
+    PAGE_SEQUENCE.forEach(page => {
+        localStorage.removeItem(`${page}_completed`);
+    });
+    
+    console.log('Navigation marks reset successfully');
 }
 
 // Add event listener to the Import button

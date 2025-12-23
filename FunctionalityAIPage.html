@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!--Style will refer to style.css document-->
     <link rel="stylesheet" href="style.css"> 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DF1725IED Pre-FAT</title>
-    <!-- Add PDF generation libraries -->
+    <title>DF1725IED Pre-FAT - AI Functionality Test</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -16,232 +14,178 @@
     </script>
     <script src="https://unpkg.com/pdf-lib@^1.16.0"></script>
     <script src="https://unpkg.com/downloadjs@1.4.7"></script>
-
 </head>
 <body>
-    <!-- Logo at top right -->
     <img src="Icon/GV.png" alt="Logo" class="logo" id="logo" title="Go to Login Page" />    
+    
   <div id="functionalityAIPage">
-   <h1>
-    4.0 Functional Test – Analog Input Module
-   </h1>
-<div class="universal-nav-container">
-    <button class="universal-nav-toggle">Navigation</button>
-    <div class="universal-nav">
-        <div class="module-selectors">
-            <!-- DI Module Selector -->
-            <div class="module-selector">
-                <label for="diModuleJump">DI Module:</label>
-                <select id="diModuleJump" onchange="navigateToModule('DI', this.value)" required>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <span id="diModuleCounter"></span>
-            </div>
-            
-            <!-- DO Module Selector -->
-            <div class="module-selector">
-                <label for="doModuleJump">DO Module:</label>
-                <select id="doModuleJump" onchange="navigateToModule('DO', this.value)" required>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <span id="doModuleCounter"></span>
-            </div>
-            
-            <!-- AI Module Selector -->
-            <div class="module-selector">
-                <label for="aiModuleJump">AI Module:</label>
-                <select id="aiModuleJump" onchange="navigateToModule('AI', this.value)" required>
-                    <!-- Options will be populated by JavaScript -->
-                </select>
-                <span id="aiModuleCounter"></span>
-            </div>
-        </div>
-    </div>
-</div>
-   <p>
+    <h1>
+     Analog Input Module - Functionality Test
+    </h1>
+    <p>
         AI No. : <span id="aiNoInput"></span>
-   </p>
-    <div class="quality-inspection">
-      <label>Quality Inspection:</label>
-        <table>
-            <thead>
-                <tr>
-                    <th style="text-align: center;">
-                    No.
-                    </th>
-                    <th style="text-align: center;">
-                    Quality Inspection
-                    </th>
-                    <th style="text-align: center;">
-                    OK
-                    </th>
-                    <th style="text-align: center;">
-                    NO
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="text-align: center;">
-                        1
-                    </td>
-                    <td style="text-align: left;">
-                        The module is free from defect e.g. scratches, deformities, corrosion, broken.
-                    </td>
-                    <td style="text-align: center;">
-                        <label class="toggle-button">
-                            <input type="radio" name="quality1" value="OK" data-quality-item="1" checked>
-                            <span class="toggle-text"></span>
-                        </label>
-                    </td>
-                    <td style="text-align: center;">
-                        <label class="toggle-button">
-                            <input type="radio" name="quality1" value="NO" data-quality-item="2">
-                            <span class="toggle-text"></span>
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="text-align: center;">
-                        2
-                    </td>
-                    <td style="text-align: left;">
-                        The jumper is set as per approved drawing.
-                    </td>
-                    <td style="text-align: center;">
-                        <label class="toggle-button">
-                            <input type="radio" name="quality2" value="OK" data-quality-item="3" checked>
-                            <span class="toggle-text"></span>
-                        </label>
-                    </td>
-                    <td style="text-align: center;">
-                        <label class="toggle-button">
-                            <input type="radio" name="quality2" value="NO" data-quality-item="4">
-                            <span class="toggle-text"></span>
-                        </label>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    </p>
 
-   <p class="notes">
-    Notes: Please insert the report value reading in the result box.
-   </p>
-   <table>
+    <p class="notes">
+     Notes: Please insert the report value reading in the result box.
+    </p>
+    <table>
     <thead>
-     <tr>
-      <th rowspan="4" style="text-align: center;">
-       Point No.
-      </th>
-      <th colspan="7" style="text-align: center;">
-       Test
-      </th>
-      <th rowspan="3" colspan="3" style="text-align: center;">
-       IOA/Index
-      </th>
-     </tr>
-     <tr>
-      <th style="text-align: center;">
-       Current
-      </th>
-      <th style="text-align: center;">
-       0mA
-      </th>
-      <th style="text-align: center;">
-       4mA
-      </th>
-      <th style="text-align: center;">
-       8mA
-      </th>
-      <th style="text-align: center;">
-       12mA
-      </th>
-      <th style="text-align: center;">
-       16mA
-      </th>
-      <th style="text-align: center;">
-       20mA
-      </th>
-     </tr>
-     <tr>
-      <th style="text-align: center;">
-       Raw
-      </th>
-      <th style="text-align: center;">
-       -2490 — -2510
-      </th>
-      <th style="text-align: center;">
-       -10 — 10
-      </th>
-      <th style="text-align: center;">
-       2490 — 2510
-      </th>
-      <th style="text-align: center;">
-       4990 — 5010
-      </th>
-      <th style="text-align: center;">
-       7940 — 7510
-      </th>
-      <th style="text-align: center;">
-       9990 — 10010
-      </th>
-     </tr>
-     <tr>
-      <th style="text-align: center;">
-       Report
-      </th>
-      <th style="text-align: center;">
-       -8158 — -8225
-      </th>
-      <th style="text-align: center;">
-       -33 — 33
-      </th>
-      <th style="text-align: center;">
-       8158 — 8225
-      </th>
-      <th style="text-align: center;">
-       16350 — 16416
-      </th>
-      <th style="text-align: center;">
-       24542 — 24608
-      </th>
-      <th style="text-align: center;">
-       32734 — 32799
-      </th>
-      <th style="text-align: center;">
-       IEC101
-      </th>
-      <th style="text-align: center;">
-       IEC104
-      </th>
-      <th style="text-align: center;">
-       DNP3
-      </th>
-     </tr>
+      <tr>
+       <th rowspan="4" style="text-align: center;">Point No.</th>
+       <th colspan="7" style="text-align: center;">Test</th>
+       <th rowspan="3" colspan="3" style="text-align: center;">IOA/Index</th>
+      </tr>
+      <tr>
+       <th style="text-align: center;">Current</th>
+       <th style="text-align: center;">0mA</th>
+       <th style="text-align: center;">4mA</th>
+       <th style="text-align: center;">8mA</th>
+       <th style="text-align: center;">12mA</th>
+       <th style="text-align: center;">16mA</th>
+       <th style="text-align: center;">20mA</th>
+      </tr>
+      <tr>
+       <th style="text-align: center;">Raw</th>
+       <th style="text-align: center;">-2490 — -2510</th>
+       <th style="text-align: center;">-10 — 10</th>
+       <th style="text-align: center;">2490 — 2510</th>
+       <th style="text-align: center;">4990 — 5010</th>
+       <th style="text-align: center;">7940 — 7510</th>
+       <th style="text-align: center;">9990 — 10010</th>
+      </tr>
+      <tr>
+       <th style="text-align: center;">Report</th>
+       <th style="text-align: center;">-8158 — -8225</th>
+       <th style="text-align: center;">-33 — 33</th>
+       <th style="text-align: center;">8158 — 8225</th>
+       <th style="text-align: center;">16350 — 16416</th>
+       <th style="text-align: center;">24542 — 24608</th>
+       <th style="text-align: center;">32734 — 32799</th>
+       <th style="text-align: center;">IEC101</th>
+       <th style="text-align: center;">IEC104</th>
+       <th style="text-align: center;">DNP3</th>
+      </tr>
     </thead>
     <tbody id="tableBody">
-    </tbody>
-   </table>
+        </tbody>
+    </table>
 
-   <div style="margin-top: 20px; text-align: center;">
-    <button onclick="clearAll()">
-     Clear All
-    </button>
-   </div>
-   <!-- Add the submit button panel at the bottom -->
-   <div class="control-panel">
-    <button id="submitBtn" onclick="handleAITestSubmission()">
-     Save &amp; Continue
-    </button>
-    <button onclick="goToPreviousPage()">
-     Back
-    </button>
-   </div>
+    <div style="margin-top: 20px; text-align: center;">
+     <button onclick="selectAllFunctionality()">Select All (OK)</button>
+     <button onclick="clearAllFunctionality()">Clear All</button>
+    </div>
+    
+    <div class="control-panel">
+     <button onclick="goToPrevious()">Back to Quality Inspection (A)</button>
+     <button id="submitBtn" onclick="saveAndGoToNext()">Save &amp; Continue (D)</button>
+    </div>
   </div>
 
 <script src="FunctionalityAIPage.js"></script>
-<script src="universalNav.js"></script>
 <script src="navigationGuard.js"></script>
+
+<script>
+    function selectAllFunctionality() {
+        // Check all Checkboxes in the main table (for current test columns)
+        const currentCheckboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+        currentCheckboxes.forEach(cb => {
+            cb.checked = true;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    }
+
+    function clearAllFunctionality() {
+        // Clear Inputs
+        const inputs = document.querySelectorAll('#tableBody input[type="text"], #tableBody input[type="number"]');
+        inputs.forEach(input => {
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        // Uncheck Checkboxes
+        const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    }
+</script>
+
+<script>
+    document.addEventListener('keydown', function(event) {
+        const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+        if (!isInputField) {
+            if (event.key === 'd' || event.key === 'D') {
+                event.preventDefault();
+                saveAndGoToNext();
+            }
+            else if (event.key === 'a' || event.key === 'A') {
+                event.preventDefault();
+                goToPrevious();
+            }
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('paste', function (event) {
+        if (event.target.tagName === 'INPUT' && (event.target.closest('#tableBody'))) {
+            event.preventDefault();
+            const clipboardData = (event.clipboardData || window.clipboardData).getData('text');
+            const rows = clipboardData.split(/\r\n|\n|\r/).filter(row => row.length > 0);
+            
+            // Get the starting position - THIS is the key column
+            const startInput = event.target;
+            const startRow = startInput.closest('tr');
+            const tableBody = startRow.closest('tbody');
+            
+            // Calculate the starting row index
+            const startRowIndex = Array.from(tableBody.children).indexOf(startRow);
+
+            // Loop through the pasted rows
+            rows.forEach((rowData, rIndex) => {
+                const cells = rowData.split('\t');
+                const targetRow = tableBody.children[startRowIndex + rIndex];
+
+                if (targetRow) {
+                    // Get the cell value - use ONLY the first cell from pasted data
+                    const cellData = cells[0] ? cells[0].trim() : '';
+                    
+                    // Paste into the SAME column (startInput type) in each row
+                    if (startInput.type === 'checkbox') {
+                        // For checkboxes in the same column
+                        const columnName = startInput.name;
+                        const columnMatch = columnName.match(/_(0mA|4mA|8mA|12mA|16mA|20mA|IEC101|IEC104|DNP3)_/);
+                        if (columnMatch) {
+                            const columnType = columnMatch[1];
+                            const targetInput = targetRow.querySelector(`input[name$="${columnType}_${rIndex + 1 + parseInt(startRow.textContent.match(/\d+/)[0]) - 1}"]`);
+                            
+                            if (targetInput) {
+                                targetInput.checked = cellData.toLowerCase() === 'true' || 
+                                                    cellData === '1' || 
+                                                    cellData.toLowerCase() === 'checked';
+                                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                    } else {
+                        // For number inputs - find input in same column position
+                        const inputsInRow = targetRow.querySelectorAll('input');
+                        const startInputIndex = Array.from(startRow.querySelectorAll('input')).indexOf(startInput);
+                        
+                        if (startInputIndex !== -1 && startInputIndex < inputsInRow.length) {
+                            const targetInput = inputsInRow[startInputIndex];
+                            if (targetInput && !targetInput.disabled && !targetInput.readOnly) {
+                                targetInput.value = cellData;
+                                targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
 </body>
 </html>

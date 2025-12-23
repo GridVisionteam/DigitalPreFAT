@@ -3,30 +3,7 @@ const { PDFDocument, rgb } = PDFLib;
 if (!window.doTestResults) window.doTestResults = {};
 if (!window.doModuleTypes) window.doModuleTypes = {};
 
-function setupDOModuleTypeListeners() {
-    const doModuleTypeSelects = document.querySelectorAll('#doModuleType');
-    doModuleTypeSelects.forEach(select => {
-        select.addEventListener('change', handleDOModuleTypeChange);
-    });
-}
-
-function handleDOModuleTypeChange() {
-    const moduleType = this.value;
-    
-    // Save current data before switching
-    saveCurrentModuleData();
-    
-    // Update the module type in our tracking object
-    window.doModuleTypes[window.currentDOModule] = moduleType;
-    localStorage.setItem('doModuleTypes', JSON.stringify(window.doModuleTypes));
-
-    // For now, we only have one page for both types, but we can add more if needed
-    showFunctionalityDOPage();
-}
-
-function saveCurrentModuleData() {
-    saveDOTestData(window.currentDOModule);
-}
+// Module navigation functions (removed module jump functions)
 
 function showFunctionalityDOPage() {
     // Initialize module tracking
@@ -62,8 +39,6 @@ function showFunctionalityDOPage() {
         loadDOTestData(window.currentDOModule);
     } else {
         // Only set defaults if this is a new module
-        document.querySelector('input[name="quality1"][value="OK"]').checked = true;
-        document.querySelector('input[name="quality2"][value="OK"]').checked = true;
         clearAll();
     }
 }
@@ -85,20 +60,23 @@ function showFunctionalityDO8Page() {
         generateDO8Rows();
     }
 
+    // Initialize empty data structure if none exists
+    if (!window.doTestResults[window.currentDOModule]) {
+        window.doTestResults[window.currentDOModule] = {
+            inputs: [],
+            iec101Values: {},
+            iec104Values: {},
+            dnp3Values: {},
+            checkboxValues: {},
+            type: 'CO-8-A'
+        };
+    }
+
     // Load existing data if available
     if (window.doTestResults[window.currentDOModule] && 
         window.doTestResults[window.currentDOModule].type === 'CO-8-A') {
         loadDO8TestData(window.currentDOModule);
     } else {
-        // Initialize empty data structure if none exists
-        if (!window.doTestResults[window.currentDOModule]) {
-            window.doTestResults[window.currentDOModule] = {
-                inputs: [],
-                type: 'CO-8-A'
-            };
-        }
-        document.querySelector('#do8Page input[name="quality1"][value="OK"]').checked = true;
-        document.querySelector('#do8Page input[name="quality2"][value="OK"]').checked = true;
         clearAllDO8();
     }
 }
@@ -167,25 +145,12 @@ function generateDO8Rows() {
     });
 }
 
-
 function SelectAll() {
-    const rows = document.querySelectorAll("#tableBody tr");
-    let allChecked = true;
+    const checkboxes = document.querySelectorAll("#tableBody input[type='checkbox']");
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
     
-    // First check if all checkboxes are already checked
-    rows.forEach(row => {
-        const checkboxes = row.querySelectorAll("td:nth-child(2) input[type='checkbox'], td:nth-child(3) input[type='checkbox'], td:nth-child(8) input[type='checkbox'], td:nth-child(9) input[type='checkbox']");
-        checkboxes.forEach(cb => {
-            if (!cb.checked) allChecked = false;
-        });
-    });
-    
-    // Then toggle based on current state
-    rows.forEach(row => {
-        const checkboxes = row.querySelectorAll("td:nth-child(2) input[type='checkbox'], td:nth-child(3) input[type='checkbox'], td:nth-child(8) input[type='checkbox'], td:nth-child(9) input[type='checkbox']");
-        checkboxes.forEach(cb => {
-            cb.checked = !allChecked;
-        });
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
     });
     
     updateSubmitButtonState();
@@ -193,13 +158,13 @@ function SelectAll() {
 
 function clearAll() {
     // Clear all checkboxes
-    const checkboxes = document.querySelectorAll('.do-test-checkbox');
+    const checkboxes = document.querySelectorAll('#tableBody .do-test-checkbox');
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
     
     // Clear all text inputs
-    const textInputs = document.querySelectorAll('.do-test-input');
+    const textInputs = document.querySelectorAll('#tableBody .do-test-input');
     textInputs.forEach(input => {
         input.value = '';
     });
@@ -251,19 +216,9 @@ function saveDOTestData(moduleNumber) {
             iec104Values: {},
             dnp3Values: {},
             checkboxValues: {},
-            type: 'CO-16-A',
-            qualityInspections: {}
+            type: 'CO-16-A'
         };
     }
-
-    // Save quality inspection results
-    const quality1 = document.querySelector('input[name="quality1"][value="OK"]:checked') ? 'OK' : 'NO';
-    const quality2 = document.querySelector('input[name="quality2"][value="OK"]:checked') ? 'OK' : 'NO';
-    
-    window.doTestResults[moduleNumber].qualityInspections = {
-        quality1,
-        quality2
-    };
 
     // Save all inputs
     const inputs = document.querySelectorAll("#tableBody input");
@@ -274,28 +229,16 @@ function saveDOTestData(moduleNumber) {
     // Save checkbox values with their positions
     const rows = document.querySelectorAll("#tableBody tr");
     rows.forEach((row, rowIndex) => {
-        // Left side checkboxes (columns 2 and 3)
-        const leftCheckbox1 = row.querySelector("td:nth-child(2) input[type='checkbox']");
-        const leftCheckbox2 = row.querySelector("td:nth-child(3) input[type='checkbox']");
+        // Checkboxes (columns 2 and 3)
+        const checkbox1 = row.querySelector("td:nth-child(2) input[type='checkbox']");
+        const checkbox2 = row.querySelector("td:nth-child(3) input[type='checkbox']");
         
-        // Right side checkboxes (columns 8 and 9)
-        const rightCheckbox1 = row.querySelector("td:nth-child(8) input[type='checkbox']");
-        const rightCheckbox2 = row.querySelector("td:nth-child(9) input[type='checkbox']");
-
-        // Save left side checkboxes (channels 1-8)
-        if (leftCheckbox1) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_1_${rowIndex + 1}`] = leftCheckbox1.checked;
+        // Save checkboxes
+        if (checkbox1) {
+            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_1_${rowIndex + 1}`] = checkbox1.checked;
         }
-        if (leftCheckbox2) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_2_${rowIndex + 1}`] = leftCheckbox2.checked;
-        }
-        
-        // Save right side checkboxes (channels 9-16)
-        if (rightCheckbox1) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_3_${rowIndex + 1}`] = rightCheckbox1.checked;
-        }
-        if (rightCheckbox2) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_4_${rowIndex + 1}`] = rightCheckbox2.checked;
+        if (checkbox2) {
+            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_2_${rowIndex + 1}`] = checkbox2.checked;
         }
     });
 
@@ -328,12 +271,11 @@ function saveDO8TestData(moduleNumber) {
     if (!window.doTestResults[moduleNumber] || window.doTestResults[moduleNumber].type !== 'CO-8-A') {
         window.doTestResults[moduleNumber] = {
             inputs: [],
-            iec101Values: {}, // Initialize as empty object
-            iec104Values: {}, // Initialize as empty object
-            dnp3Values: {},   // Initialize as empty object
+            iec101Values: {},
+            iec104Values: {},
+            dnp3Values: {},
             checkboxValues: {},
-            type: 'CO-8-A',
-            qualityInspections: {}
+            type: 'CO-8-A'
         };
     } else {
         // Ensure all necessary objects exist even if the module data exists
@@ -350,16 +292,6 @@ function saveDO8TestData(moduleNumber) {
             window.doTestResults[moduleNumber].checkboxValues = {};
         }
     }
-
-    // Rest of the function remains the same...
-    // Save quality inspection results from DO-8 page
-    const quality1 = document.querySelector('#do8Page input[name="quality1"][value="OK"]:checked') ? 'OK' : 'NO';
-    const quality2 = document.querySelector('#do8Page input[name="quality2"][value="OK"]:checked') ? 'OK' : 'NO';
-    
-    window.doTestResults[moduleNumber].qualityInspections = {
-        quality1,
-        quality2
-    };
 
     // Save all inputs
     const inputs = document.querySelectorAll("#do8TableBody input");
@@ -409,24 +341,6 @@ function loadDOTestData(moduleNumber) {
     const saved = window.doTestResults[moduleNumber];
     if (!saved || saved.type !== 'CO-16-A') return;
 
-    // Load quality inspection values
-    if (saved.qualityInspections) {
-        const quality1OK = document.querySelector('input[name="quality1"][value="OK"]');
-        const quality1NO = document.querySelector('input[name="quality1"][value="NO"]');
-        const quality2OK = document.querySelector('input[name="quality2"][value="OK"]');
-        const quality2NO = document.querySelector('input[name="quality2"][value="NO"]');
-        
-        if (quality1OK && quality1NO) {
-            quality1OK.checked = saved.qualityInspections.quality1 === 'OK';
-            quality1NO.checked = saved.qualityInspections.quality1 === 'NO';
-        }
-        
-        if (quality2OK && quality2NO) {
-            quality2OK.checked = saved.qualityInspections.quality2 === 'OK';
-            quality2NO.checked = saved.qualityInspections.quality2 === 'NO';
-        }
-    }
-
     // Load table inputs
     const inputs = document.querySelectorAll("#tableBody input");
     saved.inputs.forEach((value, idx) => {
@@ -446,24 +360,6 @@ function loadDO8TestData(moduleNumber) {
     const saved = window.doTestResults[moduleNumber];
     if (!saved || saved.type !== 'CO-8-A') return;
 
-    // Load quality inspection values
-    if (saved.qualityInspections) {
-        const quality1OK = document.querySelector('#do8Page input[name="quality1"][value="OK"]');
-        const quality1NO = document.querySelector('#do8Page input[name="quality1"][value="NO"]');
-        const quality2OK = document.querySelector('#do8Page input[name="quality2"][value="OK"]');
-        const quality2NO = document.querySelector('#do8Page input[name="quality2"][value="NO"]');
-        
-        if (quality1OK && quality1NO) {
-            quality1OK.checked = saved.qualityInspections.quality1 === 'OK';
-            quality1NO.checked = saved.qualityInspections.quality1 === 'NO';
-        }
-        
-        if (quality2OK && quality2NO) {
-            quality2OK.checked = saved.qualityInspections.quality2 === 'OK';
-            quality2NO.checked = saved.qualityInspections.quality2 === 'NO';
-        }
-    }
-
     // Load table inputs
     const inputs = document.querySelectorAll("#do8TableBody input");
     saved.inputs.forEach((value, idx) => {
@@ -480,8 +376,8 @@ function loadDO8TestData(moduleNumber) {
 }
 
 async function handleDOTestSubmission() {
-    // First validate the quality inspection
-    if (!validateDOQualityInspection()) {
+    // Validate IOA index fields for IEC101 and IEC104
+    if (!validateDOIOAIndexFields()) {
         return; // Stop if validation fails
     }
 
@@ -504,7 +400,6 @@ async function handleDOTestSubmission() {
     // Save the current module's test data
     saveDOTestData(window.currentDOModule);
     window.doModuleTypes[window.currentDOModule] = 'CO-16-A';
-    localStorage.setItem('doModuleTypes', JSON.stringify(window.doModuleTypes));
     
     // Move to next module or final page
     window.currentDOModule++;
@@ -512,7 +407,7 @@ async function handleDOTestSubmission() {
     
     if (window.currentDOModule > window.doModulesToTest) {
         // All DO modules tested, go to AI page
-        navigationGuard.markPageAsCompleted(); // Add this line
+        navigationGuard.markPageAsCompleted();
         window.location.href = 'Dummy&CESFunctionalTest.html';
     } else {
         // Check module type for next module
@@ -533,13 +428,8 @@ function goToPreviousPage() {
         saveDO8TestData(window.currentDOModule);
     }
 
-    // If we're on the first module, go back to DI page
+    // If we're on the first module, go back to Quality Inspection page
     if (window.currentDOModule === 1) {
-        // Reset DI module counter to the last DI module
-        const diModulesToTest = parseInt(localStorage.getItem('diModulesToTest')) || 0;
-        window.currentDIModule = diModulesToTest;
-        localStorage.setItem('currentDIModule', window.currentDIModule);
-        
         window.location.href = 'FunctionalityDIPage.html';
         return;
     }
@@ -548,9 +438,17 @@ function goToPreviousPage() {
     window.currentDOModule--;
     localStorage.setItem('currentDOModule', window.currentDOModule);
 
-    // Check module type for previous module
-    const previousType = window.doModuleTypes[window.currentDOModule] || 'CO-16-A';
-    if (previousType === 'CO-8-A') {
+    // Load the saved module type for this module
+    const currentModuleType = window.doModuleTypes[window.currentDOModule] || 'CO-16-A';
+    
+    // Clear any existing table rows before showing the correct page
+    const tableBody = document.getElementById('tableBody');
+    if (tableBody) tableBody.innerHTML = '';
+    const do8TableBody = document.getElementById('do8TableBody');
+    if (do8TableBody) do8TableBody.innerHTML = '';
+
+    // Show DO-8 page if the module is CO-8-A
+    if (currentModuleType === 'CO-8-A') {
         showFunctionalityDO8Page();
     } else {
         showFunctionalityDOPage();
@@ -558,8 +456,8 @@ function goToPreviousPage() {
 }
 
 async function handleDO8TestSubmission() {
-    // First validate the quality inspection
-    if (!validateDOQualityInspection()) {
+    // Validate IOA index fields for IEC101 and IEC104
+    if (!validateDOIOAIndexFields()) {
         return; // Stop if validation fails
     }
 
@@ -589,7 +487,7 @@ async function handleDO8TestSubmission() {
     
     if (window.currentDOModule > window.doModulesToTest) {
         // All DO modules tested, go to AI page
-        navigationGuard.markPageAsCompleted(); // Add this line
+        navigationGuard.markPageAsCompleted();
         window.location.href = 'Dummy&CESFunctionalTest.html';
     } else {
         // Check module type for next module
@@ -601,7 +499,6 @@ async function handleDO8TestSubmission() {
         }
     }
 }
-
 
 // Initialize the page when loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -636,13 +533,117 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-//-------------Load UserData-------------------------------------------------------
+// Validate IOA index fields for IEC101 and IEC104 only
+function validateDOIOAIndexFields() {
+    // Determine which page is currently visible
+    const do16Page = document.getElementById('functionalityDOPage');
+    const do8Page = document.getElementById('do8Page');
+    let currentPageContainer = null;
+    
+    if (do16Page && do16Page.style.display !== 'none') {
+        currentPageContainer = '#functionalityDOPage';
+    } else if (do8Page && do8Page.style.display !== 'none') {
+        currentPageContainer = '#do8Page';
+    } else {
+        // If no page is visible, return false
+        return false;
+    }
+    
+    // Get IEC101 and IEC104 input fields ONLY from the current page
+    const iec101Inputs = document.querySelectorAll(`${currentPageContainer} input[class*="do-test-input"][name*="IEC101"], ${currentPageContainer} input[class*="do8-test-input"][name*="IEC101"]`);
+    const iec104Inputs = document.querySelectorAll(`${currentPageContainer} input[class*="do-test-input"][name*="IEC104"], ${currentPageContainer} input[class*="do8-test-input"][name*="IEC104"]`);
+    
+    let isValid = true;
+    let emptyFields = [];
+    let duplicateFields = [];
 
+    // Reset previous red borders on current page only
+    [...iec101Inputs, ...iec104Inputs].forEach(input => {
+        input.style.border = ''; // clear border
+    });
+
+    // Check IEC101 fields for empty values on current page
+    iec101Inputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const channel = input.name.split('_').pop();
+            emptyFields.push(`IEC101 Channel ${channel}`);
+        }
+    });
+    
+    // Check IEC104 fields for empty values on current page
+    iec104Inputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const channel = input.name.split('_').pop();
+            emptyFields.push(`IEC104 Channel ${channel}`);
+        }
+    });
+
+    if (!isValid) {
+        alert(`Please fill in all IOA index fields for IEC101 and IEC104 protocols.`);
+        return false;
+    }
+
+    // Check for duplicate values in IEC101 column - ONLY within current page
+    const iec101Values = Array.from(iec101Inputs).map(input => input.value.trim()).filter(val => val !== '');
+    const iec101Duplicates = findDuplicates(iec101Values);
+    if (iec101Duplicates.length > 0) {
+        isValid = false;
+        iec101Inputs.forEach(input => {
+            if (iec101Duplicates.includes(input.value.trim())) {
+                input.style.border = '2px solid red';
+            }
+        });
+        duplicateFields.push(`IEC101: Duplicate values found (${iec101Duplicates.join(', ')})`);
+    }
+
+    // Check for duplicate values in IEC104 column - ONLY within current page
+    const iec104Values = Array.from(iec104Inputs).map(input => input.value.trim()).filter(val => val !== '');
+    const iec104Duplicates = findDuplicates(iec104Values);
+    if (iec104Duplicates.length > 0) {
+        isValid = false;
+        iec104Inputs.forEach(input => {
+            if (iec104Duplicates.includes(input.value.trim())) {
+                input.style.border = '2px solid red';
+            }
+        });
+        duplicateFields.push(`IEC104: Duplicate values found (${iec104Duplicates.join(', ')})`);
+    }
+
+    if (duplicateFields.length > 0) {
+        alert(`Duplicate IOA index values found:\n${duplicateFields.join('\n')}\n\nEach value must be unique within the current page.`);
+        return false;
+    }
+
+    return true;
+}
+
+// Helper function to find duplicate values in an array
+function findDuplicates(arr) {
+    const duplicates = [];
+    const seen = {};
+    
+    arr.forEach(value => {
+        if (seen[value]) {
+            if (!duplicates.includes(value)) {
+                duplicates.push(value);
+            }
+        } else {
+            seen[value] = true;
+        }
+    });
+    
+    return duplicates;
+}
+
+//-------------Load UserData-------------------------------------------------------
 function loadUserData() {
     const nameInput = document.getElementById('name');
     const designationInput = document.getElementById('designation');
     const experienceInput = document.getElementById('experience');
-    //formTiming.loginTime = new Date();
 
     if (nameInput) nameInput.value = localStorage.getItem('session_name') || '';
     if (designationInput) designationInput.value = localStorage.getItem('session_designation') || '';
@@ -742,43 +743,4 @@ if (typeof download === 'undefined') {
             document.body.removeChild(a);
         }
     }
-}
-
-// Add this validation function to FunctionalityDOPage.js
-function validateDOQualityInspection() {
-    let isValid = true;
-    const currentModule = window.currentDOModule;
-    const moduleType = window.doModuleTypes[currentModule] || 'CO-16-A';
-    
-    // Get the appropriate container based on module type
-    const container = moduleType === 'CO-8-A' ? '#do8Page' : '#functionalityDOPage';
-    
-    // Reset all error styles first
-    const quality1OK = document.querySelector(`${container} input[name="quality1"][value="OK"]`);
-    const quality1NO = document.querySelector(`${container} input[name="quality1"][value="NO"]`);
-    const quality2OK = document.querySelector(`${container} input[name="quality2"][value="OK"]`);
-    const quality2NO = document.querySelector(`${container} input[name="quality2"][value="NO"]`);
-    
-    // Check if any quality inspection is not OK
-    if ((quality1NO && quality1NO.checked) || !quality1OK?.checked) {
-        if (quality1NO) quality1NO.parentElement.style.border = '1px solid red';
-        isValid = false;
-    } else {
-        if (quality1OK) quality1OK.parentElement.style.border = '';
-        if (quality1NO) quality1NO.parentElement.style.border = '';
-    }
-    
-    if ((quality2NO && quality2NO.checked) || !quality2OK?.checked) {
-        if (quality2NO) quality2NO.parentElement.style.border = '1px solid red';
-        isValid = false;
-    } else {
-        if (quality2OK) quality2OK.parentElement.style.border = '';
-        if (quality2NO) quality2NO.parentElement.style.border = '';
-    }
-    
-    if (!isValid) {
-        alert('Please complete all required fields before continuing. All quality inspections must be marked OK.');
-    }
-    
-    return isValid;
 }

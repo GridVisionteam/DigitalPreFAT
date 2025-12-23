@@ -156,7 +156,7 @@ function goToNextPage() {
     saveSubrackTestData();
     
     navigationGuard.markPageAsCompleted();
-    window.location.href = 'FunctionalityPowerSupply.html';
+    window.location.href = 'QualityInspectionPowerSupply.html';
 }
 
 // Button functions

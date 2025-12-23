@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DF1725IED Pre-FAT - Bill of Quantity</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         /* Added styles for the new row layout */
         .input-group {
@@ -28,7 +30,30 @@
         .form-group label {
             margin-bottom: 0.5rem;
         }
+        /* Style for checker name field at bottom */
+        .checker-name-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-top: 2px solid #333;
+            background-color: #f9f9f9;
+        }
+        .checker-name-field {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        /* Style for vendor number field at bottom */
+        .vendor-number-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-top: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .vendor-number-field {
+            max-width: 400px;
+            margin: 0 auto;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -97,14 +122,32 @@
             <!-- Module sheets will be generated here -->
         </div>
 
+        <!-- Serial Number Checker's Name Field at the bottom -->
+        <div id="checkerNameSection" class="checker-name-section" style="display: none;">
+            <div class="form-group checker-name-field">
+                <label for="checkerName">Serial Number Checker's Name</label>
+                <input type="text" id="checkerName" placeholder="Enter checker's name" />
+            </div>
+        </div>
+
+        <!-- Vendor Number Field at the bottom -->
+        <div id="vendorNumberSection" class="vendor-number-section" style="display: none;">
+            <div class="form-group vendor-number-field">
+                <label for="vendorNumber">Vendor Number</label>
+                <input type="text" id="vendorNumber" placeholder="Enter vendor number" />
+            </div>
+        </div>
+
         <div class="control-panel">
-            <button id="submitBtn" onclick="goToNext()">Save & Continue</button>
+            <button id="backBtn">Back (A)</button>
             <button id="exportBtn" type="button">Export Configuration</button>
-            <button id="backBtn">Back</button>
+            <button id="submitBtn">Save & Continue (D)</button>
         </div>
     </div>
 
     <script src="BQ.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
@@ -113,5 +156,46 @@
     <script src="https://unpkg.com/pdf-lib@1.16.0/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/downloadjs@1.4.7"></script>
     <script src="rtudetail.js"></script>
+    <script src="navigationGuard.js"></script>
+
+    <!-- Keyboard Shortcuts -->
+    <script>
+        // Function to handle back navigation
+        function handleBackNavigation() {  // Renamed this function
+            // Find and click the back button
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.click();
+            }
+        }
+
+        // Function to handle next navigation
+        function handleNextNavigation() {  // Renamed this function
+            // Find and click the submit button
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.click();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            // Check if we're in an input field
+            const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
+            
+            // Only trigger shortcuts if not typing in an input field
+            if (!isInputField) {
+                // 'D' key for Next
+                if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                    event.preventDefault();
+                    handleNextNavigation();  // Call the renamed function
+                }
+                // 'A' key for Back
+                else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    event.preventDefault();
+                    handleBackNavigation();  // Call the renamed function
+                }
+            }
+        });
+    </script>
 </body>
 </html>

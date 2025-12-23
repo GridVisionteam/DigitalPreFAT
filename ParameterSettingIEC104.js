@@ -163,7 +163,7 @@ function handleParamIEC104Submission() {
     // Save the current parameter data
     saveIEC104ParamData();
     navigationGuard.markPageAsCompleted();
-    window.location.href = 'VirtualAlarmTest.html';
+    window.location.href = 'FunctionalityTestPowerSupply.html';
 };
 
 function SelectAll() {
