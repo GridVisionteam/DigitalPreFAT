@@ -270,6 +270,34 @@ function validateAllModuleFields() {
         input.style.border = '';
     });
 
+    // Validate Serial Number Checker's Name
+    const checkerNameInput = document.getElementById('checkerName');
+    if (checkerNameInput && checkerNameInput.style.display !== 'none') {
+        const checkerName = checkerNameInput.value.trim();
+        if (!checkerName) {
+            showCustomAlert('Please enter Serial Number Checker\'s Name.');
+            checkerNameInput.style.border = '2px solid red';
+            checkerNameInput.focus();
+            return false;
+        } else {
+            checkerNameInput.style.border = '';
+        }
+    }
+
+    // Validate Vendor Number
+    const vendorNumberInput = document.getElementById('vendorNumber');
+    if (vendorNumberInput && vendorNumberInput.style.display !== 'none') {
+        const vendorNumber = vendorNumberInput.value.trim();
+        if (!vendorNumber) {
+            showCustomAlert('Please enter Vendor Number.');
+            vendorNumberInput.style.border = '2px solid red';
+            vendorNumberInput.focus();
+            return false;
+        } else {
+            vendorNumberInput.style.border = '';
+        }
+    }
+
     for (const sheet of sheets) {
         const tableRows = sheet.querySelectorAll('tbody tr');
         const moduleType = sheet.dataset.moduleType; // e.g., "DI", "COM", "Subrack"
