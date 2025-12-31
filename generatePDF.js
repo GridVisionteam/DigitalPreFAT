@@ -21,6 +21,131 @@ async function fetchGlobalTime() {
     }
 }
 
+
+async function generateFinalPDFBytes(currentUserData) {
+    console.log("Starting PDF generation for bytes...");
+    formTiming.generationStartTime = new Date();
+    
+    // FETCH TIME ONCE
+    console.log("Fetching Global Time...");
+    const globalTime = await fetchGlobalTime(); 
+    console.log("Global Time set to:", globalTime);
+
+    try {
+        console.log("Loading main template...");
+        let templateUrl = './PDF/DF1725IED FAT Test Record Front.pdf';
+        let templateBytes = await fetch(templateUrl).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch template: ${res.statusText}`);
+            return res.arrayBuffer();
+        });
+
+        const pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
+        let form = pdfDoc.getForm();
+
+        const rtuSerial = localStorage.getItem('session_rtuSerial') || 'N/A';
+        const contractNo = localStorage.getItem('session_contractNo') || 'N/A';
+        const testerName = localStorage.getItem('session_name') || 'N/A';
+
+        // Fill basic info
+        form.getTextField('RTUSerialNumber').setText(rtuSerial.replace(/"/g, ''));
+        form.getTextField('ContractNo').setText(contractNo.replace(/"/g, ''));
+        form.getTextField('TesterName').setText(testerName.replace(/"/g, ''));
+        form.getTextField('ProjectName').setText((localStorage.getItem('session_projectName') || 'N/A').replace(/"/g, ''));
+        
+        // Add signature and time to front page
+        await addSignatureToForm(form, pdfDoc);
+        setGenerationTime(form, globalTime);
+
+        // Get modules details
+        const diModulesDetails = JSON.parse(localStorage.getItem('diModulesDetails') || "[]");
+        const doModulesDetails = JSON.parse(localStorage.getItem('doModulesDetails') || "[]");
+        const aiModulesDetails = JSON.parse(localStorage.getItem('aiModulesDetails') || "[]");
+        const processorModulesDetails = JSON.parse(localStorage.getItem('processorModulesDetails') || "[]");
+        const powerModulesDetails = JSON.parse(localStorage.getItem('powerModulesDetails') || "[]");
+        
+        // Fill module details table on Front Page
+        const moduleTypes = ['DI', 'DO', 'AI', 'AO'];
+        for (const type of moduleTypes) {
+            const sheet = document.querySelector(`.module-sheet[data-module-type="${type}"]`);
+            if (sheet) {
+                const rows = sheet.querySelectorAll('tbody tr');
+                rows.forEach((row, index) => {
+                    const moduleNo = index + 1;
+                    const partNo = row.querySelector('select[name$="_part_no"]')?.value || '';
+                    const subrack = row.querySelector('input[name$="_subrack"]')?.value || '';
+                    const slot = row.querySelector('input[name$="_slot"]')?.value || '';
+                    const serial = row.querySelector('input[name$="_serial"]')?.value || '';
+                    try {
+                        form.getTextField(`${type}_${moduleNo}_PartNo`).setText(partNo);
+                        form.getTextField(`${type}_${moduleNo}_Subrack`).setText(subrack);
+                        form.getTextField(`${type}_${moduleNo}_Slot`).setText(slot);
+                        form.getTextField(`${type}_${moduleNo}_Serial`).setText(serial);
+                    } catch (e) {
+                        console.warn(`Could not find PDF field for ${type} module ${moduleNo}`);
+                    }
+                });
+            }
+        }
+
+        const diTestResults = JSON.parse(localStorage.getItem('diTestResults') || '{}');
+        const doTestResults = JSON.parse(localStorage.getItem('doTestResults') || '{}');
+        const aiTestResults = JSON.parse(localStorage.getItem('aiTestResults') || '{}');
+        
+        // PROCESS SECTIONS (Pass globalTime to all)
+        await processPreRequisiteSection(pdfDoc, currentUserData, globalTime);
+        await processProductDeclarationSection(pdfDoc, currentUserData, globalTime);   
+        await processTestSetup(pdfDoc, currentUserData, globalTime);
+        await processElectronicAccessories(pdfDoc, currentUserData, globalTime);
+        await processRTUPanelAccessories(pdfDoc, currentUserData, globalTime);
+        await processPanelInformation(pdfDoc, currentUserData, globalTime);
+        await processSubrackInspection(pdfDoc, currentUserData, globalTime);
+        await processPowerSupplyModules(pdfDoc, currentUserData, powerModulesDetails, globalTime);
+        await processProcessorModules(pdfDoc, currentUserData, processorModulesDetails, globalTime);
+        await processProcessorInitialization(pdfDoc, currentUserData, globalTime);
+        await processCom6Modules(pdfDoc, currentUserData, globalTime);
+        await processDIModules(pdfDoc, currentUserData, diModulesDetails, diTestResults, globalTime);
+        await processDOModules(pdfDoc, currentUserData, doModulesDetails, doTestResults, globalTime);
+        await processDummyCesTest(pdfDoc, currentUserData, globalTime);
+
+        const aiCount = currentUserData.aiModulesToTest || 0;
+        if (aiCount > 0) {
+            await processAIModules(pdfDoc, currentUserData, aiModulesDetails, aiTestResults, globalTime);
+        }
+
+        await processRTUPowerUp(pdfDoc, currentUserData, globalTime);
+        await processParameterSetting(pdfDoc, currentUserData, globalTime);
+        await processDIParameterSetting(pdfDoc, currentUserData, globalTime);
+        await processDOParameterSetting(pdfDoc, currentUserData, globalTime);
+
+        if (aiCount > 0) {
+            await processAIParameterSetting(pdfDoc, currentUserData, globalTime);
+        }
+
+        await processIEC101ParameterSetting(pdfDoc, currentUserData, globalTime);
+        await processIEC104ParameterSetting(pdfDoc, currentUserData, globalTime);
+        await processVirtualAlarmTest(pdfDoc, currentUserData, globalTime);
+        await processChannelRedundancyTest(pdfDoc, currentUserData, globalTime);  
+        await processLimitOfAuthority(pdfDoc, currentUserData, globalTime);
+
+        validateModuleCounts();
+
+        // Finalize
+        form.flatten();
+
+        console.log("Finalizing PDF...");
+        const modifiedPdfBytes = await pdfDoc.save();
+        
+        return modifiedPdfBytes;
+        
+    } catch (error) {
+        console.error("PDF generation failed:", error);
+        throw error; 
+    }
+}
+
+// Export the function to global scope
+window.generateFinalPDFBytes = generateFinalPDFBytes;
+
 // Helper to format the date object into your specific string format
 function formatTime(date) {
     const year = date.getFullYear();
