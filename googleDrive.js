@@ -4,7 +4,7 @@
 // CONFIGURATION - UPDATE THESE VALUES
 // ============================================
 const GOOGLE_API_KEY = 'AIzaSyA9I3SyapNGGv3y26Jk-bo37XQ4zUKo5qs'; // Replace with your Google API Key
-const GOOGLE_CLIENT_ID = '656211138338-k4e5glr1ggptrlv95082mfisg24so3ef.apps.googleusercontent.com'; // Replace with your Client ID
+const GOOGLE_CLIENT_ID = '656211138338-35iq6or29q9ea6583v80ofq746hinlha.apps.googleusercontent.com'; // Replace with your Client ID
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_ID = '1EJpjHsWjmUHBMFRuELKMrrxickhqkFGC'; // Optional: Your Google Drive folder ID
 
@@ -385,4 +385,5 @@ window.uploadToDrive = uploadToDrive;
 window.createShareableLink = createShareableLink;
 window.testDriveConnection = testDriveConnection;
 window.validateGoogleConfig = validateGoogleConfig;
+
 window.loadGoogleAPIs = loadGoogleAPIs;
