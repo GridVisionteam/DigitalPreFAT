@@ -173,6 +173,7 @@
         }
         
         // New function to generate and upload to Google Drive
+        // In generatePDF.html - modify the generateAndUploadToDrive function
         async function generateAndUploadToDrive() {
             const statusElement = document.getElementById('generationStatus');
             const progressBar = document.getElementById('progressBar');
@@ -203,36 +204,49 @@
                 }
                 const pdfBytes = await window.generateFinalPDFBytes(userData);
                 
-                statusElement.textContent = "PDF generated successfully!";
-                progressBar.style.width = '50%';
-                updateDriveStatus("PDF generated. Preparing for upload...", false, false);
-                
                 // Step 2: Also generate JSON backup
-                generateJsonFile();
+                progressBar.style.width = '40%';
+                updateDriveStatus("Generating JSON backup...", false, false);
                 
-                // Step 3: Upload to Google Drive
+                // Get JSON content using the existing function
+                const jsonContent = generateJsonFromLocalStorage();
+                const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+                const jsonBytes = await new Uint8Array(await new Response(jsonBlob).arrayBuffer());
+                
+                statusElement.textContent = "PDF and JSON generated successfully!";
+                progressBar.style.width = '50%';
+                updateDriveStatus("PDF and JSON generated. Preparing for upload...", false, false);
+                
+                // Step 3: Upload both files to Google Drive
                 progressBar.style.width = '60%';
                 updateDriveStatus("Authenticating with Google Drive...", false, false);
                 
-                // Create filename
+                // Create filenames
                 const now = new Date();
                 const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-                const fileName = `${dateformat}_RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
+                const pdfFileName = `${dateformat}_RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
+                const jsonFileName = `${dateformat}_RTU_Backup_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.json`;
                 
+                // Upload PDF to Drive
                 progressBar.style.width = '70%';
-                updateDriveStatus("Uploading to Google Drive...", false, false);
+                updateDriveStatus("Uploading PDF to Google Drive...", false, false);
                 
-                // Upload to Drive
                 if (typeof window.uploadToDrive !== 'function') {
                     throw new Error("Google Drive upload function not available. Please check configuration.");
                 }
                 
-                const uploadResult = await window.uploadToDrive(pdfBytes, fileName);
+                const uploadResult = await window.uploadToDrive(pdfBytes, pdfFileName, 'application/pdf');
                 
-                progressBar.style.width = '85%';
-                updateDriveStatus("Creating shareable link...", false, false);
+                // Upload JSON to Drive
+                progressBar.style.width = '80%';
+                updateDriveStatus("Uploading JSON backup to Google Drive...", false, false);
                 
-                // Create shareable link
+                const jsonUploadResult = await window.uploadToDrive(jsonBytes, jsonFileName, 'application/json');
+                
+                progressBar.style.width = '90%';
+                updateDriveStatus("Creating shareable links...", false, false);
+                
+                // Create shareable link for PDF
                 let shareableLink = null;
                 if (typeof window.createShareableLink === 'function') {
                     shareableLink = await window.createShareableLink(uploadResult.id);
@@ -244,34 +258,55 @@
                 progressBar.style.backgroundColor = '#4CAF50';
                 
                 if (shareableLink) {
-                    updateDriveStatus('✅ File uploaded successfully to Google Drive!', false, true, shareableLink);
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded successfully to Google Drive!', false, true, shareableLink);
                     
                     // Auto-open in new tab after 2 seconds
                     setTimeout(() => {
-                        if (confirm('File uploaded to Google Drive!\n\nClick OK to open in new tab, or Cancel to stay here.')) {
+                        if (confirm('Files uploaded to Google Drive!\n\nClick OK to open PDF in new tab, or Cancel to stay here.')) {
                             window.open(shareableLink, '_blank');
                         }
                     }, 2000);
                 } else if (uploadResult && uploadResult.id) {
                     const driveLink = `https://drive.google.com/file/d/${uploadResult.id}/view`;
-                    updateDriveStatus('✅ File uploaded to Google Drive!', false, true, driveLink);
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!', false, true, driveLink);
                 } else {
-                    updateDriveStatus('✅ File uploaded to Google Drive!', false, true);
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!', false, true);
                 }
                 
-                // Also offer local download
+                // Also offer local downloads
                 if (typeof download === 'function') {
-                    download(pdfBytes, fileName, 'application/pdf');
+                    download(pdfBytes, pdfFileName, 'application/pdf');
+                    // Optionally download JSON too
+                    setTimeout(() => {
+                        download(jsonBytes, jsonFileName, 'application/json');
+                    }, 500);
                 } else {
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                    // Download PDF
+                    const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const pdfLink = document.createElement('a');
+                    pdfLink.href = pdfUrl;
+                    pdfLink.download = pdfFileName;
+                    document.body.appendChild(pdfLink);
+                    pdfLink.click();
+                    document.body.removeChild(pdfLink);
+                    
+                    // Download JSON
+                    setTimeout(() => {
+                        const jsonBlobForDownload = new Blob([jsonBytes], { type: 'application/json' });
+                        const jsonUrl = URL.createObjectURL(jsonBlobForDownload);
+                        const jsonLink = document.createElement('a');
+                        jsonLink.href = jsonUrl;
+                        jsonLink.download = jsonFileName;
+                        document.body.appendChild(jsonLink);
+                        jsonLink.click();
+                        document.body.removeChild(jsonLink);
+                        
+                        setTimeout(() => {
+                            URL.revokeObjectURL(pdfUrl);
+                            URL.revokeObjectURL(jsonUrl);
+                        }, 100);
+                    }, 500);
                 }
                 
             } catch (error) {
@@ -282,12 +317,12 @@
                 
                 updateDriveStatus(`❌ Upload failed: ${error.message}`, true, false);
                 
-                // If upload fails, still try to generate local PDF
+                // If upload fails, still try to generate local files
                 try {
                     const userData = loadUserData();
                     await generateFinalPDF(userData);
                     generateJsonFile();
-                    updateDriveStatus("❌ Upload failed, but local PDF was generated.", true, false);
+                    updateDriveStatus("❌ Upload failed, but local files were generated.", true, false);
                 } catch (localError) {
                     console.error("Local generation also failed:", localError);
                 }
