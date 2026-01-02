@@ -385,5 +385,4 @@ window.uploadToDrive = uploadToDrive;
 window.createShareableLink = createShareableLink;
 window.testDriveConnection = testDriveConnection;
 window.validateGoogleConfig = validateGoogleConfig;
-
 window.loadGoogleAPIs = loadGoogleAPIs;
