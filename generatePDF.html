@@ -8,6 +8,9 @@
     <!-- Use CDN with local fallback -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+    <!-- Google APIs -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script>
         // Fallback for PDF-Lib if CDN fails
         if (typeof PDFLib === 'undefined') {
@@ -31,15 +34,40 @@
             </div>
         </div>
         
+        <!-- Drive Upload Status -->
+        <div id="driveStatusContainer" style="margin-top: 20px; display: none;">
+            <div class="drive-status-header" style="font-weight: bold; margin-bottom: 5px;">Google Drive Status:</div>
+            <div id="driveStatus" class="drive-status" style="padding: 15px; border-radius: 4px; min-height: 60px; display: flex; align-items: center;">
+                <!-- Status will be shown here -->
+            </div>
+            <div id="driveLink" style="margin-top: 10px; display: none;">
+                <a id="driveLinkAnchor" target="_blank" style="color: #2196F3; text-decoration: none;">Open in Google Drive</a>
+            </div>
+        </div>
+        
         <div class="button-container">
             <button id="backBtn" onclick="window.location.href='signature.html'">Back (A)</button>
             <button id="StartNewSession" onclick="startNewSession()">Start New Session</button>
             <button id="generatePdfBtn" onclick="generateFinalPdf()">Generate PDF Report</button>
+            <button id="generateAndUploadBtn" onclick="generateAndUploadToDrive()" style="background-color: #2196F3;">Generate & Upload to Drive</button>
+        </div>
+        
+        <!-- Google Drive Configuration Instructions -->
+        <div class="drive-config-info" style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; font-size: 14px;">
+            <h3 style="margin-top: 0; color: #666;">Google Drive Setup Required</h3>
+            <p>To use Google Drive upload:</p>
+            <ol style="text-align: left; padding-left: 20px;">
+                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                <li>Create a project and enable Google Drive API</li>
+                <li>Create OAuth 2.0 credentials (Web application)</li>
+                <li>Update credentials in googleDrive.js file</li>
+            </ol>
         </div>
     </div>
 
     <script src="commonFunctions.js"></script>
     <script src="generateJSON.js"></script>
+    <script src="googleDrive.js"></script> <!-- Added this line -->
     <script src="generatePDF.js"></script>
     <script>
         // Function to handle back navigation
@@ -66,6 +94,50 @@
     <script>
         // Expose the function to the global scope
         window.startNewSession = startNewSession;
+        
+        // Function to update drive status
+        window.updateDriveStatus = function(message, isError = false, isSuccess = false, link = null) {
+            const driveStatusContainer = document.getElementById('driveStatusContainer');
+            const driveStatusElement = document.getElementById('driveStatus');
+            const driveLink = document.getElementById('driveLink');
+            const driveLinkAnchor = document.getElementById('driveLinkAnchor');
+            
+            if (!driveStatusElement) return;
+            
+            // Show container
+            driveStatusContainer.style.display = 'block';
+            
+            // Set message
+            driveStatusElement.textContent = message;
+            driveStatusElement.className = 'drive-status';
+            
+            if (isError) {
+                driveStatusElement.style.backgroundColor = '#f8d7da';
+                driveStatusElement.style.color = '#721c24';
+                driveStatusElement.style.border = '1px solid #f5c6cb';
+                driveLink.style.display = 'none';
+            } else if (isSuccess) {
+                driveStatusElement.style.backgroundColor = '#d4edda';
+                driveStatusElement.style.color = '#155724';
+                driveStatusElement.style.border = '1px solid #c3e6cb';
+            } else {
+                driveStatusElement.style.backgroundColor = '#d1ecf1';
+                driveStatusElement.style.color = '#0c5460';
+                driveStatusElement.style.border = '1px solid #bee5eb';
+            }
+            
+            // Handle link
+            if (link) {
+                driveLink.style.display = 'block';
+                driveLinkAnchor.href = link;
+                driveLinkAnchor.textContent = '📎 ' + link;
+                
+                // Also log to console for debugging
+                console.log('Google Drive Link:', link);
+            } else {
+                driveLink.style.display = 'none';
+            }
+        };
         
         // Modified to use the external JSON generation functions
         async function generateFinalPdf() {
@@ -97,6 +169,169 @@
                 progressBar.style.width = '100%';
                 progressBar.style.backgroundColor = '#f44336';
                 console.error("Generation failed:", error);
+            }
+        }
+        
+        // New function to generate and upload to Google Drive
+        // In generatePDF.html - modify the generateAndUploadToDrive function
+        async function generateAndUploadToDrive() {
+            const statusElement = document.getElementById('generationStatus');
+            const progressBar = document.getElementById('progressBar');
+            const uploadBtn = document.getElementById('generateAndUploadBtn');
+            
+            // Disable button during process
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Processing...';
+            }
+            
+            try {
+                // Step 1: Generate PDF
+                statusElement.textContent = "Loading user data...";
+                progressBar.style.width = '10%';
+                updateDriveStatus("Starting PDF generation...", false, false);
+                
+                // Load user data
+                const userData = loadUserData();
+                
+                statusElement.textContent = "Generating PDF...";
+                progressBar.style.width = '30%';
+                updateDriveStatus("Generating PDF document...", false, false);
+                
+                // Generate the PDF bytes - using the new function from generatePDF.js
+                if (typeof window.generateFinalPDFBytes !== 'function') {
+                    throw new Error("PDF generation function not available");
+                }
+                const pdfBytes = await window.generateFinalPDFBytes(userData);
+                
+                // Step 2: Also generate JSON backup
+                progressBar.style.width = '40%';
+                updateDriveStatus("Generating JSON backup...", false, false);
+                
+                // Get JSON content using the existing function
+                const jsonContent = generateJsonFromLocalStorage();
+                const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+                const jsonBytes = await new Uint8Array(await new Response(jsonBlob).arrayBuffer());
+                
+                statusElement.textContent = "PDF and JSON generated successfully!";
+                progressBar.style.width = '50%';
+                updateDriveStatus("PDF and JSON generated. Preparing for upload...", false, false);
+                
+                // Step 3: Upload both files to Google Drive
+                progressBar.style.width = '60%';
+                updateDriveStatus("Authenticating with Google Drive...", false, false);
+                
+                // Create filenames
+                const now = new Date();
+                const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                const pdfFileName = `${dateformat}_RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
+                const jsonFileName = `${dateformat}_RTU_Backup_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.json`;
+                
+                // Upload PDF to Drive
+                progressBar.style.width = '70%';
+                updateDriveStatus("Uploading PDF to Google Drive...", false, false);
+                
+                if (typeof window.uploadToDrive !== 'function') {
+                    throw new Error("Google Drive upload function not available. Please check configuration.");
+                }
+                
+                const uploadResult = await window.uploadToDrive(pdfBytes, pdfFileName, 'application/pdf');
+                
+                // Upload JSON to Drive
+                progressBar.style.width = '80%';
+                updateDriveStatus("Uploading JSON backup to Google Drive...", false, false);
+                
+                const jsonUploadResult = await window.uploadToDrive(jsonBytes, jsonFileName, 'application/json');
+                
+                progressBar.style.width = '90%';
+                updateDriveStatus("Creating shareable links...", false, false);
+                
+                // Create shareable link for PDF
+                let shareableLink = null;
+                if (typeof window.createShareableLink === 'function') {
+                    shareableLink = await window.createShareableLink(uploadResult.id);
+                }
+                
+                // Complete
+                statusElement.textContent = "PDF and JSON generated and uploaded to Drive!";
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#4CAF50';
+                
+                if (shareableLink) {
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded successfully to Google Drive!', false, true, shareableLink);
+                    
+                    // Auto-open in new tab after 2 seconds
+                    setTimeout(() => {
+                        if (confirm('Files uploaded to Google Drive!\n\nClick OK to open PDF in new tab, or Cancel to stay here.')) {
+                            window.open(shareableLink, '_blank');
+                        }
+                    }, 2000);
+                } else if (uploadResult && uploadResult.id) {
+                    const driveLink = `https://drive.google.com/file/d/${uploadResult.id}/view`;
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!', false, true, driveLink);
+                } else {
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!', false, true);
+                }
+                
+                // Also offer local downloads
+                if (typeof download === 'function') {
+                    download(pdfBytes, pdfFileName, 'application/pdf');
+                    // Optionally download JSON too
+                    setTimeout(() => {
+                        download(jsonBytes, jsonFileName, 'application/json');
+                    }, 500);
+                } else {
+                    // Download PDF
+                    const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    const pdfLink = document.createElement('a');
+                    pdfLink.href = pdfUrl;
+                    pdfLink.download = pdfFileName;
+                    document.body.appendChild(pdfLink);
+                    pdfLink.click();
+                    document.body.removeChild(pdfLink);
+                    
+                    // Download JSON
+                    setTimeout(() => {
+                        const jsonBlobForDownload = new Blob([jsonBytes], { type: 'application/json' });
+                        const jsonUrl = URL.createObjectURL(jsonBlobForDownload);
+                        const jsonLink = document.createElement('a');
+                        jsonLink.href = jsonUrl;
+                        jsonLink.download = jsonFileName;
+                        document.body.appendChild(jsonLink);
+                        jsonLink.click();
+                        document.body.removeChild(jsonLink);
+                        
+                        setTimeout(() => {
+                            URL.revokeObjectURL(pdfUrl);
+                            URL.revokeObjectURL(jsonUrl);
+                        }, 100);
+                    }, 500);
+                }
+                
+            } catch (error) {
+                console.error("Generation/upload failed:", error);
+                statusElement.textContent = "Process failed: " + error.message;
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#f44336';
+                
+                updateDriveStatus(`❌ Upload failed: ${error.message}`, true, false);
+                
+                // If upload fails, still try to generate local files
+                try {
+                    const userData = loadUserData();
+                    await generateFinalPDF(userData);
+                    generateJsonFile();
+                    updateDriveStatus("❌ Upload failed, but local files were generated.", true, false);
+                } catch (localError) {
+                    console.error("Local generation also failed:", localError);
+                }
+            } finally {
+                // Re-enable button
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.textContent = 'Generate & Upload to Drive';
+                }
             }
         }
     </script>
@@ -144,10 +379,70 @@
             color: white;
             border: none;
             border-radius: 4px;
+            transition: background-color 0.3s;
         }
         
         button:hover {
             background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #generateAndUploadBtn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .drive-status {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: left;
+            word-break: break-word;
+        }
+        
+        .drive-status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .drive-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .drive-status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .drive-config-info {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            font-size: 14px;
+            text-align: left;
+        }
+        
+        .drive-config-info h3 {
+            margin-top: 0;
+            color: #666;
+        }
+        
+        .drive-config-info a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .drive-config-info a:hover {
+            text-decoration: underline;
         }
     </style>
 </body>
