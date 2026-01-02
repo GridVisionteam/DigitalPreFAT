@@ -15,6 +15,8 @@ let gapiLoaded = false;
 let gisLoaded = false;
 let tokenClient = null;
 let isAuthenticating = false;
+let cachedAccessToken = null; // Cache the access token
+let authPromise = null; // Store the ongoing authentication promise
 
 // ============================================
 // GOOGLE API INITIALIZATION
@@ -73,7 +75,21 @@ function loadGoogleAPIs() {
                     if (response.error) {
                         console.error('Google OAuth error:', response);
                         updateDriveStatusIfAvailable('Authentication failed: ' + response.error, true);
+                        // Reject any pending auth promises
+                        if (authPromise && authPromise.reject) {
+                            authPromise.reject(new Error(response.error));
+                        }
+                    } else {
+                        // Cache the access token
+                        cachedAccessToken = response.access_token;
+                        console.log('Authentication successful, token cached');
+                        // Resolve any pending auth promises
+                        if (authPromise && authPromise.resolve) {
+                            authPromise.resolve(cachedAccessToken);
+                        }
                     }
+                    // Reset auth promise
+                    authPromise = null;
                 },
             });
             
@@ -90,26 +106,58 @@ function loadGoogleAPIs() {
 }
 
 // ============================================
-// AUTHENTICATION FUNCTIONS
+// AUTHENTICATION FUNCTIONS - SINGLE SIGN-IN
 // ============================================
 
 /**
- * Authenticate user with Google
+ * Get access token with single sign-in
+ * This ensures the sign-in popup only appears once
  */
-async function authenticateUser() {
-    if (isAuthenticating) {
-        throw new Error('Authentication already in progress');
+async function getAccessToken() {
+    // Check for valid cached token first
+    if (cachedAccessToken && await isTokenValid(cachedAccessToken)) {
+        console.log('Using cached access token');
+        return cachedAccessToken;
     }
-
-    return new Promise((resolve, reject) => {
+    
+    // Check for existing token in browser storage
+    const existingToken = await checkExistingToken();
+    if (existingToken && await isTokenValid(existingToken)) {
+        cachedAccessToken = existingToken;
+        console.log('Using existing token from browser storage');
+        return cachedAccessToken;
+    }
+    
+    // If authentication is already in progress, wait for it
+    if (authPromise) {
+        console.log('Authentication already in progress, waiting...');
+        return await authPromise.promise;
+    }
+    
+    // Create a new authentication promise
+    let resolveAuth, rejectAuth;
+    const authPromiseObj = {
+        promise: new Promise((resolve, reject) => {
+            resolveAuth = resolve;
+            rejectAuth = reject;
+        }),
+        resolve: resolveAuth,
+        reject: rejectAuth
+    };
+    
+    authPromise = authPromiseObj;
+    
+    try {
+        // Load Google APIs if needed
+        await loadGoogleAPIs();
+        
         if (!tokenClient) {
-            reject(new Error('Google Identity Services not loaded. Please refresh the page.'));
-            return;
+            throw new Error('Google Identity Services not loaded');
         }
         
-        isAuthenticating = true;
-        
-        tokenClient.callback = async (response) => {
+        // Set custom callback for this specific auth request
+        const originalCallback = tokenClient.callback;
+        tokenClient.callback = (response) => {
             isAuthenticating = false;
             if (response.error) {
                 let errorMessage = 'Authentication failed';
@@ -118,33 +166,56 @@ async function authenticateUser() {
                 } else if (response.error_description) {
                     errorMessage = response.error_description;
                 }
-                reject(new Error(errorMessage));
+                rejectAuth(new Error(errorMessage));
             } else {
-                console.log('Authentication successful');
-                resolve(response.access_token);
+                cachedAccessToken = response.access_token;
+                console.log('Authentication successful, token cached');
+                resolveAuth(cachedAccessToken);
             }
+            // Restore original callback
+            tokenClient.callback = originalCallback;
+            authPromise = null;
         };
         
-        // Request access token
+        isAuthenticating = true;
+        console.log('Requesting authentication...');
+        updateDriveStatusIfAvailable('Please sign in to Google...', false);
+        
+        // Request access token (this will show the popup)
         tokenClient.requestAccessToken();
-    });
+        
+        // Wait for authentication to complete
+        return await authPromiseObj.promise;
+        
+    } catch (error) {
+        authPromise = null;
+        throw error;
+    }
 }
 
 /**
- * Check if user is already authenticated
+ * Check if token is valid
+ */
+async function isTokenValid(token) {
+    try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + token);
+        return response.ok;
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * Check if user is already authenticated (browser storage)
  */
 async function checkExistingToken() {
     try {
         const token = google.accounts.oauth2.getToken(GOOGLE_CLIENT_ID);
         if (token && token.access_token) {
-            // Verify token is still valid
-            const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + token.access_token);
-            if (response.ok) {
-                return token.access_token;
-            }
+            return token.access_token;
         }
     } catch (error) {
-        console.log('No valid existing token found');
+        console.log('No existing token found');
     }
     return null;
 }
@@ -163,12 +234,8 @@ async function uploadToDrive(fileData, fileName, mimeType = 'application/pdf') {
         // Load Google APIs if not already loaded
         await loadGoogleAPIs();
         
-        // Check for existing token first
-        let accessToken = await checkExistingToken();
-        if (!accessToken) {
-            updateDriveStatusIfAvailable('Authenticating with Google...', false);
-            accessToken = await authenticateUser();
-        }
+        // Get access token (single sign-in)
+        const accessToken = await getAccessToken();
         
         updateDriveStatusIfAvailable('Preparing file for upload...', false);
         
@@ -249,10 +316,8 @@ async function createShareableLink(fileId) {
     try {
         console.log('Creating shareable link for file:', fileId);
         
-        let accessToken = await checkExistingToken();
-        if (!accessToken) {
-            accessToken = await authenticateUser();
-        }
+        // Use cached token - no need to re-authenticate
+        const accessToken = await getAccessToken();
         
         // Make the file readable by anyone with the link
         const permission = {
@@ -296,18 +361,82 @@ async function createShareableLink(fileId) {
 }
 
 /**
- * Test Google Drive connection
+ * Batch upload multiple files with single authentication
  */
-async function testDriveConnection() {
+async function batchUploadToDrive(files) {
     try {
-        updateDriveStatusIfAvailable('Testing Google Drive connection...', false);
-        await loadGoogleAPIs();
-        updateDriveStatusIfAvailable('Google Drive connection successful', false, true);
-        return true;
+        console.log('Starting batch upload of', files.length, 'files');
+        
+        // Get access token once for all uploads
+        const accessToken = await getAccessToken();
+        const results = [];
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            updateDriveStatusIfAvailable(`Uploading file ${i + 1} of ${files.length}: ${file.name}`, false);
+            
+            try {
+                const result = await uploadFileWithToken(file.data, file.name, file.mimeType, accessToken);
+                results.push(result);
+            } catch (error) {
+                console.error(`Failed to upload ${file.name}:`, error);
+                results.push({ success: false, fileName: file.name, error: error.message });
+            }
+        }
+        
+        return results;
     } catch (error) {
-        updateDriveStatusIfAvailable('Google Drive connection failed: ' + error.message, true);
-        return false;
+        throw error;
     }
+}
+
+/**
+ * Upload file using existing token (for batch operations)
+ */
+async function uploadFileWithToken(fileData, fileName, mimeType, accessToken) {
+    // Create form data
+    const form = new FormData();
+    
+    // Prepare metadata
+    const metadata = {
+        name: fileName,
+        mimeType: mimeType,
+        description: 'RTU Test Report generated on ' + new Date().toLocaleDateString(),
+        createdTime: new Date().toISOString()
+    };
+    
+    // Add folder if specified
+    if (DRIVE_FOLDER_ID && DRIVE_FOLDER_ID.trim() !== '') {
+        metadata.parents = [DRIVE_FOLDER_ID];
+    }
+    
+    form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+    form.append('file', new Blob([fileData], {type: mimeType}));
+    
+    // Upload to Drive
+    const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + accessToken,
+        },
+        body: form
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error('Upload failed: ' + response.statusText);
+    }
+    
+    return await response.json();
+}
+
+/**
+ * Clear cached authentication
+ */
+function clearAuthCache() {
+    cachedAccessToken = null;
+    authPromise = null;
+    console.log('Authentication cache cleared');
 }
 
 // ============================================
@@ -386,3 +515,5 @@ window.createShareableLink = createShareableLink;
 window.testDriveConnection = testDriveConnection;
 window.validateGoogleConfig = validateGoogleConfig;
 window.loadGoogleAPIs = loadGoogleAPIs;
+window.batchUploadToDrive = batchUploadToDrive; // New function for batch uploads
+window.clearAuthCache = clearAuthCache; // Optional: to clear auth if needed
