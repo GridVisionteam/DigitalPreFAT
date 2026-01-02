@@ -210,8 +210,6 @@
                 
                 // Get JSON content using the existing function
                 const jsonContent = generateJsonFromLocalStorage();
-                const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
-                const jsonBytes = await new Uint8Array(await new Response(jsonBlob).arrayBuffer());
                 
                 statusElement.textContent = "PDF and JSON generated successfully!";
                 progressBar.style.width = '50%';
@@ -235,12 +233,14 @@
                     throw new Error("Google Drive upload function not available. Please check configuration.");
                 }
                 
-                const uploadResult = await window.uploadToDrive(pdfBytes, pdfFileName, 'application/pdf');
+                const pdfUploadResult = await window.uploadToDrive(pdfBytes, pdfFileName, 'application/pdf');
                 
                 // Upload JSON to Drive
                 progressBar.style.width = '80%';
                 updateDriveStatus("Uploading JSON backup to Google Drive...", false, false);
                 
+                // Convert JSON string to bytes
+                const jsonBytes = new TextEncoder().encode(jsonContent);
                 const jsonUploadResult = await window.uploadToDrive(jsonBytes, jsonFileName, 'application/json');
                 
                 progressBar.style.width = '90%';
@@ -249,7 +249,14 @@
                 // Create shareable link for PDF
                 let shareableLink = null;
                 if (typeof window.createShareableLink === 'function') {
-                    shareableLink = await window.createShareableLink(uploadResult.id);
+                    shareableLink = await window.createShareableLink(pdfUploadResult.id);
+                    
+                    // Also create shareable link for JSON
+                    try {
+                        await window.createShareableLink(jsonUploadResult.id);
+                    } catch (e) {
+                        console.log("Couldn't create shareable link for JSON, but file was uploaded");
+                    }
                 }
                 
                 // Complete
@@ -258,27 +265,28 @@
                 progressBar.style.backgroundColor = '#4CAF50';
                 
                 if (shareableLink) {
-                    updateDriveStatus('✅ Both PDF and JSON files uploaded successfully to Google Drive!', false, true, shareableLink);
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded successfully to Google Drive!\n\nPDF: ' + pdfFileName + '\nJSON: ' + jsonFileName, false, true, shareableLink);
                     
                     // Auto-open in new tab after 2 seconds
                     setTimeout(() => {
-                        if (confirm('Files uploaded to Google Drive!\n\nClick OK to open PDF in new tab, or Cancel to stay here.')) {
+                        if (confirm('Both files uploaded to Google Drive!\n\n• PDF: ' + pdfFileName + '\n• JSON: ' + jsonFileName + '\n\nClick OK to open PDF in new tab, or Cancel to stay here.')) {
                             window.open(shareableLink, '_blank');
                         }
                     }, 2000);
-                } else if (uploadResult && uploadResult.id) {
-                    const driveLink = `https://drive.google.com/file/d/${uploadResult.id}/view`;
-                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!', false, true, driveLink);
+                } else if (pdfUploadResult && pdfUploadResult.id) {
+                    const driveLink = `https://drive.google.com/file/d/${pdfUploadResult.id}/view`;
+                    const jsonLink = `https://drive.google.com/file/d/${jsonUploadResult.id}/view`;
+                    updateDriveStatus('✅ Both files uploaded to Google Drive!\n\nPDF: ' + driveLink + '\n\nJSON: ' + jsonLink, false, true, driveLink);
                 } else {
-                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!', false, true);
+                    updateDriveStatus('✅ Both PDF and JSON files uploaded to Google Drive!\n\n• PDF: ' + pdfFileName + '\n• JSON: ' + jsonFileName, false, true);
                 }
                 
                 // Also offer local downloads
                 if (typeof download === 'function') {
                     download(pdfBytes, pdfFileName, 'application/pdf');
-                    // Optionally download JSON too
+                    // Download JSON too
                     setTimeout(() => {
-                        download(jsonBytes, jsonFileName, 'application/json');
+                        download(jsonContent, jsonFileName, 'application/json');
                     }, 500);
                 } else {
                     // Download PDF
@@ -289,20 +297,20 @@
                     pdfLink.download = pdfFileName;
                     document.body.appendChild(pdfLink);
                     pdfLink.click();
-                    document.body.removeChild(pdfLink);
                     
                     // Download JSON
                     setTimeout(() => {
-                        const jsonBlobForDownload = new Blob([jsonBytes], { type: 'application/json' });
-                        const jsonUrl = URL.createObjectURL(jsonBlobForDownload);
+                        const jsonBlob = new Blob([jsonContent], { type: 'application/json' });
+                        const jsonUrl = URL.createObjectURL(jsonBlob);
                         const jsonLink = document.createElement('a');
                         jsonLink.href = jsonUrl;
                         jsonLink.download = jsonFileName;
                         document.body.appendChild(jsonLink);
                         jsonLink.click();
-                        document.body.removeChild(jsonLink);
                         
                         setTimeout(() => {
+                            document.body.removeChild(pdfLink);
+                            document.body.removeChild(jsonLink);
                             URL.revokeObjectURL(pdfUrl);
                             URL.revokeObjectURL(jsonUrl);
                         }, 100);
@@ -446,4 +454,5 @@
         }
     </style>
 </body>
+
 </html>
