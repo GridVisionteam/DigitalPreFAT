@@ -209,15 +209,31 @@ function updateDO8SubmitButtonState() {
 }
 
 function saveDOTestData(moduleNumber) {
-    if (!window.doTestResults[moduleNumber] || window.doTestResults[moduleNumber].type !== 'CO-16-A') {
-        window.doTestResults[moduleNumber] = {
-            inputs: [],
-            iec101Values: {},
-            iec104Values: {},
-            dnp3Values: {},
-            checkboxValues: {},
-            type: 'CO-16-A'
-        };
+    // Initialize or ensure proper structure exists
+    if (!window.doTestResults[moduleNumber]) {
+        window.doTestResults[moduleNumber] = {};
+    }
+    
+    // Ensure all required properties exist
+    if (!window.doTestResults[moduleNumber].iec101Values) {
+        window.doTestResults[moduleNumber].iec101Values = {};
+    }
+    if (!window.doTestResults[moduleNumber].iec104Values) {
+        window.doTestResults[moduleNumber].iec104Values = {};
+    }
+    if (!window.doTestResults[moduleNumber].dnp3Values) {
+        window.doTestResults[moduleNumber].dnp3Values = {};
+    }
+    if (!window.doTestResults[moduleNumber].checkboxValues) {
+        window.doTestResults[moduleNumber].checkboxValues = {};
+    }
+    
+    // Set the type
+    window.doTestResults[moduleNumber].type = 'CO-16-A';
+    
+    // Initialize inputs array if it doesn't exist
+    if (!window.doTestResults[moduleNumber].inputs) {
+        window.doTestResults[moduleNumber].inputs = [];
     }
 
     // Save all inputs
@@ -267,30 +283,31 @@ function saveDOTestData(moduleNumber) {
 }
 
 function saveDO8TestData(moduleNumber) {
-    // Initialize the module data structure if it doesn't exist
-    if (!window.doTestResults[moduleNumber] || window.doTestResults[moduleNumber].type !== 'CO-8-A') {
-        window.doTestResults[moduleNumber] = {
-            inputs: [],
-            iec101Values: {},
-            iec104Values: {},
-            dnp3Values: {},
-            checkboxValues: {},
-            type: 'CO-8-A'
-        };
-    } else {
-        // Ensure all necessary objects exist even if the module data exists
-        if (!window.doTestResults[moduleNumber].iec101Values) {
-            window.doTestResults[moduleNumber].iec101Values = {};
-        }
-        if (!window.doTestResults[moduleNumber].iec104Values) {
-            window.doTestResults[moduleNumber].iec104Values = {};
-        }
-        if (!window.doTestResults[moduleNumber].dnp3Values) {
-            window.doTestResults[moduleNumber].dnp3Values = {};
-        }
-        if (!window.doTestResults[moduleNumber].checkboxValues) {
-            window.doTestResults[moduleNumber].checkboxValues = {};
-        }
+    // Initialize or ensure proper structure exists
+    if (!window.doTestResults[moduleNumber]) {
+        window.doTestResults[moduleNumber] = {};
+    }
+    
+    // Ensure all required properties exist
+    if (!window.doTestResults[moduleNumber].iec101Values) {
+        window.doTestResults[moduleNumber].iec101Values = {};
+    }
+    if (!window.doTestResults[moduleNumber].iec104Values) {
+        window.doTestResults[moduleNumber].iec104Values = {};
+    }
+    if (!window.doTestResults[moduleNumber].dnp3Values) {
+        window.doTestResults[moduleNumber].dnp3Values = {};
+    }
+    if (!window.doTestResults[moduleNumber].checkboxValues) {
+        window.doTestResults[moduleNumber].checkboxValues = {};
+    }
+    
+    // Set the type
+    window.doTestResults[moduleNumber].type = 'CO-8-A';
+    
+    // Initialize inputs array if it doesn't exist
+    if (!window.doTestResults[moduleNumber].inputs) {
+        window.doTestResults[moduleNumber].inputs = [];
     }
 
     // Save all inputs
