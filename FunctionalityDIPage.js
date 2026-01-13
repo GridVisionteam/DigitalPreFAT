@@ -318,18 +318,33 @@ function updateDI16SubmitButtonState() {
 }
 
 function saveDITestData(moduleNumber) {
-    if (!window.diTestResults[moduleNumber] || window.diTestResults[moduleNumber].type !== 'DI-32') {
-        window.diTestResults[moduleNumber] = {
-            inputs: [],
-            iec101Values: {},
-            iec104Values: {},
-            dnp3Values: {},
-            checkboxValues: {},
-            type: 'DI-32',
-            qualityInspections: window.diTestResults[moduleNumber]?.qualityInspections || {}
-        };
+    // Initialize or ensure proper structure exists
+    if (!window.diTestResults[moduleNumber]) {
+        window.diTestResults[moduleNumber] = {};
     }
-
+    
+    // Ensure all required properties exist
+    if (!window.diTestResults[moduleNumber].iec101Values) {
+        window.diTestResults[moduleNumber].iec101Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].iec104Values) {
+        window.diTestResults[moduleNumber].iec104Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].dnp3Values) {
+        window.diTestResults[moduleNumber].dnp3Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].checkboxValues) {
+        window.diTestResults[moduleNumber].checkboxValues = {};
+    }
+    
+    // Set the type
+    window.diTestResults[moduleNumber].type = 'DI-32';
+    
+    // Initialize inputs array if it doesn't exist
+    if (!window.diTestResults[moduleNumber].inputs) {
+        window.diTestResults[moduleNumber].inputs = [];
+    }
+    
     // Save all inputs
     const inputs = document.querySelectorAll("#tableBody input");
     window.diTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
@@ -383,6 +398,11 @@ function saveDITestData(moduleNumber) {
         if (inputDNP3) {
             window.diTestResults[moduleNumber].dnp3Values[`DI_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
         }
+    }
+
+    // Ensure qualityInspections exists (preserve existing)
+    if (!window.diTestResults[moduleNumber].qualityInspections) {
+        window.diTestResults[moduleNumber].qualityInspections = {};
     }
 
     localStorage.setItem('diTestResults', JSON.stringify(window.diTestResults));
@@ -475,7 +495,6 @@ async function handleDITestSubmission() {
         }
     }
 }
-
 function saveDI16TestData(moduleNumber) {
     // Initialize the module data structure if it doesn't exist
     if (!window.diTestResults[moduleNumber] || window.diTestResults[moduleNumber].type !== 'DI-16') {
@@ -792,5 +811,6 @@ function findDuplicates(arr) {
     
     return duplicates;
 }
+
 
 // You'll need to update the navigation in your main flow to use QualityInspectionDI.html instead of FunctionalityDIPage.html for the first step
