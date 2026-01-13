@@ -106,7 +106,7 @@ function generateQualityInspectionSections(count) {
                 <td style="text-align: left;">${item}</td>
                 <td style="text-align: center;">
                     <label class="toggle-button">
-                        <input type="radio" name="quality_${i}_${index + 1}" value="OK">
+                        <input type="radio" name="quality_${i}_${index + 1}" value="OK" checked>
                         <span class="toggle-text"></span>
                     </label>
                 </td>
@@ -164,7 +164,17 @@ function saveQualityInspectionData() {
 function loadQualityInspectionData() {
     const doCount = window.doModulesToTest || 0;
 
-    // Load quality inspection results
+    // If no saved data exists (first visit), set all to OK by default
+    const savedResults = localStorage.getItem('doTestResults');
+    const isFirstVisit = !savedResults || Object.keys(JSON.parse(savedResults || '{}')).length === 0;
+
+    if (isFirstVisit) {
+        // On first visit, all radios are already set to OK by default in the HTML
+        console.log('First visit detected, all quality inspections set to OK by default');
+        return;
+    }
+
+    // Load quality inspection results from saved data
     for (let i = 1; i <= doCount; i++) {
         const moduleData = window.doTestResults[i];
         if (moduleData && moduleData.qualityInspections) {

@@ -164,9 +164,11 @@ function generatePanelIPCertificateRows() {
             <td style="text-align: center;">${item.ipRating}</td>
             <td style="text-align: center;">${item.certNumber}</td>
             <td style="text-align: center;">
-                <label class="toggle-button">
-                    <input type="checkbox" name="panelIPCertificate_applicable_${rowNumber}" ${(savedData.applicable !== undefined ? savedData.applicable : item.applicable) ? 'checked' : ''}>
-                    <span class="toggle-text"></span>
+                <label class="radio-button">
+                    <input type="radio" name="panelIPCertificate_applicable" 
+                           value="${rowNumber}" 
+                           ${(savedData.applicable !== undefined && savedData.applicable) ? 'checked' : ''}>
+                    <span class="radio-dot"></span>
                 </label>
             </td>
         `;
@@ -1079,21 +1081,14 @@ function savePreRequisiteTestData() {
         }
     }
 
-    // Save Test Equipment Record data
-    for (let i = 1; i <= 3; i++) {
-        const itemInput = document.querySelector(`input[name="testEquipment_item_${i}"]`);
-        const brandInput = document.querySelector(`input[name="testEquipment_brand_${i}"]`);
-        const modelInput = document.querySelector(`input[name="testEquipment_model_${i}"]`);
-        const serialInput = document.querySelector(`input[name="testEquipment_serialNumber_${i}"]`);
-        
-        if (itemInput && brandInput && modelInput && serialInput) {
-            window.preRequisiteTestResults.testEquipmentRecord.push({
-                item: itemInput.value,
-                brand: brandInput.value,
-                model: modelInput.value,
-                serialNumber: serialInput.value
-            });
-        }
+    // Save Panel IP Certificate data - Single selection (radio button)
+    const selectedRadio = document.querySelector('input[name="panelIPCertificate_applicable"]:checked');
+    const totalPanels = 4; // Total number of panel types
+    
+    for (let i = 1; i <= totalPanels; i++) {
+        window.preRequisiteTestResults.panelIPCertificate.push({
+            applicable: selectedRadio ? (selectedRadio.value === i.toString()) : false
+        });
     }
 
     // FIXED: Correct selector for Measuring Equipment Record
@@ -1199,6 +1194,7 @@ function clearAll() {
 }
 
 // this function to validate required fields
+// this function to validate required fields
 function validateRequiredFields() {
     let isValid = true;
     
@@ -1230,6 +1226,38 @@ function validateRequiredFields() {
                 isValid = false;
             }
         }
+    }
+
+    // === NEW VALIDATION: Panel IP Certificate - At least one must be selected ===
+    const panelIPRadios = document.querySelectorAll('input[name="panelIPCertificate_applicable"]');
+    let panelIPSelected = false;
+    
+    panelIPRadios.forEach(radio => {
+        if (radio.checked) {
+            panelIPSelected = true;
+        }
+    });
+    
+    if (!panelIPSelected) {
+        // Highlight all radio buttons or their container to indicate error
+        const panelIPContainer = document.querySelector('.Panel-IP-Certificate');
+        // Also highlight each radio button
+        panelIPRadios.forEach(radio => {
+            radio.parentElement.style.border = '1px solid red';
+            radio.parentElement.style.padding = '2px';
+        });
+        isValid = false;
+    } else {
+        // Remove error styling if valid
+        const panelIPContainer = document.querySelector('.Panel-IP-Certificate');
+        if (panelIPContainer) {
+            panelIPContainer.style.border = '';
+            panelIPContainer.style.padding = '';
+        }
+        panelIPRadios.forEach(radio => {
+            radio.parentElement.style.border = '';
+            radio.parentElement.style.padding = '';
+        });
     }
 
     // Validate Software Record - both must be OK
