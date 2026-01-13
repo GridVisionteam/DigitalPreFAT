@@ -29,43 +29,57 @@ function generateVirtualAlarmTestRows() {
             alarm: "SOE Buffer Full",
             iec101IOA: "950",
             iec104IOA: "950",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: true,
+            defaultIEC104Checked: true
         },
         {
             alarm: "Time Sync Alarm",
             iec101IOA: "951",
             iec104IOA: "951",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: true,
+            defaultIEC104Checked: true
         },
         {
             alarm: "RTU Health/Comm Fail",
             iec101IOA: "953",
             iec104IOA: "953",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: true,
+            defaultIEC104Checked: true
         },
         {
             alarm: "DI Module Fail",
             iec101IOA: "954",
             iec104IOA: "954",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: true,
+            defaultIEC104Checked: true
         },
         {
             alarm: "DO Module Fail",
             iec101IOA: "955",
             iec104IOA: "955",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: true,
+            defaultIEC104Checked: true
         },
         {
             alarm: "AI Module Fail",
             iec101IOA: "956",
             iec104IOA: "956",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: true,
+            defaultIEC104Checked: true
         },
         {
             alarm: "AO Module Fail",
             iec101IOA: "",
             iec104IOA: "",
-            editable: true
+            editable: true,
+            defaultIEC101Checked: false,  // Both unchecked for AO Module Fail
+            defaultIEC104Checked: false   // Both unchecked for AO Module Fail
         }
     ];
 
@@ -82,19 +96,23 @@ function generateVirtualAlarmTestRows() {
             ? `<td style="text-align: center;"><input type="number" name="virtualAlarm_${rowNumber}_iec104IOA" value="${item.iec104IOA}" min="0" style="width: 60px;"></td>`
             : `<td style="text-align: center;">${item.iec104IOA}</td>`;
 
+        // Use the default checked values from the item configuration
+        const iec101Checked = item.defaultIEC101Checked ? 'checked' : '';
+        const iec104Checked = item.defaultIEC104Checked ? 'checked' : '';
+
         row.innerHTML = `
             <td style="text-align: left;">${item.alarm}</td>
             ${iec101IOACell}
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="virtualAlarm_${rowNumber}_iec101" checked>
+                    <input type="checkbox" name="virtualAlarm_${rowNumber}_iec101" ${iec101Checked}>
                     <span class="toggle-text"></span>
                 </label>
             </td>
             ${iec104IOACell}
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="virtualAlarm_${rowNumber}_iec104" checked>
+                    <input type="checkbox" name="virtualAlarm_${rowNumber}_iec104" ${iec104Checked}>
                     <span class="toggle-text"></span>
                 </label>
             </td>
