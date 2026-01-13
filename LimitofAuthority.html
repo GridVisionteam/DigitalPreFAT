@@ -66,6 +66,15 @@
           Back (A)
       </button>
 
+      <!-- Add Select All and Clear All buttons -->
+      <button onclick="SelectAll()">
+          Select All
+      </button>
+      
+      <button onclick="clearAll()">
+          Clear All
+      </button>
+
       <button id="submitBtn" onclick="handleLimitofAuthoritySubmission()">
           Save &amp; Continue (D)
       </button>
@@ -92,6 +101,16 @@
             else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
                 event.preventDefault();
                 goToPreviousPage();
+            }
+            // 'S' key for Select All (83 is keyCode for 's', 115 is keyCode for 'S' with Shift)
+            else if (event.key === 's' || event.key === 'S' || event.keyCode === 83 || event.keyCode === 115) {
+                event.preventDefault();
+                SelectAll();
+            }
+            // 'C' key for Clear All (67 is keyCode for 'c', 99 is keyCode for 'C' with Shift)
+            else if (event.key === 'c' || event.key === 'C' || event.keyCode === 67 || event.keyCode === 99) {
+                event.preventDefault();
+                clearAll();
             }
         }
     });

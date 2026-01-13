@@ -192,16 +192,22 @@ function handleLimitofAuthoritySubmission() {
     window.location.href = 'userdetail.html';
 }
 
+// Function to select all checkboxes
 function SelectAll() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = true;
     });
+    // Save the selection
+    saveAuthorityData();
 }
 
+// Function to clear all checkboxes
 function clearAll() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
+    // Save the cleared state
+    saveAuthorityData();
 }
