@@ -55,7 +55,7 @@
 
     <script src="commonFunctions.js"></script>
     <script src="generateJSON.js"></script>
-    <script src="googleDrive.js"></script> <!-- Added this line -->
+    <script src="googleDrive.js"></script>
     <script src="generatePDF.js"></script>
     <script>
         // Function to handle back navigation
@@ -207,48 +207,114 @@
                 const pdfFileName = `${dateformat}_RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
                 const jsonFileName = `${dateformat}_RTU_Backup_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.json`;
                 
-                // Step 3: Prepare files for batch upload
+                // Step 3: Check for existing files
                 progressBar.style.width = '40%';
-                updateDriveStatus("Preparing files for Google Drive...", false, false);
+                updateDriveStatus("Checking for existing files in Google Drive...", false, false);
                 
+                // Check if both files exist
+                if (typeof window.checkFileExists === 'function') {
+                    const existingPdf = await window.checkFileExists(pdfFileName);
+                    const existingJson = await window.checkFileExists(jsonFileName);
+                }
+                
+                // Step 4: Prepare files for upload with replace option
+                progressBar.style.width = '50%';
+                updateDriveStatus("Preparing files for Google Drive...", false, false);
+
                 const filesToUpload = [
                     {
                         data: pdfBytes,
                         name: pdfFileName,
                         mimeType: 'application/pdf'
+                        // No specific folder - will use default or user-specified folder
                     },
                     {
                         data: jsonBytes,
                         name: jsonFileName,
-                        mimeType: 'application/json'
+                        mimeType: 'application/json',
+                        folderId: '1ciLbAkJkOjaWP0yvWzbpguKI73jICASj' // Specify JSON folder ID here
                     }
                 ];
                 
-                // Step 4: Upload both files with SINGLE authentication
-                progressBar.style.width = '50%';
+                // Step 5: Upload both files with replace logic
+                progressBar.style.width = '60%';
                 updateDriveStatus("Authenticating with Google Drive...", false, false);
-                
-                if (typeof window.batchUploadToDrive === 'function') {
-                    // Use batch upload for better performance
-                    const uploadResults = await window.batchUploadToDrive(filesToUpload);
+
+                // Get access token
+                const accessToken = await window.getAccessToken();
+
+                // Upload files sequentially with replace logic
+                const uploadResults = [];
+
+                for (let i = 0; i < filesToUpload.length; i++) {
+                    const file = filesToUpload[i];
+                    progressBar.style.width = 60 + (i * 15) + '%';
+                    updateDriveStatus(`Uploading ${file.name}...`, false, false);
                     
-                    // Get the PDF upload result for creating shareable link
-                    const pdfUploadResult = uploadResults[0];
-                    
-                    progressBar.style.width = '70%';
-                    updateDriveStatus("Creating shareable link...", false, false);
-                    
-                    // Create shareable link for the PDF
-                    let shareableLink = null;
-                    if (pdfUploadResult && pdfUploadResult.id && typeof window.createShareableLink === 'function') {
-                        shareableLink = await window.createShareableLink(pdfUploadResult.id);
+                    // Use uploadOrReplaceFile which checks and replaces existing files
+                    if (typeof window.uploadOrReplaceFile === 'function') {
+                        try {
+                            // Pass folderId if specified
+                            const result = await window.uploadOrReplaceFile(
+                                file.data, 
+                                file.name, 
+                                file.mimeType,
+                                file.folderId || null // Pass folderId or null
+                            );
+                            uploadResults.push(result);
+                            console.log(`Successfully uploaded/replaced: ${file.name} to folder: ${file.folderId || 'default'}`);
+                        } catch (uploadError) {
+                            console.error(`Failed to upload ${file.name}:`, uploadError);
+                            uploadResults.push({ 
+                                success: false, 
+                                fileName: file.name, 
+                                error: uploadError.message 
+                            });
+                            
+                            // If PDF fails, we should stop
+                            if (file.mimeType === 'application/pdf') {
+                                throw new Error(`Failed to upload PDF: ${uploadError.message}`);
+                            }
+                        }
+                    } else {
+                        // Fallback to regular upload
+                        try {
+                            const result = await window.uploadToDriveFolder(
+                                file.data, 
+                                file.name, 
+                                file.mimeType,
+                                file.folderId || null
+                            );
+                            uploadResults.push(result);
+                        } catch (uploadError) {
+                            uploadResults.push({ 
+                                success: false, 
+                                fileName: file.name, 
+                                error: uploadError.message 
+                            });
+                        }
                     }
-                    
-                    // Complete
-                    statusElement.textContent = "Files uploaded to Google Drive!";
-                    progressBar.style.width = '100%';
-                    progressBar.style.backgroundColor = '#4CAF50';
-                    
+                }
+                
+                // Step 6: Create shareable link for the PDF
+                progressBar.style.width = '90%';
+                updateDriveStatus("Creating shareable link...", false, false);
+                
+                let shareableLink = null;
+                const pdfUploadResult = uploadResults[0]; // First result should be PDF
+                
+                if (pdfUploadResult && pdfUploadResult.id && typeof window.createShareableLink === 'function') {
+                    shareableLink = await window.createShareableLink(pdfUploadResult.id);
+                }
+                
+                // Complete
+                statusElement.textContent = "Files uploaded to Google Drive!";
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#4CAF50';
+                
+                // Show results
+                const successfulUploads = uploadResults.filter(r => r && !r.error).length;
+                if (successfulUploads === filesToUpload.length) {
                     if (shareableLink) {
                         updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true, shareableLink);
                         
@@ -265,48 +331,17 @@
                         updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true);
                     }
                 } else {
-                    // Fallback to individual uploads (will still use cached token)
-                    progressBar.style.width = '60%';
-                    updateDriveStatus("Uploading PDF to Google Drive...", false, false);
-                    
-                    const uploadResult = await window.uploadToDrive(pdfBytes, pdfFileName, 'application/pdf');
-                    
-                    progressBar.style.width = '80%';
-                    updateDriveStatus("Uploading JSON to Google Drive...", false, false);
-                    
-                    await window.uploadToDrive(jsonBytes, jsonFileName, 'application/json');
-                    
-                    progressBar.style.width = '90%';
-                    updateDriveStatus("Creating shareable link...", false, false);
-                    
-                    let shareableLink = null;
-                    if (typeof window.createShareableLink === 'function') {
-                        shareableLink = await window.createShareableLink(uploadResult.id);
-                    }
-                    
-                    // Complete (same as above)
-                    statusElement.textContent = "Files uploaded to Google Drive!";
-                    progressBar.style.width = '100%';
-                    progressBar.style.backgroundColor = '#4CAF50';
-                    
-                    if (shareableLink) {
-                        updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true, shareableLink);
-                        
-                        setTimeout(() => {
-                            if (confirm('Files uploaded to Google Drive!\n\nClick OK to open PDF in new tab, or Cancel to stay here.')) {
-                                window.open(shareableLink, '_blank');
-                            }
-                        }, 2000);
-                    } else if (uploadResult && uploadResult.id) {
-                        const driveLink = `https://drive.google.com/file/d/${uploadResult.id}/view`;
-                        updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true, driveLink);
-                    } else {
-                        updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true);
-                    }
+                    const failedFiles = uploadResults.filter(r => r && r.error).map(r => r.fileName).join(', ');
+                    updateDriveStatus(`⚠️ Some files failed to upload: ${failedFiles}`, true, false);
                 }
                 
                 // Also offer local downloads
-                // ... (keep your existing download code)
+                try {
+                    await generateFinalPDF(userData);
+                    generateJsonFile();
+                } catch (localError) {
+                    console.log("Local download also attempted");
+                }
                 
             } catch (error) {
                 console.error("Generation/upload failed:", error);
