@@ -42,32 +42,18 @@ function updatePartNumberSummary(moduleSheet) {
     summaryElement.textContent = summaryParts.join(', ') || 'No parts selected';
 }
 
-async function goToNext() {
+async function goToNext(returnOnly = false) {
     // ==========================================
     // 1. VALIDATION PHASE
     // ==========================================
 
     // Generic validation
     if (typeof validateAllModuleFields === 'function') {
-       if (!validateAllModuleFields()) {
-           return; 
-      }
-    }
-
-    // Specific Validation: Check ALL Serial Numbers for 12 Digits
-    /*const serialInputs = document.querySelectorAll('input[name$="_serial"]');
-    for (const input of serialInputs) {
-        const serialValue = input.value.trim();
-        if (serialValue && !/^\d{12}$/.test(serialValue)) {
-            input.style.border = '2px solid red';
-            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            input.focus();
-            showCustomAlert('Action Blocked: A serial number detected that is not 12 digits. Please fix it before proceeding.');
-            return; 
-        } else {
-            input.style.border = '';
+        if (!validateAllModuleFields()) {
+            if (returnOnly) return null;
+            return;
         }
-    } */
+    }
 
     // ==========================================
     // 2. DATA SAVING PHASE
@@ -178,36 +164,68 @@ async function goToNext() {
     localStorage.setItem('comCount', comCount);
     localStorage.setItem('aoModulesToTest', aoCount);
 
+    // ==========================================
+    // 3. DATA PREPARATION FOR BOTH MODES
+    // ==========================================
+    
+    // Create the Export Data Object (needed for both modes)
+    const exportData = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        try {
+            exportData[key] = JSON.parse(localStorage.getItem(key));
+        } catch (e) {
+            exportData[key] = localStorage.getItem(key);
+        }
+    }
+    
+    // Metadata setup
+    const now = new Date();
+    const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
+    const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+    
+    exportData.metadata = {
+        generationDate: now.toISOString(),
+        rtuSerial: rtuSerial,
+        contractNo: contractNo,
+        testerName: localStorage.getItem('session_name') || 'N/A'
+    };
 
     // ==========================================
-    // 3. EXPORT PHASE (JSON, TXT, QR, PDF)
+    // 4. RETURN-ONLY MODE (for Drive upload)
+    // ==========================================
+    if (returnOnly) {
+        try {
+            // Generate TXT content
+            let txtContent = '';
+            if (typeof generateTXTContent === 'function') {
+                txtContent = generateTXTContent();
+            }
+            
+            // Generate PDF blob
+            let pdfResult = null;
+            if (typeof generateAndDownloadPDF === 'function') {
+                pdfResult = await generateAndDownloadPDF(contractNo, rtuSerial, true);
+            }
+            
+            // Return the data for Drive upload
+            return {
+                jsonData: JSON.stringify(exportData, null, 2),
+                txtContent: txtContent,
+                pdfBlob: pdfResult
+            };
+        } catch (error) {
+            console.error('Error in returnOnly mode:', error);
+            return null;
+        }
+    }
+    
+    // ==========================================
+    // 5. DOWNLOAD MODE (original behavior)
     // ==========================================
     try {
         showCustomAlert('Saving and Generating Backup Files...');
-
-        // Create the Export Data Object
-        const exportData = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            try {
-                exportData[key] = JSON.parse(localStorage.getItem(key));
-            } catch (e) {
-                exportData[key] = localStorage.getItem(key);
-            }
-        }
-        
-        // Metadata setup
-        const now = new Date();
-        const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
-        const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
-        
-        exportData.metadata = {
-            generationDate: now.toISOString(),
-            rtuSerial: rtuSerial,
-            contractNo: contractNo,
-            testerName: localStorage.getItem('session_name') || 'N/A'
-        };
 
         // A. DOWNLOAD JSON
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -236,9 +254,9 @@ async function goToNext() {
             }
         }
 
-        // D. GENERATE PDF (Called Here)
+        // D. GENERATE PDF
         if (typeof generateAndDownloadPDF === 'function') {
-            await generateAndDownloadPDF(contractNo, rtuSerial);
+            await generateAndDownloadPDF(contractNo, rtuSerial, false);
         }
 
     } catch (error) {
@@ -246,11 +264,13 @@ async function goToNext() {
     }
 
     // ==========================================
-    // 4. REDIRECT PHASE
+    // 6. REDIRECT PHASE - Only redirect if not in returnOnly mode
     // ==========================================
-    setTimeout(() => {
-        window.location.href = './Pre-requisite.html';
-    }, 1500); 
+    if (!returnOnly) {
+        setTimeout(() => {
+            window.location.href = './Pre-requisite.html';
+        }, 1500); 
+    }
 }
 
 
@@ -869,7 +889,7 @@ function createModuleSheetBase(count, moduleType, partNumbers) {
     }
 
     if (submitBtn) {
-        submitBtn.addEventListener('click', function() {
+        submitBtn.addEventListener('click', async function() {
             saveCurrentBQCounts();
             formTiming.generationStartTime = new Date();
 
@@ -892,8 +912,15 @@ function createModuleSheetBase(count, moduleType, partNumbers) {
                 return; 
             }
             
-            // Call the main goToNext function
-            window.goToNext();  // Use window.goToNext to be explicit
+            // Try to use the integrated Drive upload version if available
+            if (typeof goToNextWithDriveUpload === 'function' && 
+                typeof uploadToDrive !== 'undefined') {
+                // Use integrated version with Drive upload
+                await goToNextWithDriveUpload();
+            } else {
+                // Fall back to original version
+                window.goToNext();
+            }
         });
     }
 
@@ -1033,11 +1060,11 @@ document.getElementById('exportBtn').addEventListener('click', async function() 
 
 });
 
-async function generateAndDownloadPDF(contractNo, rtuSerial) {
+async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false) {
     // Ensure jsPDF is loaded
     if (!window.jspdf) {
         console.error("jsPDF library not found");
-        return false;
+        return returnBlob ? null : false;
     }
 
     const { jsPDF } = window.jspdf;
@@ -1146,8 +1173,18 @@ async function generateAndDownloadPDF(contractNo, rtuSerial) {
     const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const filename = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
     
-    doc.save(filename);
-    return true;
+    if (returnBlob) {
+        // Return PDF as blob instead of downloading
+        const pdfBlob = doc.output('blob');
+        return {
+            blob: pdfBlob,
+            filename: filename
+        };
+    } else {
+        // Original behavior: download immediately
+        doc.save(filename);
+        return true;
+    }
 }
 
 function restoreModuleData() {
@@ -1381,5 +1418,113 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         console.error('Error generating QR code with alternative method:', error);
         showCustomAlert('Error generating QR code: ' + error.message);
         return false;
+    }
+}
+
+async function generateBQPDFForDrive(contractNo, rtuSerial) {
+    try {
+        // Ensure jsPDF is loaded
+        if (!window.jspdf) {
+            console.error("jsPDF library not found");
+            return null;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // --- 1. Header Information ---
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const dateString = `${day}/${month}/${year}`;
+
+        const testerName = localStorage.getItem('session_checkerName') || 'N/A';
+        const vendorNum = localStorage.getItem('session_vendorNumber') || 'N/A';
+
+        doc.setFontSize(18);
+        doc.text(`RTU Serial Number List for ${contractNo} | ${rtuSerial}`, 14, 20);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated: ${dateString}`, 14, 26);
+        
+        doc.setTextColor(0);
+        doc.setFontSize(11);
+        doc.text(`Contract No: ${contractNo}`, 14, 35);
+        doc.text(`RTU Serial No: ${rtuSerial}`, 14, 40);
+        doc.text(`Vendor No: ${vendorNum}`, 14, 45);
+        doc.text(`Tester: ${testerName}`, 14, 50);
+
+        // --- 2. Define Module Order & Colors ---
+        const moduleConfig = [
+            { type: 'Subrack', color: '#808080' },
+            { type: 'Processor', color: '#0000FF' },
+            { type: 'COM', color: '#2E8B57' },
+            { type: 'DI', color: '#FFA500' },
+            { type: 'DO', color: '#800080' },
+            { type: 'AI', color: '#008080' },
+            { type: 'AO', color: '#DAA520' },
+            { type: 'Power', color: '#FF0000' }
+        ];
+
+        // Get Data
+        const allData = gatherAllModuleData();
+        let currentY = 55;
+
+        // --- 3. Generate Tables ---
+        moduleConfig.forEach(config => {
+            const modules = allData[config.type];
+
+            if (modules && modules.length > 0) {
+                const tableBody = modules.map((m, index) => [
+                    index + 1,
+                    m.partNo || '-',
+                    m.subrack || '-',
+                    (m.slot == '0' || m.slot === 0) ? 'N/A' : (m.slot || '-'),                
+                    m.serial || '-'
+                ]);
+
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [[`${config.type} Module`, 'Part Number', 'Subrack', 'Slot', 'Serial No.']],
+                    body: tableBody,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: config.color, 
+                        textColor: 255, 
+                        fontStyle: 'bold',
+                        halign: 'center' 
+                    },
+                    columnStyles: {
+                        0: { halign: 'center', cellWidth: 25 },
+                        1: { halign : 'center', cellWidth: 50 },
+                        2: { halign: 'center' },
+                        3: { halign: 'center' },
+                        4: { halign: 'center' }
+                    },
+                    didDrawPage: function (data) {
+                        currentY = data.cursor.y;
+                    },
+                    margin: { top: 20 } 
+                });
+                
+                currentY = doc.lastAutoTable.finalY;
+            }
+        });
+
+        // Return PDF as blob
+        const pdfBlob = doc.output('blob');
+        const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const filename = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+        
+        return {
+            blob: pdfBlob,
+            filename: filename
+        };
+        
+    } catch (error) {
+        console.error('Error generating PDF for Drive:', error);
+        return null;
     }
 }
