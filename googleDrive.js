@@ -6,7 +6,7 @@
 const GOOGLE_API_KEY = 'AIzaSyA9I3SyapNGGv3y26Jk-bo37XQ4zUKo5qs'; // Replace with your Google API Key
 const GOOGLE_CLIENT_ID = '656211138338-35iq6or29q9ea6583v80ofq746hinlha.apps.googleusercontent.com'; // Replace with your Client ID
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
-const DRIVE_FOLDER_ID = '1EJpjHsWjmUHBMFRuELKMrrxickhqkFGC'; // Optional: Your Google Drive folder ID
+const DRIVE_FOLDER_ID = '1fkuWaxOUT98UFncrCLxweBEQeNlhyzij'; // Optional: Your Google Drive folder ID
 
 // ============================================
 // GLOBAL VARIABLES
@@ -507,13 +507,217 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+/**
+ * Check if file exists in Drive folder and get its ID
+ */
+async function checkFileExists(fileName, folderId = null) {
+    try {
+        const accessToken = await getAccessToken();
+        
+        // Build query for file search
+        let query = `name='${fileName}' and trashed=false`;
+        
+        // If folderId is specified, search within that folder
+        if (folderId) {
+            query += ` and '${folderId}' in parents`;
+        } else if (DRIVE_FOLDER_ID && DRIVE_FOLDER_ID.trim() !== '') {
+            // Use default folder if no specific folder provided
+            query += ` and '${DRIVE_FOLDER_ID}' in parents`;
+        }
+        
+        console.log('Searching for existing file with query:', query);
+        
+        const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,mimeType,createdTime)`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            }
+        );
+        
+        if (!response.ok) {
+            console.error('Failed to search for existing file:', await response.text());
+            return null;
+        }
+        
+        const data = await response.json();
+        
+        if (data.files && data.files.length > 0) {
+            // Return the first matching file (should be only one)
+            console.log(`Found existing file: ${fileName}, ID: ${data.files[0].id}`);
+            return data.files[0];
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Error checking for existing file:', error);
+        return null;
+    }
+}
+
+/**
+ * Delete existing file from Drive
+ */
+async function deleteFile(fileId) {
+    try {
+        const accessToken = await getAccessToken();
+        
+        const response = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            }
+        );
+        
+        if (!response.ok && response.status !== 204) {
+            console.error('Failed to delete file:', await response.text());
+            return false;
+        }
+        
+        console.log(`Successfully deleted file ID: ${fileId}`);
+        return true;
+        
+    } catch (error) {
+        console.error('Error deleting file:', error);
+        return false;
+    }
+}
+
+/**
+ * Upload or update file in Google Drive folder
+ * Checks for existing file and replaces it if found
+ */
+async function uploadOrReplaceFile(fileData, fileName, mimeType = 'application/pdf', folderId = null) {
+    try {
+        console.log('Starting upload or replace for:', fileName);
+        
+        // Check if file already exists
+        const existingFile = await checkFileExists(fileName, folderId);
+        
+        if (existingFile) {
+            console.log(`File "${fileName}" already exists, will replace it.`);
+            updateDriveStatusIfAvailable(`Replacing existing file: ${fileName}`, false);
+            
+            // Delete the existing file
+            const deleted = await deleteFile(existingFile.id);
+            if (!deleted) {
+                console.warn('Could not delete existing file, will try to upload new version anyway');
+            }
+        }
+        
+        // Now upload the new file
+        return await uploadToDriveFolder(fileData, fileName, mimeType, folderId);
+        
+    } catch (error) {
+        console.error('Error in uploadOrReplaceFile:', error);
+        throw error;
+    }
+}
+
+
 // ============================================
 // EXPORT FUNCTIONS
 // ============================================
 window.uploadToDrive = uploadToDrive;
 window.createShareableLink = createShareableLink;
-window.testDriveConnection = testDriveConnection;
+//window.testDriveConnection = testDriveConnection;
 window.validateGoogleConfig = validateGoogleConfig;
 window.loadGoogleAPIs = loadGoogleAPIs;
 window.batchUploadToDrive = batchUploadToDrive; // New function for batch uploads
 window.clearAuthCache = clearAuthCache; // Optional: to clear auth if needed
+window.checkFileExists = checkFileExists;
+window.deleteFile = deleteFile;
+window.uploadOrReplaceFile = uploadOrReplaceFile;
+
+async function uploadToDriveFolder(fileData, fileName, mimeType = 'application/pdf', folderId = null) {
+    try {
+        console.log('Starting Google Drive upload for:', fileName, 'to folder:', folderId);
+        
+        // Load Google APIs if not already loaded
+        await loadGoogleAPIs();
+        
+        // Get access token (single sign-in)
+        const accessToken = await getAccessToken();
+        
+        updateDriveStatusIfAvailable('Preparing file for upload...', false);
+        
+        // Create form data
+        const form = new FormData();
+        
+        // Prepare metadata
+        const metadata = {
+            name: fileName,
+            mimeType: mimeType,
+            description: 'RTU Test Report generated on ' + new Date().toLocaleDateString(),
+            createdTime: new Date().toISOString()
+        };
+        
+        // Add folder if specified
+        if (folderId && folderId.trim() !== '') {
+            metadata.parents = [folderId];
+        } else if (DRIVE_FOLDER_ID && DRIVE_FOLDER_ID.trim() !== '') {
+            metadata.parents = [DRIVE_FOLDER_ID]; // Use default folder as fallback
+        }
+        
+        form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+        form.append('file', new Blob([fileData], {type: mimeType}));
+        
+        updateDriveStatusIfAvailable('Uploading to Google Drive...', false);
+        
+        // Upload to Drive
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+            },
+            body: form
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Drive upload failed:', errorText);
+            
+            // Try to parse error message
+            let errorMessage = 'Upload failed: ' + response.statusText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.error && errorJson.error.message) {
+                    errorMessage = errorJson.error.message;
+                }
+            } catch (e) {
+                // Use default error message
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log('Upload successful, file ID:', result.id);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('Google Drive upload error:', error);
+        
+        // Provide more user-friendly error messages
+        let userMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            userMessage = 'Network error. Please check your internet connection.';
+        } else if (error.message.includes('invalid_client')) {
+            userMessage = 'Invalid Google API configuration. Please check your Client ID and API Key.';
+        } else if (error.message.includes('access_denied')) {
+            userMessage = 'Access denied. Please make sure you have granted the necessary permissions.';
+        }
+        
+        throw new Error(userMessage);
+    }
+}
+
+// Add this to the export section at the bottom
+window.uploadToDriveFolder = uploadToDriveFolder;
