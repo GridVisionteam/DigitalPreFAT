@@ -161,7 +161,6 @@
         }
         
         // New function to generate and upload to Google Drive
-        // In generatePDF.html - modify the generateAndUploadToDrive function
         async function generateAndUploadToDrive() {
             const statusElement = document.getElementById('generationStatus');
             const progressBar = document.getElementById('progressBar');
@@ -181,10 +180,12 @@
                 
                 // Load user data
                 const userData = loadUserData();
+                const contractNo = localStorage.getItem('session_contractNo') || 'UnknownContract';
+                const cleanContractNo = contractNo.replace(/"/g, '').trim();
                 
                 statusElement.textContent = "Generating PDF...";
                 progressBar.style.width = '20%';
-                updateDriveStatus("Generating PDF document...", false, false);
+                updateDriveStatus(`Generating PDF for contract ${cleanContractNo}...`, false, false);
                 
                 // Generate the PDF bytes
                 if (typeof window.generateFinalPDFBytes !== 'function') {
@@ -204,20 +205,40 @@
                 // Create filenames
                 const now = new Date();
                 const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-                const pdfFileName = `${dateformat}_RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
-                const jsonFileName = `${dateformat}_RTU_Backup_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.json`;
+                const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+                const cleanRtuSerial = rtuSerial.replace(/"/g, '').trim();
+                const pdfFileName = `${dateformat}_RTU_Report_${cleanContractNo}_${cleanRtuSerial}.pdf`;
+                const jsonFileName = `${dateformat}_RTU_Backup_${cleanContractNo}_${cleanRtuSerial}.json`;
                 
-                // Step 3: Check for existing files
+                // Step 3: Get or create contract folder for JSON ONLY
                 progressBar.style.width = '40%';
-                updateDriveStatus("Checking for existing files in Google Drive...", false, false);
-                
-                // Check if both files exist
-                if (typeof window.checkFileExists === 'function') {
-                    const existingPdf = await window.checkFileExists(pdfFileName);
-                    const existingJson = await window.checkFileExists(jsonFileName);
+                updateDriveStatus(`Checking/Creating JSON folder for contract ${cleanContractNo}...`, false, false);
+
+                // Define folder IDs (use the new GENERATED_PDF_FOLDER_ID for generated PDFs)
+                const JSON_FOLDER_ID = '1ciLbAkJkOjaWP0yvWzbpguKI73jICASj';
+                const GENERATED_PDF_FOLDER_ID = '1fkuWaxOUT98UFncrCLxweBEQeNlhyzij'; // <-- Use the same ID as in googleDrive.js
+
+                // PDF goes to GENERATED_PDF_FOLDER_ID -> contract folder
+                let pdfContractFolderId = null;
+                if (typeof window.getContractFolderInParent === 'function') {
+                    pdfContractFolderId = await window.getContractFolderInParent(cleanContractNo, GENERATED_PDF_FOLDER_ID);
+                    console.log(`Using contract folder ID for PDF in generated folder: ${pdfContractFolderId}`);
+                } else {
+                    pdfContractFolderId = GENERATED_PDF_FOLDER_ID;
+                    console.log(`Using generated PDF folder ID directly: ${pdfContractFolderId}`);
+                }
+
+                // JSON goes to contract folder INSIDE JSON_FOLDER_ID
+                let jsonContractFolderId = null;
+                if (typeof window.getContractFolderInParent === 'function') {
+                    jsonContractFolderId = await window.getContractFolderInParent(cleanContractNo, JSON_FOLDER_ID);
+                    console.log(`Using contract folder ID for JSON inside parent: ${jsonContractFolderId}`);
+                } else {
+                    jsonContractFolderId = JSON_FOLDER_ID;
+                    console.log(`Using JSON folder ID directly: ${jsonContractFolderId}`);
                 }
                 
-                // Step 4: Prepare files for upload with replace option
+                // Step 4: Prepare files for upload
                 progressBar.style.width = '50%';
                 updateDriveStatus("Preparing files for Google Drive...", false, false);
 
@@ -225,18 +246,19 @@
                     {
                         data: pdfBytes,
                         name: pdfFileName,
-                        mimeType: 'application/pdf'
-                        // No specific folder - will use default or user-specified folder
+                        mimeType: 'application/pdf',
+                        folderId: pdfContractFolderId  // PDF goes to original contract folder
                     },
                     {
                         data: jsonBytes,
                         name: jsonFileName,
                         mimeType: 'application/json',
-                        folderId: '1ciLbAkJkOjaWP0yvWzbpguKI73jICASj' // Specify JSON folder ID here
+                        folderId: jsonContractFolderId  // JSON goes to contract folder inside 1ciLbAkJkOjaWP0yvWzbpguKI73jICASj
                     }
                 ];
+
                 
-                // Step 5: Upload both files with replace logic
+                // Step 5: Upload both files
                 progressBar.style.width = '60%';
                 updateDriveStatus("Authenticating with Google Drive...", false, false);
 
@@ -254,15 +276,15 @@
                     // Use uploadOrReplaceFile which checks and replaces existing files
                     if (typeof window.uploadOrReplaceFile === 'function') {
                         try {
-                            // Pass folderId if specified
+                            // Pass folderId to upload to contract folder
                             const result = await window.uploadOrReplaceFile(
                                 file.data, 
                                 file.name, 
                                 file.mimeType,
-                                file.folderId || null // Pass folderId or null
+                                file.folderId || null
                             );
                             uploadResults.push(result);
-                            console.log(`Successfully uploaded/replaced: ${file.name} to folder: ${file.folderId || 'default'}`);
+                            console.log(`Successfully uploaded to contract folder: ${file.name}`);
                         } catch (uploadError) {
                             console.error(`Failed to upload ${file.name}:`, uploadError);
                             uploadResults.push({ 
@@ -311,24 +333,32 @@
                 statusElement.textContent = "Files uploaded to Google Drive!";
                 progressBar.style.width = '100%';
                 progressBar.style.backgroundColor = '#4CAF50';
-                
+
                 // Show results
                 const successfulUploads = uploadResults.filter(r => r && !r.error).length;
                 if (successfulUploads === filesToUpload.length) {
                     if (shareableLink) {
-                        updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true, shareableLink);
+                        updateDriveStatus(`✅ Both files uploaded to contract folder "${cleanContractNo}"!`, false, true, shareableLink);
                         
                         // Auto-open in new tab after 2 seconds
                         setTimeout(() => {
-                            if (confirm('Files uploaded to Google Drive!\n\nClick OK to open PDF in new tab, or Cancel to stay here.')) {
+                            if (confirm(`Files uploaded to contract folder "${cleanContractNo}"!\n\nClick OK to open PDF in new tab, or Cancel to stay here.`)) {
                                 window.open(shareableLink, '_blank');
                             }
                         }, 2000);
                     } else if (pdfUploadResult && pdfUploadResult.id) {
-                        const driveLink = `https://drive.google.com/file/d/${pdfUploadResult.id}/view`;
-                        updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true, driveLink);
+                        // Provide link to the PDF file itself (not the folder)
+                        const fileLink = `https://drive.google.com/file/d/${pdfUploadResult.id}/view`;
+                        updateDriveStatus(`✅ Both files uploaded to contract folder "${cleanContractNo}"!`, false, true, fileLink);
+                        
+                        // Auto-open in new tab after 2 seconds
+                        setTimeout(() => {
+                            if (confirm(`Files uploaded to contract folder "${cleanContractNo}"!\n\nClick OK to open PDF in new tab, or Cancel to stay here.`)) {
+                                window.open(fileLink, '_blank');
+                            }
+                        }, 2000);
                     } else {
-                        updateDriveStatus('✅ Both files uploaded to Google Drive!', false, true);
+                        updateDriveStatus(`✅ Both files uploaded to contract folder "${cleanContractNo}"!`, false, true);
                     }
                 } else {
                     const failedFiles = uploadResults.filter(r => r && r.error).map(r => r.fileName).join(', ');

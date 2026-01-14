@@ -1,7 +1,4 @@
 // bqDriveUpload.js - Integrated version with Save & Continue
-const JSON_FOLDER_ID = '1ciLbAkJkOjaWP0yvWzbpguKI73jICASj';  // JSON files folder
-const TXT_PNG_FOLDER_ID = '1qg4cyMgdK1gpvHY-07BOZzb0YlzWDTDd';  // TXT and PNG files folder
-const PDF_FOLDER_ID = '1yl-IuYckdZouFvNFep25rG8lJJ-Fd8yu';  // PDF files folder
 let isDriveInitialized = false;
 let driveStatusElement = null;
 
@@ -9,10 +6,9 @@ let driveStatusElement = null;
 async function initDriveUpload() {
     console.log('Initializing Drive Upload...');
     
-    // Check if our upload functions are available
-    if (typeof uploadToDrive !== 'undefined') {
+    if (typeof uploadToDrive !== 'undefined' && typeof uploadOrReplaceInContractFolder !== 'undefined') {
         isDriveInitialized = true;
-        console.log('Google Drive functions already available');
+        console.log('Google Drive functions available');
         return true;
     }
     
@@ -20,177 +16,182 @@ async function initDriveUpload() {
     return false;
 }
 
-// Main function to upload BQ files to Google Drive
+// Main function to upload BQ files to Google Drive with contract folders
 async function uploadBQFiles() {
     try {
+        console.log('=== STARTING UPLOAD PROCESS ===');
+        
         const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
         const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
         const now = new Date();
         const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
         
-        showDriveStatus('Starting Google Drive upload...', 'info');
+        console.log('Contract:', contractNo, 'RTU Serial:', rtuSerial);
         
-        const filesToUpload = [];
+        showDriveStatus('Starting Google Drive upload...', 'info');
         
         // 1. Generate JSON file
         const jsonData = await generateBQJsonData(contractNo, rtuSerial);
-        if (jsonData) {
-            const jsonFileName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
-            filesToUpload.push({
-                name: jsonFileName,
-                data: jsonData,
-                mimeType: 'application/json',
-                folderId: JSON_FOLDER_ID
-            });
+        if (!jsonData) {
+            throw new Error('Failed to generate JSON data');
         }
         
         // 2. Generate TXT file
+        let txtContent = '';
         if (typeof generateTXTContent === 'function') {
-            try {
-                const txtContent = generateTXTContent();
-                if (txtContent) {
-                    const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
-                    filesToUpload.push({
-                        name: txtFileName,
-                        data: txtContent,
-                        mimeType: 'text/plain',
-                        folderId: TXT_PNG_FOLDER_ID
-                    });
-                }
-            } catch (error) {
-                console.error('Error generating TXT content:', error);
+            txtContent = generateTXTContent();
+            if (!txtContent) {
+                console.warn('Failed to generate TXT content');
             }
         }
         
-        // 3. Generate QR Code PNG
-        if (typeof generateAndDownloadQRCode === 'function' && typeof generateTXTContent === 'function') {
-            try {
-                const txtContent = generateTXTContent();
-                const qrDataUrl = await generateQRCodeDataURL(txtContent);
-                if (qrDataUrl) {
-                    const qrBlob = dataURLtoBlob(qrDataUrl);
-                    const qrFileName = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
-                    filesToUpload.push({
-                        name: qrFileName,
-                        data: qrBlob,
-                        mimeType: 'image/png',
-                        folderId: TXT_PNG_FOLDER_ID
-                    });
-                }
-            } catch (error) {
-                console.error('Error generating QR code:', error);
-            }
-        }
-        
-        // 4. Generate PDF
+        // 3. Generate PDF
+        let pdfBlob = null;
         if (typeof generateAndDownloadPDF === 'function') {
             try {
-                showDriveStatus('Generating PDF for upload...', 'info');
-                
-                // Generate PDF and get blob
+                showDriveStatus('Generating PDF...', 'info');
                 const pdfResult = await generateAndDownloadPDF(contractNo, rtuSerial, true);
-                
                 if (pdfResult && pdfResult.blob) {
-                    const pdfFileName = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
-                    filesToUpload.push({
-                        name: pdfFileName,
-                        data: pdfResult.blob,
-                        mimeType: 'application/pdf',
-                        folderId: PDF_FOLDER_ID
-                    });
-                    console.log('PDF prepared for upload:', pdfFileName);
-                } else {
-                    console.error('PDF generation returned null or no blob');
+                    pdfBlob = pdfResult.blob;
                 }
             } catch (error) {
-                console.error('Error generating PDF for upload:', error);
-                showDriveStatus('Error generating PDF: ' + error.message, 'warning');
+                console.error('Error generating PDF:', error);
             }
         }
         
-        console.log(`Prepared ${filesToUpload.length} files for upload:`, filesToUpload.map(f => `${f.name} -> ${f.folderId}`));
-        
-        if (filesToUpload.length === 0) {
-            showDriveStatus('No files to upload', 'info');
-            return { success: false, message: 'No files generated for upload' };
-        }
-        
-        // Upload files
+        // Upload files one by one to ensure they all get uploaded
         const uploadResults = [];
-        for (const file of filesToUpload) {
+        
+        // UPLOAD JSON FILE
+        if (jsonData) {
             try {
-                showDriveStatus(`Uploading ${file.name}...`, 'info');
+                const jsonFileName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
+                showDriveStatus(`Uploading ${jsonFileName}...`, 'info');
+                console.log('Uploading JSON file:', jsonFileName);
                 
-                // Check if file exists first
-                let existingFile = null;
-                if (typeof checkFileExists === 'function') {
-                    existingFile = await checkFileExists(file.name, file.folderId);
-                    if (existingFile) {
-                        console.log(`File ${file.name} exists, will replace it`);
-                    }
-                }
-                
-                // Upload or replace file
-                let result;
-                if (typeof uploadOrReplaceFile === 'function') {
-                    result = await uploadOrReplaceFile(file.data, file.name, file.mimeType, file.folderId);
-                } else if (typeof uploadToDriveFolder === 'function') {
-                    result = await uploadFileToDriveWithFolder(file.name, file.data, file.mimeType, file.folderId);
-                } else {
-                    result = await uploadFileToDrive(file.name, file.data, file.mimeType);
-                }
+                const jsonBlob = new Blob([jsonData], { type: 'application/json' });
+                const result = await uploadOrReplaceInContractFolder(jsonBlob, jsonFileName, 'application/json');
                 
                 uploadResults.push({
                     success: true,
-                    fileName: file.name,
-                    folderId: file.folderId,
+                    fileName: jsonFileName,
                     fileId: result.id,
-                    action: existingFile ? 'replaced' : 'uploaded'
+                    action: 'uploaded'
                 });
-                
+                console.log('JSON uploaded successfully');
             } catch (error) {
-                console.error(`Failed to upload ${file.name}:`, error);
+                console.error('Failed to upload JSON:', error);
                 uploadResults.push({
                     success: false,
-                    fileName: file.name,
-                    folderId: file.folderId,
+                    fileName: 'JSON file',
                     error: error.message
                 });
             }
         }
         
+        // UPLOAD TXT FILE
+        if (txtContent) {
+            try {
+                const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
+                showDriveStatus(`Uploading ${txtFileName}...`, 'info');
+                console.log('Uploading TXT file:', txtFileName);
+                
+                const txtBlob = new Blob([txtContent], { type: 'text/plain' });
+                const result = await uploadOrReplaceInContractFolder(txtBlob, txtFileName, 'text/plain');
+                
+                uploadResults.push({
+                    success: true,
+                    fileName: txtFileName,
+                    fileId: result.id,
+                    action: 'uploaded'
+                });
+                console.log('TXT uploaded successfully');
+            } catch (error) {
+                console.error('Failed to upload TXT:', error);
+                uploadResults.push({
+                    success: false,
+                    fileName: 'TXT file',
+                    error: error.message
+                });
+            }
+        }
+        
+        // UPLOAD PDF FILE
+        if (pdfBlob) {
+            try {
+                const pdfFileName = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+                showDriveStatus(`Uploading ${pdfFileName}...`, 'info');
+                console.log('Uploading PDF file:', pdfFileName);
+                
+                const result = await uploadOrReplaceInContractFolder(pdfBlob, pdfFileName, 'application/pdf');
+                
+                uploadResults.push({
+                    success: true,
+                    fileName: pdfFileName,
+                    fileId: result.id,
+                    action: 'uploaded'
+                });
+                console.log('PDF uploaded successfully');
+            } catch (error) {
+                console.error('Failed to upload PDF:', error);
+                uploadResults.push({
+                    success: false,
+                    fileName: 'PDF file',
+                    error: error.message
+                });
+            }
+        }
+        
+        // UPLOAD QR CODE PNG
+        if (txtContent && typeof qrcode !== 'undefined') {
+            try {
+                const qrDataUrl = await generateQRCodeDataURL(txtContent);
+                if (qrDataUrl) {
+                    const qrBlob = dataURLtoBlob(qrDataUrl);
+                    const qrFileName = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+                    showDriveStatus(`Uploading ${qrFileName}...`, 'info');
+                    console.log('Uploading QR Code:', qrFileName);
+                    
+                    const result = await uploadOrReplaceInContractFolder(qrBlob, qrFileName, 'image/png');
+                    
+                    uploadResults.push({
+                        success: true,
+                        fileName: qrFileName,
+                        fileId: result.id,
+                        action: 'uploaded'
+                    });
+                    console.log('QR Code uploaded successfully');
+                }
+            } catch (error) {
+                console.error('Failed to upload QR Code:', error);
+                uploadResults.push({
+                    success: false,
+                    fileName: 'QR Code',
+                    error: error.message
+                });
+            }
+        }
+        
+        console.log('Upload results:', uploadResults);
+        
         const successful = uploadResults.filter(r => r.success);
         const failed = uploadResults.filter(r => !r.success);
         
-        let statusMessage;
-        if (failed.length > 0) {
-            if (successful.length === 0) {
-                statusMessage = 'All uploads failed';
-                showDriveStatus(statusMessage, 'error');
-                return { success: false, message: statusMessage, results: uploadResults };
-            } else {
-                const replacedCount = uploadResults.filter(r => r.action === 'replaced').length;
-                const uploadedCount = uploadResults.filter(r => r.action === 'uploaded').length;
-                
-                statusMessage = `${successful.length}/${filesToUpload.length} files processed. `;
-                if (replacedCount > 0) statusMessage += `${replacedCount} replaced, `;
-                if (uploadedCount > 0) statusMessage += `${uploadedCount} uploaded. `;
-                statusMessage += `${failed.length} failed.`;
-                
-                showDriveStatus(statusMessage, 'warning');
-                return { success: true, partial: true, message: statusMessage, results: uploadResults };
-            }
-        } else {
-            const replacedCount = uploadResults.filter(r => r.action === 'replaced').length;
-            const uploadedCount = uploadResults.filter(r => r.action === 'uploaded').length;
-            
-            statusMessage = `Successfully processed ${successful.length} files! `;
-            if (replacedCount > 0) statusMessage += `${replacedCount} replaced, `;
-            if (uploadedCount > 0) statusMessage += `${uploadedCount} uploaded.`;
-            
-            showDriveStatus(statusMessage, 'success');
-            return { success: true, message: statusMessage, results: uploadResults };
+        if (successful.length === 0) {
+            throw new Error('All uploads failed');
         }
+        
+        let statusMessage = `${successful.length} file(s) uploaded successfully`;
+        if (failed.length > 0) {
+            statusMessage += `, ${failed.length} failed`;
+        }
+        
+        return { 
+            success: true, 
+            partial: failed.length > 0,
+            message: statusMessage, 
+            results: uploadResults 
+        };
         
     } catch (error) {
         console.error('Failed to upload BQ files:', error);
@@ -247,7 +248,6 @@ async function generateQRCodeDataURL(txtContent) {
             qr.addData(txtContent);
             qr.make();
             
-            // Create canvas
             const canvas = document.createElement('canvas');
             const size = 400;
             const cellSize = size / qr.getModuleCount();
@@ -308,89 +308,16 @@ function dataURLtoBlob(dataurl) {
     }
 }
 
-// Simple file upload function
-async function uploadFileToDrive(fileName, fileData, mimeType) {
-    try {
-        if (!isDriveInitialized) {
-            const initialized = await initDriveUpload();
-            if (!initialized) {
-                throw new Error('Google Drive not initialized');
-            }
-        }
-        
-        if (typeof uploadToDrive !== 'function') {
-            throw new Error('uploadToDrive function not available');
-        }
-        
-        console.log(`Uploading "${fileName}" to Google Drive...`);
-        showDriveStatus(`Uploading ${fileName}...`, 'info');
-        
-        const result = await uploadToDrive(fileData, fileName, mimeType);
-        
-        console.log('Upload successful:', result);
-        showDriveStatus(`${fileName} uploaded successfully!`, 'success');
-        
-        return result;
-        
-    } catch (error) {
-        console.error(`Failed to upload "${fileName}":`, error);
-        showDriveStatus(`Failed to upload ${fileName}: ${error.message}`, 'error');
-        throw error;
-    }
-}
-
-// Upload to specific folder
-async function uploadFileToDriveWithFolder(fileName, fileData, mimeType, folderId) {
-    try {
-        if (!isDriveInitialized) {
-            const initialized = await initDriveUpload();
-            if (!initialized) {
-                throw new Error('Google Drive not initialized');
-            }
-        }
-        
-        // Use uploadOrReplaceFile if available, otherwise fallback
-        if (typeof uploadOrReplaceFile === 'function') {
-            console.log(`Uploading/Replacing "${fileName}" to folder ${folderId}...`);
-            
-            const result = await uploadOrReplaceFile(fileData, fileName, mimeType, folderId);
-            
-            if (result && result.id) {
-                console.log('Upload/Replace successful:', result);
-                return result;
-            } else {
-                throw new Error('Upload failed - no file ID returned');
-            }
-        } else if (typeof uploadToDriveFolder === 'function') {
-            // Fallback to original function
-            console.log(`Uploading "${fileName}" (no replace check)...`);
-            
-            const result = await uploadToDriveFolder(fileData, fileName, mimeType, folderId);
-            
-            console.log('Upload successful:', result);
-            return result;
-        } else {
-            throw new Error('No upload function available');
-        }
-        
-    } catch (error) {
-        console.error(`Failed to upload "${fileName}":`, error);
-        throw error;
-    }
-}
-
 // Show drive status
 function showDriveStatus(message, type = 'info') {
     console.log(`Drive Status [${type}]: ${message}`);
     
-    // Create or update status element
     if (!driveStatusElement || !document.body.contains(driveStatusElement)) {
         driveStatusElement = document.createElement('div');
         driveStatusElement.id = 'driveUploadStatus';
         document.body.appendChild(driveStatusElement);
     }
     
-    // Set styles based on type
     const styles = {
         position: 'fixed',
         top: '20px',
@@ -416,7 +343,6 @@ function showDriveStatus(message, type = 'info') {
     Object.assign(driveStatusElement.style, styles);
     driveStatusElement.textContent = message;
     
-    // Auto-remove after delay
     const delay = type === 'error' ? 8000 : type === 'success' ? 5000 : 4000;
     clearTimeout(driveStatusElement.hideTimeout);
     driveStatusElement.hideTimeout = setTimeout(() => {
@@ -433,317 +359,213 @@ function showDriveStatus(message, type = 'info') {
     }, delay);
 }
 
-// Integrated goToNext function with Drive upload
-async function goToNextWithDriveUpload() {
-    // Prevent multiple executions
-    if (window.isGoToNextRunning) {
-        console.log('goToNextWithDriveUpload is already running');
+// SIMPLE, WORKING VERSION - Override the submit button
+async function overrideSubmitButton() {
+    console.log('=== OVERRIDING SUBMIT BUTTON ===');
+    
+    const submitBtn = document.getElementById('submitBtn');
+    if (!submitBtn) {
+        console.error('Submit button not found');
         return;
     }
     
-    window.isGoToNextRunning = true;
+    // Clone and replace button to remove old event listeners
+    const newSubmitBtn = submitBtn.cloneNode(true);
+    submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
     
-    try {
-        console.log('Starting integrated goToNext with Drive upload...');
+    newSubmitBtn.addEventListener('click', async function(event) {
+        event.preventDefault();
+        event.stopPropagation();
         
-        // 1. Run validation
-        if (typeof validateAllModuleFields === 'function') {
-            if (!validateAllModuleFields()) {
-                window.isGoToNextRunning = false;
-                return;
+        console.log('=== SUBMIT BUTTON CLICKED ===');
+        
+        // Disable button
+        const originalText = newSubmitBtn.textContent;
+        newSubmitBtn.disabled = true;
+        newSubmitBtn.textContent = 'Processing...';
+        
+        try {
+            // 1. Validate
+            if (typeof validateAllModuleFields === 'function') {
+                if (!validateAllModuleFields()) {
+                    newSubmitBtn.disabled = false;
+                    newSubmitBtn.textContent = originalText;
+                    return;
+                }
             }
-        }
-        
-        // 2. Save current data
-        if (typeof saveCurrentBQCounts === 'function') {
-            saveCurrentBQCounts();
-        }
-        
-        // 3. Generate data for upload
-        showDriveStatus('Generating data for upload...', 'info');
-        const exportData = await window.goToNext(true);
-        
-        if (!exportData) {
-            throw new Error('Failed to generate export data');
-        }
-        
-        console.log('Data generated for Drive upload. Starting upload...');
-        showDriveStatus('Data generated. Uploading to Google Drive...', 'info');
-        
-        // 4. Upload to Google Drive using the returned data
-        const uploadResult = await uploadBQFilesFromData(exportData);
-        
-        if (uploadResult.success) {
-            showDriveStatus(uploadResult.message, uploadResult.partial ? 'warning' : 'success');
-            console.log('Google Drive upload completed:', uploadResult.message);
-        } else {
-            showDriveStatus(uploadResult.message, 'error');
-            console.error('Google Drive upload failed:', uploadResult.message);
-        }
-        
-        // 5. Redirect to next page
-        setTimeout(() => {
-            console.log('Redirecting to Pre-requisite.html');
-            window.isGoToNextRunning = false;
-            window.location.href = './Pre-requisite.html';
-        }, 2000);
-        
-    } catch (error) {
-        console.error('Error in integrated goToNext:', error);
-        showDriveStatus(`Error: ${error.message}`, 'error');
-        window.isGoToNextRunning = false;
-        
-        // Fallback: try original goToNext without upload
-        setTimeout(() => {
+            
+            // 2. Save data
+            if (typeof saveCurrentBQCounts === 'function') {
+                saveCurrentBQCounts();
+            }
+            
+            // 3. Generate and save local files FIRST
+            console.log('Generating local files...');
+            showDriveStatus('Generating local backup files...', 'info');
+            
+            // Call original goToNext with returnOnly = true to get data but not redirect
+            let exportData = null;
             if (typeof window.goToNext === 'function') {
-                window.goToNext(false); // Use false to trigger local download
+                exportData = await window.goToNext(true);
             }
-        }, 2000);
-    }
+            
+            // Generate local files immediately
+            await generateLocalFiles();
+            
+            // 4. Now upload to Google Drive
+            console.log('Starting Google Drive upload...');
+            showDriveStatus('Uploading to Google Drive...', 'info');
+            
+            // Try Drive upload
+            let uploadSuccess = false;
+            let uploadMessage = '';
+            
+            try {
+                // Initialize Drive
+                await initDriveUpload();
+                
+                // Upload files
+                const uploadResult = await uploadBQFiles();
+                
+                if (uploadResult.success) {
+                    uploadSuccess = true;
+                    uploadMessage = uploadResult.message;
+                } else {
+                    uploadMessage = 'Drive upload failed: ' + uploadResult.message;
+                }
+            } catch (uploadError) {
+                console.error('Drive upload error:', uploadError);
+                uploadMessage = 'Drive upload error: ' + uploadError.message;
+            }
+            
+            // 5. Show final status
+            if (uploadSuccess) {
+                showDriveStatus(uploadMessage, 'success');
+                showCustomAlert('✅ Files saved locally and uploaded to Google Drive!');
+            } else {
+                showDriveStatus(uploadMessage, 'warning');
+                showCustomAlert('⚠️ Files saved locally but Drive upload had issues. Check console for details.');
+            }
+            
+            // 6. Wait a moment then redirect
+            setTimeout(() => {
+                console.log('Redirecting to Pre-requisite.html');
+                window.location.href = './Pre-requisite.html';
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Error in submit process:', error);
+            showDriveStatus(`Error: ${error.message}`, 'error');
+            showCustomAlert('❌ Error during save process. Please try again.');
+            
+            // Re-enable button
+            newSubmitBtn.disabled = false;
+            newSubmitBtn.textContent = originalText;
+        }
+    });
+    
+    console.log('Submit button overridden successfully');
 }
 
-// Add this new function to upload from data instead of regenerating:
-async function uploadBQFilesFromData(exportData) {
+// Helper function to generate local files
+async function generateLocalFiles() {
     try {
+        console.log('Generating local files...');
+        
         const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
         const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
         const now = new Date();
         const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
         
-        showDriveStatus('Uploading files to Google Drive...', 'info');
-        
-        const filesToUpload = [];
-        
-        // 1. JSON file from exportData
-        if (exportData.jsonData) {
-            const jsonFileName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
-            filesToUpload.push({
-                name: jsonFileName,
-                data: exportData.jsonData,
-                mimeType: 'application/json',
-                folderId: JSON_FOLDER_ID
-            });
+        // 1. Generate and download JSON
+        const jsonData = await generateBQJsonData(contractNo, rtuSerial);
+        if (jsonData) {
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(jsonData);
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`);
+            document.body.appendChild(linkElement);
+            linkElement.click();
+            document.body.removeChild(linkElement);
         }
         
-        // 2. TXT file from exportData
-        if (exportData.txtContent) {
-            const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
-            filesToUpload.push({
-                name: txtFileName,
-                data: exportData.txtContent,
-                mimeType: 'text/plain',
-                folderId: TXT_PNG_FOLDER_ID
-            });
-        }
-        
-        // 3. PDF blob from exportData
-        if (exportData.pdfBlob && exportData.pdfBlob.blob) {
-            const pdfFileName = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
-            filesToUpload.push({
-                name: pdfFileName,
-                data: exportData.pdfBlob.blob,
-                mimeType: 'application/pdf',
-                folderId: PDF_FOLDER_ID
-            });
-        }
-        
-        // 4. QR Code (generate separately)
-        if (exportData.txtContent) {
-            const qrDataUrl = await generateQRCodeDataURL(exportData.txtContent);
-            if (qrDataUrl) {
-                const qrBlob = dataURLtoBlob(qrDataUrl);
-                const qrFileName = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
-                filesToUpload.push({
-                    name: qrFileName,
-                    data: qrBlob,
-                    mimeType: 'image/png',
-                    folderId: TXT_PNG_FOLDER_ID
-                });
+        // 2. Generate and download TXT
+        if (typeof generateTXTContent === 'function') {
+            const txtContent = generateTXTContent();
+            if (txtContent) {
+                const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
+                const txtLinkElement = document.createElement('a');
+                txtLinkElement.setAttribute('href', txtDataUri);
+                txtLinkElement.setAttribute('download', `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`);
+                document.body.appendChild(txtLinkElement);
+                txtLinkElement.click();
+                document.body.removeChild(txtLinkElement);
             }
         }
         
-        console.log(`Prepared ${filesToUpload.length} files for upload`);
-        
-        if (filesToUpload.length === 0) {
-            return { success: false, message: 'No files to upload' };
+        // 3. Generate and download PDF
+        if (typeof generateAndDownloadPDF === 'function') {
+            setTimeout(async () => {
+                await generateAndDownloadPDF(contractNo, rtuSerial, false);
+            }, 500);
         }
         
-        // Upload files (use your existing upload logic)
-        const uploadResults = [];
-        for (const file of filesToUpload) {
-            try {
-                showDriveStatus(`Uploading ${file.name}...`, 'info');
-                
-                // Check if file exists first
-                let existingFile = null;
-                if (typeof checkFileExists === 'function') {
-                    existingFile = await checkFileExists(file.name, file.folderId);
-                }
-                
-                // Upload or replace file
-                let result;
-                if (typeof uploadOrReplaceFile === 'function') {
-                    result = await uploadOrReplaceFile(file.data, file.name, file.mimeType, file.folderId);
-                } else {
-                    result = await uploadFileToDriveWithFolder(file.name, file.data, file.mimeType, file.folderId);
-                }
-                
-                uploadResults.push({
-                    success: true,
-                    fileName: file.name,
-                    action: existingFile ? 'replaced' : 'uploaded'
-                });
-                
-            } catch (error) {
-                console.error(`Failed to upload ${file.name}:`, error);
-                uploadResults.push({
-                    success: false,
-                    fileName: file.name,
-                    error: error.message
-                });
+        // 4. Generate QR Code
+        if (typeof generateAndDownloadQRCode === 'function' && typeof generateTXTContent === 'function') {
+            const txtContent = generateTXTContent();
+            if (txtContent) {
+                setTimeout(async () => {
+                    await generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial);
+                }, 1000);
             }
         }
         
-        const successful = uploadResults.filter(r => r.success);
-        const failed = uploadResults.filter(r => !r.success);
-        
-        let statusMessage;
-        if (failed.length > 0) {
-            if (successful.length === 0) {
-                statusMessage = 'All uploads failed';
-                showDriveStatus(statusMessage, 'error');
-                return { success: false, message: statusMessage, results: uploadResults };
-            } else {
-                const replacedCount = uploadResults.filter(r => r.action === 'replaced').length;
-                const uploadedCount = uploadResults.filter(r => r.action === 'uploaded').length;
-                
-                statusMessage = `${successful.length}/${filesToUpload.length} files processed. `;
-                if (replacedCount > 0) statusMessage += `${replacedCount} replaced, `;
-                if (uploadedCount > 0) statusMessage += `${uploadedCount} uploaded. `;
-                statusMessage += `${failed.length} failed.`;
-                
-                showDriveStatus(statusMessage, 'warning');
-                return { success: true, partial: true, message: statusMessage, results: uploadResults };
-            }
-        } else {
-            const replacedCount = uploadResults.filter(r => r.action === 'replaced').length;
-            const uploadedCount = uploadResults.filter(r => r.action === 'uploaded').length;
-            
-            statusMessage = `Successfully processed ${successful.length} files! `;
-            if (replacedCount > 0) statusMessage += `${replacedCount} replaced, `;
-            if (uploadedCount > 0) statusMessage += `${uploadedCount} uploaded.`;
-            
-            showDriveStatus(statusMessage, 'success');
-            return { success: true, message: statusMessage, results: uploadResults };
-        }
+        console.log('Local files generated');
+        return true;
         
     } catch (error) {
-        console.error('Failed to upload BQ files:', error);
-        showDriveStatus(`Upload failed: ${error.message}`, 'error');
-        return { success: false, message: error.message };
+        console.error('Error generating local files:', error);
+        throw error;
     }
 }
 
-// Initialize and override the submit button
-// Initialize and override the submit button
-async function initAndOverrideSubmit() {
-    console.log('Initializing Drive upload and overriding submit button...');
+// Simple alert function
+function showCustomAlert(message) {
+    const existingAlert = document.getElementById('customAlertBox');
+    if (existingAlert) existingAlert.remove();
     
-    try {
-        const submitBtn = document.getElementById('submitBtn');
-        if (!submitBtn) {
-            console.error('Submit button not found');
-            return;
-        }
-        
-        // Initialize Drive upload
-        const initialized = await initDriveUpload();
-        if (!initialized) {
-            console.warn('Google Drive not initialized. Submit button will work normally without upload.');
-            return;
-        }
-        
-        // Store original click handler
-        const originalOnClick = submitBtn.onclick;
-        
-        // Remove any existing event listeners first
-        const newSubmitBtn = submitBtn.cloneNode(true);
-        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-        
-        // Add new event listener to the new button
-        newSubmitBtn.addEventListener('click', async function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            console.log('Submit button clicked with Drive upload handler');
-            
-            // Disable button during processing
-            const originalText = newSubmitBtn.textContent;
-            newSubmitBtn.disabled = true;
-            newSubmitBtn.textContent = 'Processing...';
-            
-            try {
-                // Save current data first
-                if (typeof saveCurrentBQCounts === 'function') {
-                    saveCurrentBQCounts();
-                }
-                
-                // Validate before proceeding
-                if (typeof validateAllModuleFields === 'function') {
-                    if (!validateAllModuleFields()) {
-                        newSubmitBtn.disabled = false;
-                        newSubmitBtn.textContent = originalText;
-                        return;
-                    }
-                }
-                
-                // Show processing message
-                showDriveStatus('Starting process...', 'info');
-                
-                // Use integrated function with Drive upload
-                await goToNextWithDriveUpload();
-                
-            } catch (error) {
-                console.error('Error in submit:', error);
-                showDriveStatus(`Error: ${error.message}`, 'error');
-                
-                // Fallback to original behavior (without duplicating)
-                try {
-                    if (typeof window.goToNext === 'function') {
-                        await window.goToNext();
-                    }
-                } catch (fallbackError) {
-                    console.error('Fallback also failed:', fallbackError);
-                }
-            } finally {
-                // Re-enable button after a delay
-                setTimeout(() => {
-                    newSubmitBtn.disabled = false;
-                    newSubmitBtn.textContent = originalText;
-                }, 3000);
-            }
-        });
-        
-        console.log('Submit button overridden with Drive upload functionality');
-        
-    } catch (error) {
-        console.error('Failed to initialize Drive upload override:', error);
-    }
+    const messageBox = document.createElement('div');
+    messageBox.id = 'customAlertBox';
+    messageBox.textContent = message;
+    messageBox.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        z-index: 1001;
+        text-align: center;
+    `;
+    document.body.appendChild(messageBox);
+    setTimeout(() => messageBox.remove(), 3000);
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('BQ Drive Upload module loaded');
+    console.log('=== BQ DRIVE UPLOAD MODULE LOADED ===');
     
-    // Initialize and override submit button after a short delay
+    // Override submit button after a short delay
     setTimeout(async () => {
-        await initAndOverrideSubmit();
-    }, 1500);
+        await overrideSubmitButton();
+    }, 1000);
 });
 
 // Export functions
 window.uploadBQFiles = uploadBQFiles;
-window.goToNextWithDriveUpload = goToNextWithDriveUpload;
 window.initDriveUpload = initDriveUpload;
-window.uploadFileToDriveWithFolder = uploadFileToDriveWithFolder;
-window.initAndOverrideSubmit = initAndOverrideSubmit;
+window.overrideSubmitButton = overrideSubmitButton;
+window.showCustomAlert = showCustomAlert;

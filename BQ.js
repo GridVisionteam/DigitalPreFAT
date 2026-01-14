@@ -63,9 +63,14 @@ async function goToNext(returnOnly = false) {
     if (!window.diModuleTypes) window.diModuleTypes = {};
     if (!window.doModuleTypes) window.doModuleTypes = {};
     
-    // Save checker name & vendor
-    localStorage.setItem('checkerName', document.getElementById('checkerName')?.value || '');
-    localStorage.setItem('vendorNumber', document.getElementById('vendorNumber')?.value || '');
+    // Save checker name & vendor - UPDATED TO SAVE BOTH FORMATS
+    const checkerName = document.getElementById('checkerName')?.value || '';
+    const vendorNumber = document.getElementById('vendorNumber')?.value || '';
+
+    localStorage.setItem('checkerName', checkerName);
+    localStorage.setItem('vendorNumber', vendorNumber);
+    localStorage.setItem('session_checkerName', checkerName);  // ADD THIS
+    localStorage.setItem('session_vendorNumber', vendorNumber); // ADD THIS
 
     // Get the counts
     const processorCount = parseInt(document.getElementById('processorCount').value) || 0;
@@ -492,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const doCountInput = document.getElementById('doCount');
         const aiCountInput = document.getElementById('aiCount');
         const aoCountInput = document.getElementById('aoCount');
+        
         if (subrackCountInput) localStorage.setItem('session_subrackCount', subrackCountInput.value);
         if (processorCountInput) localStorage.setItem('session_processorCount', processorCountInput.value);
         if (powerCountInput) localStorage.setItem('session_powerCount', powerCountInput.value);
@@ -501,13 +507,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (aiCountInput) localStorage.setItem('session_aiCount', aiCountInput.value);
         if (aoCountInput) localStorage.setItem('session_aoCount', aoCountInput.value);
         
-        // Save checker name
+        // Save checker name - ADD/UPDATE THIS
         const checkerNameInput = document.getElementById('checkerName');
-        if (checkerNameInput) localStorage.setItem('session_checkerName', checkerNameInput.value);
+        if (checkerNameInput) {
+            localStorage.setItem('session_checkerName', checkerNameInput.value);
+        }
         
-        // Save vendor number
+        // Save vendor number - ADD/UPDATE THIS
         const vendorNumberInput = document.getElementById('vendorNumber');
-        if (vendorNumberInput) localStorage.setItem('session_vendorNumber', vendorNumberInput.value);
+        if (vendorNumberInput) {
+            localStorage.setItem('session_vendorNumber', vendorNumberInput.value);
+        }
         
         const moduleData = gatherAllModuleData();
         localStorage.setItem('currentModuleData', JSON.stringify(moduleData));
@@ -1228,6 +1238,24 @@ function restoreModuleData() {
             }
         });
     });
+    
+    // RESTORE CHECKER NAME AND VENDOR NUMBER - ADD THIS CODE
+    const checkerNameInput = document.getElementById('checkerName');
+    const vendorNumberInput = document.getElementById('vendorNumber');
+    
+    if (checkerNameInput) {
+        const savedCheckerName = localStorage.getItem('session_checkerName');
+        if (savedCheckerName) {
+            checkerNameInput.value = savedCheckerName;
+        }
+    }
+    
+    if (vendorNumberInput) {
+        const savedVendorNumber = localStorage.getItem('session_vendorNumber');
+        if (savedVendorNumber) {
+            vendorNumberInput.value = savedVendorNumber;
+        }
+    }
 }
 
 function gatherAllModuleData() {
