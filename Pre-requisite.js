@@ -1042,7 +1042,7 @@ function savePreRequisiteTestData() {
         window.preRequisiteTestResults = {
             approvedDrawings: [],
             panelIPCertificate: [],
-            testEquipmentRecord: [],
+            testEquipmentRecord: [], // This exists but needs to be populated
             measuringEquipmentRecord: [],
             softwareRecord: [],
         };
@@ -1051,7 +1051,7 @@ function savePreRequisiteTestData() {
     // Clear arrays before saving new data (but preserve the structure)
     window.preRequisiteTestResults.approvedDrawings = [];
     window.preRequisiteTestResults.panelIPCertificate = [];
-    window.preRequisiteTestResults.testEquipmentRecord = [];
+    window.preRequisiteTestResults.testEquipmentRecord = []; // ADDED: Clear this array too
     window.preRequisiteTestResults.measuringEquipmentRecord = [];
     window.preRequisiteTestResults.softwareRecord = [];
 
@@ -1070,17 +1070,6 @@ function savePreRequisiteTestData() {
         }
     }
 
-    // Save Panel IP Certificate data
-    for (let i = 1; i <= 4; i++) {
-        const applicableCheckbox = document.querySelector(`input[name="panelIPCertificate_applicable_${i}"]`);
-        
-        if (applicableCheckbox) {
-            window.preRequisiteTestResults.panelIPCertificate.push({
-                applicable: applicableCheckbox.checked
-            });
-        }
-    }
-
     // Save Panel IP Certificate data - Single selection (radio button)
     const selectedRadio = document.querySelector('input[name="panelIPCertificate_applicable"]:checked');
     const totalPanels = 4; // Total number of panel types
@@ -1090,6 +1079,24 @@ function savePreRequisiteTestData() {
             applicable: selectedRadio ? (selectedRadio.value === i.toString()) : false
         });
     }
+
+    // === ADD THIS SECTION: Save Test Equipment Record data ===
+    for (let i = 1; i <= 3; i++) { // Assuming there are 3 rows based on your generateTestEquipmentRecordRows function
+        const itemInput = document.querySelector(`input[name="testEquipment_item_${i}"]`);
+        const brandInput = document.querySelector(`input[name="testEquipment_brand_${i}"]`);
+        const modelInput = document.querySelector(`input[name="testEquipment_model_${i}"]`);
+        const serialInput = document.querySelector(`input[name="testEquipment_serialNumber_${i}"]`);
+        
+        if (itemInput && brandInput && modelInput && serialInput) {
+            window.preRequisiteTestResults.testEquipmentRecord.push({
+                item: itemInput.value,
+                brand: brandInput.value,
+                model: modelInput.value,
+                serialNumber: serialInput.value
+            });
+        }
+    }
+    // === END OF ADDED SECTION ===
 
     // FIXED: Correct selector for Measuring Equipment Record
     // Save Measuring Equipment Record data
