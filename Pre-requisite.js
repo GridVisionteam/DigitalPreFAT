@@ -234,14 +234,14 @@ function generateMeasuringEquipmentRecordRows() {
         { 
             item: "Measuring Tape", 
             brand: "Marksman", // Default to Marksman as shown in image
-            model: "NA", // Default to NA as shown in image
+            model: "N/A", // Default to N/A as shown in image
             serialNumber: "SA2016-ID-863", // Default serial number as shown in image
             calDate: "",
             calDueDate: ""
         },
         { 
             item: "Digimatic Caliper", 
-            brand: "", // Will be dropdown with "Senator" and "NA"
+            brand: "", // Will be dropdown with "Senator" and "N/A"
             model: "", // Will be set based on brand selection
             serialNumber: "", // Will be set based on brand selection
             calDate: "",
@@ -272,25 +272,25 @@ function generateMeasuringEquipmentRecordRows() {
     const measuringTapeOptions = {
         brands: ["Marksman", "Senator"],
         models: {
-            "Marksman": ["NA"],
+            "Marksman": ["N/A"],
             "Senator": ["536-148"]
         },
         serialNumbers: {
             "Marksman": ["SA2016-ID-863"],
-            "Senator": ["NA"]
+            "Senator": ["N/A"]
         }
     };
 
     // Define Digimatic Caliper options
     const digimaticCaliperOptions = {
-        brands: ["Senator", "NA"],
+        brands: ["Senator", "N/A"],
         models: {
             "Senator": ["SEN-331-1212K"],
-            "NA": ["NA"]
+            "N/A": ["N/A"]
         },
         serialNumbers: {
             "Senator": ["C2303091297"],
-            "NA": ["SA2016-ID-862"]
+            "N/A": ["SA2016-ID-862"]
         }
     };
 
@@ -723,11 +723,11 @@ function updateDigimaticCaliperRowBasedOnBrand(brandSelect) {
     const digimaticCaliperOptions = {
         models: {
             "Senator": ["SEN-331-1212K"],
-            "NA": ["NA"]
+            "N/A": ["N/A"]
         },
         serialNumbers: {
             "Senator": ["C2303091297"],
-            "NA": ["SA2016-ID-862"]
+            "N/A": ["SA2016-ID-862"]
         }
     };
 
@@ -1294,12 +1294,12 @@ function updateMeasuringTapeRowBasedOnBrand(brandSelect) {
     // Define Measuring Tape options
     const measuringTapeOptions = {
         models: {
-            "Marksman": ["NA"],
+            "Marksman": ["N/A"],
             "Senator": ["536-148"]
         },
         serialNumbers: {
             "Marksman": ["SA2016-ID-863"],
-            "Senator": ["NA"]
+            "Senator": ["N/A"]
         }
     };
 
