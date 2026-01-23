@@ -5,67 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DF1725IED Pre-FAT - Bill of Quantity</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.16.0/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
+
     <style>
-        /* Added styles for the new row layout */
         .input-group {
             display: flex;
-            flex-direction: column; /* Stack the rows vertically */
-            gap: 1.5rem; /* Space between the rows */
+            flex-direction: column;
+            gap: 1.5rem;
             margin-bottom: 1.5rem;
         }
         .input-row {
             display: flex;
-            flex-wrap: wrap; /* Allows items to wrap on smaller screens */
-            gap: 1rem; /* Space between items in a row */
+            flex-wrap: wrap;
+            gap: 1rem;
             justify-content: space-between;
         }
         .input-row .form-group {
-            flex: 1; /* Allow items to grow */
-            min-width: 160px; /* Prevent items from becoming too narrow */
+            flex: 1;
+            min-width: 160px;
             display: flex;
             flex-direction: column;
         }
         .form-group label {
             margin-bottom: 0.5rem;
         }
-        /* Style for checker name field at bottom */
-        .checker-name-section {
-            margin-top: 2rem;
-            padding: 1rem;
-            border-top: 2px solid #333;
-            background-color: #f9f9f9;
-        }
-        .checker-name-field {
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        /* Style for vendor number field at bottom */
-        .vendor-number-section {
-            margin-top: 1rem;
+        .checker-name-section, .vendor-number-section {
+            margin-top: 1.5rem;
             padding: 1rem;
             border-top: 1px solid #ccc;
             background-color: #f9f9f9;
         }
-        .vendor-number-field {
+        .checker-name-field, .vendor-number-field {
             max-width: 400px;
             margin: 0 auto;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
     <script>
-        // Initialize jsPDF after loading
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.jspdf && window.jspdf.jsPDF) {
-                window.jsPDF = window.jspdf.jsPDF;
-            } else {
-                console.warn("jsPDF library not fully loaded. PDF features might not work.");
-            }
-        });
+        // Set up jsPDF environment
+        window.jsPDF = window.jspdf.jsPDF;
     </script>
 </head>
 <body>
@@ -75,7 +59,6 @@
         <h1>Bill of Quantity</h1>
         <div class="control-panel">
             <div class="input-group">
-        <!-----First Row of Input--------------------->
                 <div class="input-row">
                     <div class="form-group">
                         <label for="subrackCount">Subrack Quantity</label>
@@ -94,35 +77,32 @@
                         <input type="number" id="comCount" min="0" max="40" value="0" />
                     </div>      
                 </div>
-            <!-----Second Row of Input------------------->
-                    <div class="input-row">
-                        <div class="form-group">
-                            <label for="diCount">Number of DI Modules</label>
-                            <input type="number" id="diCount" min="0" max="40" value="0" />
-                        </div>
-                        <div class="form-group">
-                            <label for="doCount">Number of DO Modules</label>
-                            <input type="number" id="doCount" min="0" max="40" value="0" />
-                        </div>
-                        <div class="form-group">
-                            <label for="aiCount">Number of AI Modules</label>
-                            <input type="number" id="aiCount" min="0" max="40" value="0" />
-                        </div>
-                        <div class="form-group">
-                            <label for="aoCount">Number of AO Modules</label>
-                            <input type="number" id="aoCount" min="0" max="40" value="0" />
-                        </div>
+                <div class="input-row">
+                    <div class="form-group">
+                        <label for="diCount">Number of DI Modules</label>
+                        <input type="number" id="diCount" min="0" max="40" value="0" />
                     </div>
+                    <div class="form-group">
+                        <label for="doCount">Number of DO Modules</label>
+                        <input type="number" id="doCount" min="0" max="40" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label for="aiCount">Number of AI Modules</label>
+                        <input type="number" id="aiCount" min="0" max="40" value="0" />
+                    </div>
+                    <div class="form-group">
+                        <label for="aoCount">Number of AO Modules</label>
+                        <input type="number" id="aoCount" min="0" max="40" value="0" />
+                    </div>
+                </div>
             </div>
             <button id="generateBtn">Generate Sheets</button>
             <button id="clearBtn">Clear All</button>
         </div>
         
         <div id="sheetsContainer" class="sheet-container">
-            <!-- Module sheets will be generated here -->
-        </div>
+            </div>
 
-        <!-- Serial Number Checker's Name Field at the bottom -->
         <div id="checkerNameSection" class="checker-name-section" style="display: none;">
             <div class="form-group checker-name-field">
                 <label for="checkerName">Serial Number Checker's Name</label>
@@ -130,7 +110,6 @@
             </div>
         </div>
 
-        <!-- Vendor Number Field at the bottom -->
         <div id="vendorNumberSection" class="vendor-number-section" style="display: none;">
             <div class="form-group vendor-number-field">
                 <label for="vendorNumber">Vendor Number</label>
@@ -146,59 +125,51 @@
     </div>
 
     <script src="BQ.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
-    <canvas id="pdf-canvas" style="display: none;"></canvas>
-    <script src="https://unpkg.com/pdf-lib@^1.16.0"></script>
-    <script src="https://unpkg.com/pdf-lib@1.16.0/dist/pdf-lib.min.js"></script>
-    <script src="https://unpkg.com/downloadjs@1.4.7"></script>
     <script src="rtudetail.js"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="googleDrive.js"></script>
-    <script src="bqDriveUpload.js"></script>
+    <script src="generatePDF.js"></script>
+    <!-- Removed googleDrive.js and bqDriveUpload.js references -->
     <script src="navigationGuard.js"></script>
+    
+    <canvas id="pdf-canvas" style="display: none;"></canvas>
 
-    <!-- Keyboard Shortcuts -->
     <script>
-        // Function to handle back navigation
-        function handleBackNavigation() {  // Renamed this function
-            // Find and click the back button
-            const backBtn = document.getElementById('backBtn');
-            if (backBtn) {
-                backBtn.click();
-            }
+        function handleBackNavigation() {
+            const btn = document.getElementById('backBtn');
+            if (btn) btn.click();
         }
 
-        // Function to handle next navigation
-        function handleNextNavigation() {  // Renamed this function
-            // Find and click the submit button
-            const submitBtn = document.getElementById('submitBtn');
-            if (submitBtn) {
-                submitBtn.click();
-            }
+        function handleNextNavigation() {
+            const btn = document.getElementById('submitBtn');
+            if (btn) btn.click();
         }
 
         document.addEventListener('keydown', function(event) {
-            // Check if we're in an input field
             const isInputField = event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA';
-            
-            // Only trigger shortcuts if not typing in an input field
             if (!isInputField) {
-                // 'D' key for Next
-                if (event.key === 'd' || event.key === 'D' || event.keyCode === 68 || event.keyCode === 100) {
+                if (event.key.toLowerCase() === 'd') {
                     event.preventDefault();
-                    handleNextNavigation();  // Call the renamed function
-                }
-                // 'A' key for Back
-                else if (event.key === 'a' || event.key === 'A' || event.keyCode === 65 || event.keyCode === 97) {
+                    handleNextNavigation();
+                } else if (event.key.toLowerCase() === 'a') {
                     event.preventDefault();
-                    handleBackNavigation();  // Call the renamed function
+                    handleBackNavigation();
                 }
             }
+        });
+
+        // Prevention logic for double initialization
+        window.addEventListener('load', () => {
+            const exportBtn = document.getElementById('exportBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Re-wrapping buttons ensures listeners from BQ.js are applied correctly once
+            if (exportBtn) {
+                const clone = exportBtn.cloneNode(true);
+                exportBtn.parentNode.replaceChild(clone, exportBtn);
+            }
+
+            
+            // Trigger script-level binding defined in BQ.js
+            if (typeof bindEvents === 'function') bindEvents(); 
         });
     </script>
 </body>

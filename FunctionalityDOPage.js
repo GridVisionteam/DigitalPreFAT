@@ -92,22 +92,27 @@ function generateDORows() {
     
     for (let i = 0; i < 16; i++) {
         const row = document.createElement("tr");
+        const rowNumber = i + 1;
         
-        row.innerHTML += `
-            <td>${i + 1}</td>
-            <td><input type="checkbox" class="do-test-checkbox"></td>
-            <td><input type="checkbox" class="do-test-checkbox"></td>
-            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_IEC101_${i + 1}"></td>
-            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_IEC104_${i + 1}"></td>
-            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_DNP3_${i + 1}"></td>
+        row.innerHTML = `
+            <td>${rowNumber}</td>
+            <td style="text-align: center;">
+                <input type="radio" name="DO_${window.currentDOModule}_radio_${rowNumber}" value="1" class="do-test-radio">
+            </td>
+            <td style="text-align: center;">
+                <input type="radio" name="DO_${window.currentDOModule}_radio_${rowNumber}" value="2" class="do-test-radio">
+            </td>
+            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_IEC101_${rowNumber}"></td>
+            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_IEC104_${rowNumber}"></td>
+            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_DNP3_${rowNumber}"></td>
         `;
         
         tableBody.appendChild(row);
     }
 
-    // Add event listeners safely
-    document.querySelectorAll('.do-test-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', updateSubmitButtonState);
+    // Add event listeners to radio buttons
+    document.querySelectorAll('.do-test-radio').forEach(radio => {
+        radio.addEventListener('change', updateSubmitButtonState);
     });
 }
 
@@ -115,52 +120,52 @@ function generateDO8Rows() {
     const tableBody = document.getElementById('do8TableBody');
     if (!tableBody) return;
     
-    // Clear existing content and any event listeners
-    while (tableBody.firstChild) {
-        tableBody.removeChild(tableBody.firstChild);
-    }
+    // Clear existing content
+    tableBody.innerHTML = '';
     
     for (let i = 0; i < 8; i++) {
         const row = document.createElement("tr");
+        const rowNumber = i + 1;
         
-        // Number column
-        row.innerHTML += `<td>${i + 1}</td>`;
-        
-        // Checkboxes and text inputs
-        row.innerHTML += `
-            <td style="text-align: center;"><input type="checkbox" class="do-test-checkbox"></td>
-            <td style="text-align: center;"><input type="checkbox" class="do-test-checkbox"></td>
-            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_IEC101_${i + 1}"></td>
-            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_IEC104_${i + 1}"></td>
-            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_DNP3_${i + 1}"></td>
+        row.innerHTML = `
+            <td>${rowNumber}</td>
+            <td style="text-align: center;">
+                <input type="radio" name="DO8_${window.currentDOModule}_radio_${rowNumber}" value="1" class="do-test-radio">
+            </td>
+            <td style="text-align: center;">
+                <input type="radio" name="DO8_${window.currentDOModule}_radio_${rowNumber}" value="2" class="do-test-radio">
+            </td>
+            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_IEC101_${rowNumber}"></td>
+            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_IEC104_${rowNumber}"></td>
+            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_DNP3_${rowNumber}"></td>
         `;
         
         tableBody.appendChild(row);
     }
     
-    // Add event listeners to checkboxes
-    const checkboxes = tableBody.querySelectorAll("input[type='checkbox']");
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateDO8SubmitButtonState);
+    // Add event listeners to radio buttons
+    const radios = tableBody.querySelectorAll("input[type='radio']");
+    radios.forEach(radio => {
+        radio.addEventListener('change', updateDO8SubmitButtonState);
     });
 }
 
+// Update SelectAll function for radio buttons (this will now select "1" for all)
 function SelectAll() {
-    const checkboxes = document.querySelectorAll("#tableBody input[type='checkbox']");
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-    
-    checkboxes.forEach(cb => {
-        cb.checked = !allChecked;
+    const radios = document.querySelectorAll('#tableBody input[type="radio"][value="1"]');
+    radios.forEach(radio => {
+        radio.checked = true;
     });
     
     updateSubmitButtonState();
 }
 
+// Update clearAll function
 function clearAll() {
-    // Clear all checkboxes
-    const checkboxes = document.querySelectorAll('#tableBody .do-test-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
+    // Clear all radio buttons
+    const radios = document.querySelectorAll('#tableBody .do-test-radio');
+    radios.forEach(radio => {
+        radio.checked = false;
     });
     
     // Clear all text inputs
@@ -181,25 +186,25 @@ function updateSubmitButtonState() {
 }
 
 function SelectAllDO8() {
-    const checkboxes = document.querySelectorAll("#do8TableBody input[type='checkbox']");
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-    
-    checkboxes.forEach(cb => {
-        cb.checked = !allChecked;
+    const radios = document.querySelectorAll('#do8TableBody input[type="radio"][value="1"]');
+    radios.forEach(radio => {
+        radio.checked = true;
     });
     
     updateDO8SubmitButtonState();
 }
 
+// Update clearAllDO8 function
 function clearAllDO8() {
-    const checkboxes = document.querySelectorAll("#do8TableBody input[type='checkbox']");
-    checkboxes.forEach(cb => cb.checked = false);
+    const radios = document.querySelectorAll("#do8TableBody input[type='radio']");
+    radios.forEach(radio => radio.checked = false);
 
-    const textInputs = document.querySelectorAll("#do8TableBody input[type='text']");
+    const textInputs = document.querySelectorAll("#do8TableBody input[type='text'], #do8TableBody input[type='number']");
     textInputs.forEach(input => input.value = '');
 
     updateDO8SubmitButtonState();
 }
+
 
 function updateDO8SubmitButtonState() {
     const submitBtn = document.getElementById('submitBtnDO8');
@@ -213,142 +218,88 @@ function saveDOTestData(moduleNumber) {
     if (!window.doTestResults[moduleNumber]) {
         window.doTestResults[moduleNumber] = {};
     }
-    
+
     // Ensure all required properties exist
-    if (!window.doTestResults[moduleNumber].iec101Values) {
-        window.doTestResults[moduleNumber].iec101Values = {};
-    }
-    if (!window.doTestResults[moduleNumber].iec104Values) {
-        window.doTestResults[moduleNumber].iec104Values = {};
-    }
-    if (!window.doTestResults[moduleNumber].dnp3Values) {
-        window.doTestResults[moduleNumber].dnp3Values = {};
-    }
-    if (!window.doTestResults[moduleNumber].checkboxValues) {
-        window.doTestResults[moduleNumber].checkboxValues = {};
-    }
+    if (!window.doTestResults[moduleNumber].iec101Values) window.doTestResults[moduleNumber].iec101Values = {};
+    if (!window.doTestResults[moduleNumber].iec104Values) window.doTestResults[moduleNumber].iec104Values = {};
+    if (!window.doTestResults[moduleNumber].dnp3Values) window.doTestResults[moduleNumber].dnp3Values = {};
     
-    // Set the type
+    // NEW: Create a specific object for radio values
+    if (!window.doTestResults[moduleNumber].radioValues) window.doTestResults[moduleNumber].radioValues = {};
+
     window.doTestResults[moduleNumber].type = 'CO-16-A';
-    
-    // Initialize inputs array if it doesn't exist
-    if (!window.doTestResults[moduleNumber].inputs) {
-        window.doTestResults[moduleNumber].inputs = [];
-    }
 
-    // Save all inputs
-    const inputs = document.querySelectorAll("#tableBody input");
-    window.doTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
-        return input.type === 'checkbox' ? input.checked : input.value;
-    });
-
-    // Save checkbox values with their positions
+    // 1. Save Radio Button States
+    // We loop through rows and find which radio is checked
     const rows = document.querySelectorAll("#tableBody tr");
     rows.forEach((row, rowIndex) => {
-        // Checkboxes (columns 2 and 3)
-        const checkbox1 = row.querySelector("td:nth-child(2) input[type='checkbox']");
-        const checkbox2 = row.querySelector("td:nth-child(3) input[type='checkbox']");
+        // Find the checked radio in this row
+        const checkedRadio = row.querySelector("input[type='radio']:checked");
+        const rowKey = `DO_${moduleNumber}_Row_${rowIndex + 1}`;
         
-        // Save checkboxes
-        if (checkbox1) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_1_${rowIndex + 1}`] = checkbox1.checked;
-        }
-        if (checkbox2) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_2_${rowIndex + 1}`] = checkbox2.checked;
+        if (checkedRadio) {
+            // Save the value ("1" or "2")
+            window.doTestResults[moduleNumber].radioValues[rowKey] = checkedRadio.value;
+        } else {
+            // If nothing checked, delete entry to keep it clean
+            delete window.doTestResults[moduleNumber].radioValues[rowKey];
         }
     });
 
-    // Save protocol values
+    // 2. Save Protocol Values (Text Inputs)
     for (let i = 1; i <= 16; i++) {
         // IEC101
         const inputIEC101 = document.querySelector(`input[name="DO_${moduleNumber}_IEC101_${i}"]`);
-        if (inputIEC101) {
-            window.doTestResults[moduleNumber].iec101Values[`DO_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
-        }
-        
+        if (inputIEC101) window.doTestResults[moduleNumber].iec101Values[`DO_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
+
         // IEC104
         const inputIEC104 = document.querySelector(`input[name="DO_${moduleNumber}_IEC104_${i}"]`);
-        if (inputIEC104) {
-            window.doTestResults[moduleNumber].iec104Values[`DO_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
-        }
-        
+        if (inputIEC104) window.doTestResults[moduleNumber].iec104Values[`DO_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
+
         // DNP3
         const inputDNP3 = document.querySelector(`input[name="DO_${moduleNumber}_DNP3_${i}"]`);
-        if (inputDNP3) {
-            window.doTestResults[moduleNumber].dnp3Values[`DO_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
-        }
+        if (inputDNP3) window.doTestResults[moduleNumber].dnp3Values[`DO_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
     }
 
     localStorage.setItem('doTestResults', JSON.stringify(window.doTestResults));
 }
 
 function saveDO8TestData(moduleNumber) {
-    // Initialize or ensure proper structure exists
     if (!window.doTestResults[moduleNumber]) {
         window.doTestResults[moduleNumber] = {};
     }
-    
-    // Ensure all required properties exist
-    if (!window.doTestResults[moduleNumber].iec101Values) {
-        window.doTestResults[moduleNumber].iec101Values = {};
-    }
-    if (!window.doTestResults[moduleNumber].iec104Values) {
-        window.doTestResults[moduleNumber].iec104Values = {};
-    }
-    if (!window.doTestResults[moduleNumber].dnp3Values) {
-        window.doTestResults[moduleNumber].dnp3Values = {};
-    }
-    if (!window.doTestResults[moduleNumber].checkboxValues) {
-        window.doTestResults[moduleNumber].checkboxValues = {};
-    }
-    
-    // Set the type
+
+    if (!window.doTestResults[moduleNumber].iec101Values) window.doTestResults[moduleNumber].iec101Values = {};
+    if (!window.doTestResults[moduleNumber].iec104Values) window.doTestResults[moduleNumber].iec104Values = {};
+    if (!window.doTestResults[moduleNumber].dnp3Values) window.doTestResults[moduleNumber].dnp3Values = {};
+    // NEW: Radio values object
+    if (!window.doTestResults[moduleNumber].radioValues) window.doTestResults[moduleNumber].radioValues = {};
+
     window.doTestResults[moduleNumber].type = 'CO-8-A';
-    
-    // Initialize inputs array if it doesn't exist
-    if (!window.doTestResults[moduleNumber].inputs) {
-        window.doTestResults[moduleNumber].inputs = [];
-    }
 
-    // Save all inputs
-    const inputs = document.querySelectorAll("#do8TableBody input");
-    window.doTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
-        return input.type === 'checkbox' ? input.checked : input.value;
-    });
-
-    // Save checkbox values with their positions
+    // 1. Save Radio Button States
     const rows = document.querySelectorAll("#do8TableBody tr");
     rows.forEach((row, rowIndex) => {
-        const checkbox1 = row.querySelector("td:nth-child(2) input[type='checkbox']");
-        const checkbox2 = row.querySelector("td:nth-child(3) input[type='checkbox']");
+        const checkedRadio = row.querySelector("input[type='radio']:checked");
+        const rowKey = `DO8_${moduleNumber}_Row_${rowIndex + 1}`;
         
-        if (checkbox1) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_1_${rowIndex + 1}`] = checkbox1.checked;
-        }
-        if (checkbox2) {
-            window.doTestResults[moduleNumber].checkboxValues[`Check_Box_DO_${moduleNumber}_FT_2_${rowIndex + 1}`] = checkbox2.checked;
+        if (checkedRadio) {
+            window.doTestResults[moduleNumber].radioValues[rowKey] = checkedRadio.value;
+        } else {
+            delete window.doTestResults[moduleNumber].radioValues[rowKey];
         }
     });
 
-    // Save protocol values
+    // 2. Save Protocol Values
     for (let i = 1; i <= 8; i++) {
-        // IEC101
         const inputIEC101 = document.querySelector(`input[name="DO_${moduleNumber}_IEC101_${i}"]`);
-        if (inputIEC101) {
-            window.doTestResults[moduleNumber].iec101Values[`DO_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
-        }
-        
-        // IEC104
+        if (inputIEC101) window.doTestResults[moduleNumber].iec101Values[`DO_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
+
         const inputIEC104 = document.querySelector(`input[name="DO_${moduleNumber}_IEC104_${i}"]`);
-        if (inputIEC104) {
-            window.doTestResults[moduleNumber].iec104Values[`DO_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
-        }
-        
-        // DNP3
+        if (inputIEC104) window.doTestResults[moduleNumber].iec104Values[`DO_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
+
         const inputDNP3 = document.querySelector(`input[name="DO_${moduleNumber}_DNP3_${i}"]`);
-        if (inputDNP3) {
-            window.doTestResults[moduleNumber].dnp3Values[`DO_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
-        }
+        if (inputDNP3) window.doTestResults[moduleNumber].dnp3Values[`DO_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
     }
 
     localStorage.setItem('doTestResults', JSON.stringify(window.doTestResults));
@@ -358,18 +309,32 @@ function loadDOTestData(moduleNumber) {
     const saved = window.doTestResults[moduleNumber];
     if (!saved || saved.type !== 'CO-16-A') return;
 
-    // Load table inputs
-    const inputs = document.querySelectorAll("#tableBody input");
-    saved.inputs.forEach((value, idx) => {
-        const input = inputs[idx];
-        if (!input) return;
+    // 1. Load Radio Buttons
+    if (saved.radioValues) {
+        const rows = document.querySelectorAll("#tableBody tr");
+        rows.forEach((row, rowIndex) => {
+            const rowKey = `DO_${moduleNumber}_Row_${rowIndex + 1}`;
+            const savedValue = saved.radioValues[rowKey];
 
-        if (input.type === 'checkbox') {
-            input.checked = !!value;
-        } else {
-            input.value = value;
-        }
+            if (savedValue) {
+                // Find the radio with the matching value (1 or 2) in this row and check it
+                const radioToCheck = row.querySelector(`input[type='radio'][value="${savedValue}"]`);
+                if (radioToCheck) {
+                    radioToCheck.checked = true;
+                }
+            }
+        });
+    }
+
+    // 2. Load Protocol Inputs
+    const inputs = document.querySelectorAll("#tableBody input[type='number']");
+    inputs.forEach(input => {
+        const name = input.name;
+        if (saved.iec101Values && saved.iec101Values[name]) input.value = saved.iec101Values[name];
+        else if (saved.iec104Values && saved.iec104Values[name]) input.value = saved.iec104Values[name];
+        else if (saved.dnp3Values && saved.dnp3Values[name]) input.value = saved.dnp3Values[name];
     });
+
     updateSubmitButtonState();
 }
 
@@ -377,18 +342,31 @@ function loadDO8TestData(moduleNumber) {
     const saved = window.doTestResults[moduleNumber];
     if (!saved || saved.type !== 'CO-8-A') return;
 
-    // Load table inputs
-    const inputs = document.querySelectorAll("#do8TableBody input");
-    saved.inputs.forEach((value, idx) => {
-        const input = inputs[idx];
-        if (!input) return;
+    // 1. Load Radio Buttons
+    if (saved.radioValues) {
+        const rows = document.querySelectorAll("#do8TableBody tr");
+        rows.forEach((row, rowIndex) => {
+            const rowKey = `DO8_${moduleNumber}_Row_${rowIndex + 1}`;
+            const savedValue = saved.radioValues[rowKey];
 
-        if (input.type === 'checkbox') {
-            input.checked = !!value;
-        } else {
-            input.value = value;
-        }
+            if (savedValue) {
+                const radioToCheck = row.querySelector(`input[type='radio'][value="${savedValue}"]`);
+                if (radioToCheck) {
+                    radioToCheck.checked = true;
+                }
+            }
+        });
+    }
+
+    // 2. Load Protocol Inputs
+    const inputs = document.querySelectorAll("#do8TableBody input[type='number']");
+    inputs.forEach(input => {
+        const name = input.name;
+        if (saved.iec101Values && saved.iec101Values[name]) input.value = saved.iec101Values[name];
+        else if (saved.iec104Values && saved.iec104Values[name]) input.value = saved.iec104Values[name];
+        else if (saved.dnp3Values && saved.dnp3Values[name]) input.value = saved.dnp3Values[name];
     });
+
     updateDO8SubmitButtonState();
 }
 
@@ -550,110 +528,248 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Validate IOA index fields for IEC101 and IEC104 only
 function validateDOIOAIndexFields() {
-    // Determine which page is currently visible
+    // 1. Determine current page and scope
     const do16Page = document.getElementById('functionalityDOPage');
     const do8Page = document.getElementById('do8Page');
     let currentPageContainer = null;
-    
+    let inputClass = '';
+
     if (do16Page && do16Page.style.display !== 'none') {
         currentPageContainer = '#functionalityDOPage';
+        inputClass = '.do-test-input';
     } else if (do8Page && do8Page.style.display !== 'none') {
         currentPageContainer = '#do8Page';
+        inputClass = '.do8-test-input';
     } else {
-        // If no page is visible, return false
         return false;
     }
+
+    // 2. Get LIVE inputs from the current screen
+    const currentIEC101Inputs = document.querySelectorAll(`${currentPageContainer} input${inputClass}[name*="IEC101"]`);
+    const currentIEC104Inputs = document.querySelectorAll(`${currentPageContainer} input${inputClass}[name*="IEC104"]`);
+
+    // Reset red borders
+    [...currentIEC101Inputs, ...currentIEC104Inputs].forEach(input => input.style.border = '');
+
+    // --- CHECK 1: Ensure Fields are Filled ---
+    let emptyFound = false;
+    currentIEC101Inputs.forEach(input => {
+        if (!input.value.trim()) { input.style.border = '2px solid red'; emptyFound = true; }
+    });
+    currentIEC104Inputs.forEach(input => {
+        if (!input.value.trim()) { input.style.border = '2px solid red'; emptyFound = true; }
+    });
+
+    if (emptyFound) {
+        alert("Please fill in all required IOA/Index fields before continuing.");
+        return false;
+    }
+
+    // --- CHECK 2: Global Duplicates (Max 2 Allowed Total) ---
+    let globalIEC101 = [];
+    let globalIEC104 = [];
     
-    // Get IEC101 and IEC104 input fields ONLY from the current page
-    const iec101Inputs = document.querySelectorAll(`${currentPageContainer} input[class*="do-test-input"][name*="IEC101"], ${currentPageContainer} input[class*="do8-test-input"][name*="IEC101"]`);
-    const iec104Inputs = document.querySelectorAll(`${currentPageContainer} input[class*="do-test-input"][name*="IEC104"], ${currentPageContainer} input[class*="do8-test-input"][name*="IEC104"]`);
+    // Track which module AND cell each value comes from
+    let cellSources101 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
+    let cellSources104 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
+
+    // A. Load ALL data from LocalStorage
+    const rawData = localStorage.getItem('doTestResults');
+    const savedResults = rawData ? JSON.parse(rawData) : {};
     
+    // B. REMOVE the current module's saved data from memory
+    const currentModKey = String(window.currentDOModule);
+    if (savedResults[currentModKey]) {
+        delete savedResults[currentModKey];
+    }
+
+    // C. Collect IEC101/104 from ALL OTHER modules with detailed cell tracking
+    for (const modKey in savedResults) {
+        const moduleData = savedResults[modKey];
+        if (!moduleData) continue;
+
+        // Track IEC101 values with cell information
+        if (moduleData.iec101Values) {
+            Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
+                const trimmedVal = String(val).trim();
+                if (trimmedVal !== "") {
+                    globalIEC101.push(trimmedVal);
+                    if (!cellSources101[trimmedVal]) {
+                        cellSources101[trimmedVal] = [];
+                    }
+                    // Extract channel number from the key format: "DO_X_IEC101_Y"
+                    let cellName = 'Unknown Cell';
+                    // Match patterns like "DO_1_IEC101_1"
+                    const match = cellKey.match(/DO_(\d+)_IEC101_(\d+)/);
+                    if (match) {
+                        const moduleNum = match[1];
+                        const channelNum = match[2];
+                        cellName = `IEC101-NO: ${channelNum}`;
+                    } else if (cellKey.includes('IEC101')) {
+                        // Try alternative pattern
+                        const altMatch = cellKey.match(/_(\d+)$/);
+                        if (altMatch) {
+                            cellName = `IEC101-NO: ${altMatch[1]}`;
+                        }
+                    }
+                    cellSources101[trimmedVal].push({module: `Module ${modKey}`, cell: cellName});
+                }
+            });
+        }
+
+        // Track IEC104 values with cell information
+        if (moduleData.iec104Values) {
+            Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
+                const trimmedVal = String(val).trim();
+                if (trimmedVal !== "") {
+                    globalIEC104.push(trimmedVal);
+                    if (!cellSources104[trimmedVal]) {
+                        cellSources104[trimmedVal] = [];
+                    }
+                    // Extract channel number from the key format: "DO_X_IEC104_Y"
+                    let cellName = 'Unknown Cell';
+                    const match = cellKey.match(/DO_(\d+)_IEC104_(\d+)/);
+                    if (match) {
+                        const moduleNum = match[1];
+                        const channelNum = match[2];
+                        cellName = `IEC104-NO: ${channelNum}`;
+                    } else if (cellKey.includes('IEC104')) {
+                        const altMatch = cellKey.match(/_(\d+)$/);
+                        if (altMatch) {
+                            cellName = `IEC104-NO: ${altMatch[1]}`;
+                        }
+                    }
+                    cellSources104[trimmedVal].push({module: `Module ${modKey}`, cell: cellName});
+                }
+            });
+        }
+    }
+
+    // D. Add the LIVE data from the current screen with cell tracking
+    currentIEC101Inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val !== "") {
+            globalIEC101.push(val);
+            if (!cellSources101[val]) {
+                cellSources101[val] = [];
+            }
+            // Get cell name from input name - format: "DO_X_IEC101_Y"
+            let cellName = 'Current Cell';
+            const inputName = input.name || '';
+            // Match patterns like "DO_1_IEC101_1"
+            const match = inputName.match(/DO_(\d+)_IEC101_(\d+)/);
+            if (match) {
+                const moduleNum = match[1];
+                const channelNum = match[2];
+                cellName = `IEC101-NO: ${channelNum}`;
+            } else if (inputName.includes('IEC101')) {
+                // Try alternative pattern
+                const altMatch = inputName.match(/_(\d+)$/);
+                if (altMatch) {
+                    cellName = `IEC101-NO: ${altMatch[1]}`;
+                }
+            }
+            cellSources101[val].push({module: `Current Module (${currentModKey})`, cell: cellName});
+        }
+    });
+
+    currentIEC104Inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val !== "") {
+            globalIEC104.push(val);
+            if (!cellSources104[val]) {
+                cellSources104[val] = [];
+            }
+            // Get cell name from input name - format: "DO_X_IEC104_Y"
+            let cellName = 'Current Cell';
+            const inputName = input.name || '';
+            const match = inputName.match(/DO_(\d+)_IEC104_(\d+)/);
+            if (match) {
+                const moduleNum = match[1];
+                const channelNum = match[2];
+                cellName = `IEC104-NO: ${channelNum}`;
+            } else if (inputName.includes('IEC104')) {
+                const altMatch = inputName.match(/_(\d+)$/);
+                if (altMatch) {
+                    cellName = `IEC104-NO: ${altMatch[1]}`;
+                }
+            }
+            cellSources104[val].push({module: `Current Module (${currentModKey})`, cell: cellName});
+        }
+    });
+
+    // E. Perform Validation (Limit: 2 duplicates allowed globally)
     let isValid = true;
-    let emptyFields = [];
-    let duplicateFields = [];
+    let errorMessages = [];
 
-    // Reset previous red borders on current page only
-    [...iec101Inputs, ...iec104Inputs].forEach(input => {
-        input.style.border = ''; // clear border
-    });
+    const excessiveIEC101 = findExcessiveDuplicates(globalIEC101, 2);
+    if (excessiveIEC101.length > 0) {
+        isValid = false;
+        excessiveIEC101.forEach(duplicateValue => {
+            const sources = cellSources101[duplicateValue] || [];
+            const sourceDetails = sources.map((source, index) => 
+                `     ${index + 1}. ${source.module} - ${source.cell}`
+            ).join('\n');
+            
+            const locationText = sources.length > 0 ? 
+                `Found in:\n${sourceDetails}` : 
+                'Location not identified';
+            
+            errorMessages.push(`IEC101: Value "${duplicateValue}" appears more than twice.\n${locationText}`);
+        });
+        
+        currentIEC101Inputs.forEach(input => {
+            if (excessiveIEC101.includes(input.value.trim())) input.style.border = '2px solid red';
+        });
+    }
 
-    // Check IEC101 fields for empty values on current page
-    iec101Inputs.forEach(input => {
-        if (!input.value.trim()) {
-            input.style.border = '2px solid red';
-            isValid = false;
-            const channel = input.name.split('_').pop();
-            emptyFields.push(`IEC101 Channel ${channel}`);
-        }
-    });
-    
-    // Check IEC104 fields for empty values on current page
-    iec104Inputs.forEach(input => {
-        if (!input.value.trim()) {
-            input.style.border = '2px solid red';
-            isValid = false;
-            const channel = input.name.split('_').pop();
-            emptyFields.push(`IEC104 Channel ${channel}`);
-        }
-    });
+    const excessiveIEC104 = findExcessiveDuplicates(globalIEC104, 2);
+    if (excessiveIEC104.length > 0) {
+        isValid = false;
+        excessiveIEC104.forEach(duplicateValue => {
+            const sources = cellSources104[duplicateValue] || [];
+            const sourceDetails = sources.map((source, index) => 
+                `     ${index + 1}. ${source.module} - ${source.cell}`
+            ).join('\n');
+            
+            const locationText = sources.length > 0 ? 
+                `Found in:\n${sourceDetails}` : 
+                'Location not identified';
+            
+            errorMessages.push(`IEC104: Value "${duplicateValue}" appears more than twice.\n${locationText}`);
+        });
+        
+        currentIEC104Inputs.forEach(input => {
+            if (excessiveIEC104.includes(input.value.trim())) input.style.border = '2px solid red';
+        });
+    }
 
     if (!isValid) {
-        alert(`Please fill in all IOA index fields for IEC101 and IEC104 protocols.`);
-        return false;
-    }
-
-    // Check for duplicate values in IEC101 column - ONLY within current page
-    const iec101Values = Array.from(iec101Inputs).map(input => input.value.trim()).filter(val => val !== '');
-    const iec101Duplicates = findDuplicates(iec101Values);
-    if (iec101Duplicates.length > 0) {
-        isValid = false;
-        iec101Inputs.forEach(input => {
-            if (iec101Duplicates.includes(input.value.trim())) {
-                input.style.border = '2px solid red';
-            }
-        });
-        duplicateFields.push(`IEC101: Duplicate values found (${iec101Duplicates.join(', ')})`);
-    }
-
-    // Check for duplicate values in IEC104 column - ONLY within current page
-    const iec104Values = Array.from(iec104Inputs).map(input => input.value.trim()).filter(val => val !== '');
-    const iec104Duplicates = findDuplicates(iec104Values);
-    if (iec104Duplicates.length > 0) {
-        isValid = false;
-        iec104Inputs.forEach(input => {
-            if (iec104Duplicates.includes(input.value.trim())) {
-                input.style.border = '2px solid red';
-            }
-        });
-        duplicateFields.push(`IEC104: Duplicate values found (${iec104Duplicates.join(', ')})`);
-    }
-
-    if (duplicateFields.length > 0) {
-        alert(`Duplicate IOA index values found:\n${duplicateFields.join('\n')}\n\nEach value must be unique within the current page.`);
-        return false;
+        const alertMessage = `IOA/Index Validation Failed - Duplicate Values Found:\n\n${errorMessages.join('\n\n')}\n\n⚠️  Each IOA value can appear maximum TWICE across ALL modules.\nPlease change duplicate values to unique ones.`;
+        alert(alertMessage);
+        //return false;
     }
 
     return true;
 }
 
-// Helper function to find duplicate values in an array
-function findDuplicates(arr) {
-    const duplicates = [];
-    const seen = {};
+// Helper function to find values that appear more than maxAllowed times
+function findExcessiveDuplicates(array, maxAllowed) {
+    const countMap = {};
+    const excessive = [];
     
-    arr.forEach(value => {
-        if (seen[value]) {
-            if (!duplicates.includes(value)) {
-                duplicates.push(value);
-            }
-        } else {
-            seen[value] = true;
-        }
+    array.forEach(value => {
+        countMap[value] = (countMap[value] || 0) + 1;
     });
     
-    return duplicates;
+    for (const [value, count] of Object.entries(countMap)) {
+        if (count > maxAllowed) {
+            excessive.push(value);
+        }
+    }
+    
+    return excessive;
 }
 
 //-------------Load UserData-------------------------------------------------------
