@@ -1,0 +1,49 @@
+18/1/2026: Validate check box and IOA.
+
+
+function validateAIInputs() {
+    let isValid = true;
+    const inputs = document.querySelectorAll('.ai-test-input');
+    const emptyInputs = [];
+    
+    inputs.forEach(input => {
+        // Skip validation for DNP3 inputs
+        if (input.name.includes('_DNP3_')) {
+            // Remove any existing error styling
+            input.parentElement.style.backgroundColor = '';
+            input.parentElement.style.border = '';
+            return;
+        }
+        
+        // For checkbox inputs - validate if they are checked
+        if (input.type === 'checkbox') {
+            if (!input.checked) {
+                // Apply more visible error styling to the parent cell
+                input.parentElement.style.backgroundColor = '#ffebee';
+                input.parentElement.style.border = '2px solid red';
+                emptyInputs.push(input.name);
+                isValid = false;
+            } else {
+                // Clear error styling
+                input.parentElement.style.backgroundColor = '';
+                input.parentElement.style.border = '';
+            }
+        }
+        // For number inputs (protocol) - validate they have values
+        else if (input.type === 'number' && !input.value.trim()) {
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            emptyInputs.push(input.name);
+            isValid = false;
+        } else {
+            input.style.border = '';
+            input.style.backgroundColor = '';
+        }
+    });
+    
+    if (!isValid) {
+        alert('Please fill in all required fields before continuing. All checkboxes must be ticked and number fields must be filled.');
+    }
+    
+    return isValid;
+}

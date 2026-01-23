@@ -5,9 +5,9 @@ function goToPreviousPage() {
 
 function goToNextPage() {
     // Validate all checkboxes are ticked before navigating
-    if (!validateTestSetupCheckboxes()) {
+    /*if (!validateTestSetupCheckboxes()) {
         return; // Stop if validation fails
-    }
+    }*/
     
     // Save checkbox states before navigating
     saveCheckboxStates();

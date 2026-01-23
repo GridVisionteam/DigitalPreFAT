@@ -139,7 +139,7 @@ function handleSignatureSubmission() {
     saveSignatureData();
 
     // Validate inputs
-    if (!window.signatureData.signatureImagePath) {
+    /*if (!window.signatureData.signatureImagePath) {
         alert('Please upload your signature image');
         return false;
     }
@@ -152,7 +152,7 @@ function handleSignatureSubmission() {
     if (!window.signatureData.signerTitle) {
         alert('Title is required');
         return false;
-    }
+    }*/
     window.location.href = 'generatePDF.html';
     return true; // Allow form submission
 }

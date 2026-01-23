@@ -222,9 +222,9 @@ function goToPreviousPage() {
 
 function goToNext() {
     // First validate the form
-    if (!validateRTUPowerUp()) {
+    /*if (!validateRTUPowerUp()) {
         return; // Stop navigation if validation fails
-    }
+    }*/
     
     saveRTUPowerUpTestData();
     navigationGuard.markPageAsCompleted();

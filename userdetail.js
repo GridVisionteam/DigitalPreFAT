@@ -69,10 +69,10 @@
             const designation = document.getElementById("designation").value.trim();
             const experience = document.getElementById("experience").value.trim();
 
-            if (!name || !designation || experience === "") {
+            /*if (!name || !designation || experience === "") {
                 showCustomAlert("Please fill in all user details.");
                 return;
-            }
+            }*/
             saveCurrentUserDetails(); // Save details before proceeding
 
             // Navigate to the next page (e.g., rtuInfo.html)
