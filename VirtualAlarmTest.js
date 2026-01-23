@@ -70,13 +70,13 @@ function generateVirtualAlarmTestRows() {
             iec101IOA: "956",
             iec104IOA: "956",
             editable: true,
-            defaultIEC101Checked: true,
-            defaultIEC104Checked: true
+            defaultIEC101Checked: false,
+            defaultIEC104Checked: false
         },
         {
             alarm: "AO Module Fail",
-            iec101IOA: "",
-            iec104IOA: "",
+            iec101IOA: "957",
+            iec104IOA: "957",
             editable: true,
             defaultIEC101Checked: false,  // Both unchecked for AO Module Fail
             defaultIEC104Checked: false   // Both unchecked for AO Module Fail
@@ -160,24 +160,40 @@ function loadVirtualAlarmTestData() {
     // Load Virtual Alarm Test results
     for (let itemNum = 1; itemNum <= 7; itemNum++) {
         const testResult = window.virtualAlarmTestResults.virtualAlarmTests[`item_${itemNum}`];
-        if (testResult) {
-            // Set IEC101 checkbox
-            const iec101Checkbox = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec101"]`);
-            if (iec101Checkbox) iec101Checkbox.checked = testResult.iec101 === 'OK';
-            
-            // Set IEC104 checkbox
-            const iec104Checkbox = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec104"]`);
-            if (iec104Checkbox) iec104Checkbox.checked = testResult.iec104 === 'OK';
-            
-            // Set IOA values if they exist
-            const iec101IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec101IOA"]`);
-            if (iec101IOAInput && testResult.iec101IOA) {
+        
+        // Set IEC101 checkbox
+        const iec101Checkbox = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec101"]`);
+        if (iec101Checkbox && testResult) {
+            iec101Checkbox.checked = testResult.iec101 === 'OK';
+        }
+        
+        // Set IEC104 checkbox
+        const iec104Checkbox = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec104"]`);
+        if (iec104Checkbox && testResult) {
+            iec104Checkbox.checked = testResult.iec104 === 'OK';
+        }
+        
+        // Set IEC101 IOA value
+        const iec101IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec101IOA"]`);
+        if (iec101IOAInput) {
+            if (testResult && testResult.iec101IOA !== undefined && testResult.iec101IOA !== null) {
+                // Load saved value (including empty string)
                 iec101IOAInput.value = testResult.iec101IOA;
+            } else {
+                // Clear the input if no saved value exists
+                iec101IOAInput.value = '';
             }
-            
-            const iec104IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec104IOA"]`);
-            if (iec104IOAInput && testResult.iec104IOA) {
+        }
+        
+        // Set IEC104 IOA value
+        const iec104IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec104IOA"]`);
+        if (iec104IOAInput) {
+            if (testResult && testResult.iec104IOA !== undefined && testResult.iec104IOA !== null) {
+                // Load saved value (including empty string)
                 iec104IOAInput.value = testResult.iec104IOA;
+            } else {
+                // Clear the input if no saved value exists
+                iec104IOAInput.value = '';
             }
         }
     }
@@ -223,11 +239,12 @@ function clearAll() {
 
 function validateVirtualAlarmTests() {
     let isValid = true;
+    let errors = [];
     
     // Reset all error styles first
     const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
     allCheckboxes.forEach(checkbox => {
-        checkbox.parentElement.style.border = '';
+        if(checkbox.parentElement) checkbox.parentElement.style.border = '';
     });
     
     const allIOAInputs = document.querySelectorAll('input[type="number"]');
@@ -242,41 +259,61 @@ function validateVirtualAlarmTests() {
         const iec101IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec101IOA"]`);
         const iec104IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec104IOA"]`);
         
-        // Validate IEC101
-        if (iec101IOAInput && iec101IOAInput.value.trim() !== "") {
-            if (!iec101Checkbox.checked) {
-                iec101Checkbox.parentElement.style.border = '1px solid red';
-                isValid = false;
-            }
-        }
+        // Get alarm name for error messages
+        const row = iec101Checkbox ? iec101Checkbox.closest('tr') : 
+                    iec104Checkbox ? iec104Checkbox.closest('tr') : null;
+        const alarmName = row ? row.querySelector('td:first-child').textContent.trim() : `Alarm ${itemNum}`;
         
-        // Validate IEC104
-        if (iec104IOAInput && iec104IOAInput.value.trim() !== "") {
-            if (!iec104Checkbox.checked) {
-                iec104Checkbox.parentElement.style.border = '1px solid red';
-                isValid = false;
-            }
-        }
-        
-        // Additional validation: If checkbox is checked, at least one IOA should be filled
-        if ((iec101Checkbox.checked || iec104Checkbox.checked) && 
-            (!iec101IOAInput || iec101IOAInput.value.trim() === "") && 
-            (!iec104IOAInput || iec104IOAInput.value.trim() === "")) {
+        // --- IEC101 Validation ---
+        if (iec101Checkbox && iec101IOAInput) {
+            const hasNumber = iec101IOAInput.value.trim() !== "";
+            const isChecked = iec101Checkbox.checked;
             
-            if (iec101Checkbox.checked) iec101Checkbox.parentElement.style.border = '1px solid red';
-            if (iec104Checkbox.checked) iec104Checkbox.parentElement.style.border = '1px solid red';
-            isValid = false;
+            // Case 1: Checked but no number
+            if (isChecked && !hasNumber) {
+                iec101Checkbox.parentElement.style.border = '1px solid red';
+                iec101IOAInput.style.border = '1px solid red';
+                errors.push(`IEC101 ${alarmName}: IOA required when ticked`);
+                isValid = false;
+            }
+            // Case 2: Has number but not checked (NEW VALIDATION)
+            else if (hasNumber && !isChecked) {
+                iec101Checkbox.parentElement.style.border = '1px solid red';
+                iec101IOAInput.style.border = '1px solid red';
+                errors.push(`IEC101 ${alarmName}: Remove IOA or tick the checkbox`);
+                isValid = false;
+            }
+        }
+        
+        // --- IEC104 Validation ---
+        if (iec104Checkbox && iec104IOAInput) {
+            const hasNumber = iec104IOAInput.value.trim() !== "";
+            const isChecked = iec104Checkbox.checked;
+            
+            // Case 1: Checked but no number
+            if (isChecked && !hasNumber) {
+                iec104Checkbox.parentElement.style.border = '1px solid red';
+                iec104IOAInput.style.border = '1px solid red';
+                errors.push(`IEC104 ${alarmName}: IOA required when ticked`);
+                isValid = false;
+            }
+            // Case 2: Has number but not checked (NEW VALIDATION)
+            else if (hasNumber && !isChecked) {
+                iec104Checkbox.parentElement.style.border = '1px solid red';
+                iec104IOAInput.style.border = '1px solid red';
+                errors.push(`IEC104 ${alarmName}: Remove IOA or tick the checkbox`);
+                isValid = false;
+            }
         }
     }
     
     if (!isValid) {
-        alert('Validation failed:Please fill in the IOA');
+        alert('Validation failed:\n\n' + errors.join('\n'));
     }
     
     return isValid;
 }
 
-// Validate IOA index fields for IEC101 and IEC104 only
 function validateVirtualAlarmIOAIndexFields() {
     // Get all IEC101 and IEC104 input fields
     const iec101Inputs = document.querySelectorAll('input[name*="iec101IOA"]');
@@ -291,63 +328,97 @@ function validateVirtualAlarmIOAIndexFields() {
         input.style.border = ''; // clear border
     });
 
-    // Check IEC101 fields for empty values (only if checkbox is checked)
+    // 1. Check IEC101 fields (Empty check) - ONLY if checked
     iec101Inputs.forEach(input => {
-        const checkboxName = input.name.replace('IOA', '');
+        const checkboxName = input.name.replace('IOA', ''); // derived from input name
         const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
         
-        if (checkbox && checkbox.checked && !input.value.trim()) {
+        const hasNumber = input.value.trim() !== "";
+        const isChecked = checkbox && checkbox.checked;
+        
+        // Case 1: Checked but no number
+        if (isChecked && !hasNumber) {
             input.style.border = '2px solid red';
             isValid = false;
             const alarmName = getAlarmNameFromInput(input);
-            emptyFields.push(`IEC101 ${alarmName}`);
+            emptyFields.push(`IEC101 ${alarmName}: IOA required when ticked`);
+        }
+        // Case 2: Has number but not checked (NEW VALIDATION)
+        else if (hasNumber && !isChecked) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const alarmName = getAlarmNameFromInput(input);
+            emptyFields.push(`IEC101 ${alarmName}: Remove IOA or tick the checkbox`);
         }
     });
     
-    // Check IEC104 fields for empty values (only if checkbox is checked)
+    // 2. Check IEC104 fields (Empty check) - ONLY if checked
     iec104Inputs.forEach(input => {
         const checkboxName = input.name.replace('IOA', '');
         const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
         
-        if (checkbox && checkbox.checked && !input.value.trim()) {
+        const hasNumber = input.value.trim() !== "";
+        const isChecked = checkbox && checkbox.checked;
+        
+        // Case 1: Checked but no number
+        if (isChecked && !hasNumber) {
             input.style.border = '2px solid red';
             isValid = false;
             const alarmName = getAlarmNameFromInput(input);
-            emptyFields.push(`IEC104 ${alarmName}`);
+            emptyFields.push(`IEC104 ${alarmName}: IOA required when ticked`);
+        }
+        // Case 2: Has number but not checked (NEW VALIDATION)
+        else if (hasNumber && !isChecked) {
+            input.style.border = '2px solid red';
+            isValid = false;
+            const alarmName = getAlarmNameFromInput(input);
+            emptyFields.push(`IEC104 ${alarmName}: Remove IOA or tick the checkbox`);
         }
     });
 
     if (!isValid) {
-        alert(`Please fill in all IOA index fields for checked protocols:\n${emptyFields.join('\n')}`);
+        alert(`Validation failed:\n\n${emptyFields.join('\n')}`);
         return false;
     }
 
-    // Check for duplicate values in IEC101 column (only for filled values)
-    const iec101Values = Array.from(iec101Inputs)
-        .map(input => input.value.trim())
-        .filter(val => val !== ''); // Only check non-empty values
-    
+    // 3. Check for duplicate values in IEC101 column
+    // Filter: Only include inputs where the checkbox is CHECKED
+    const iec101ActiveInputs = Array.from(iec101Inputs).filter(input => {
+        const checkboxName = input.name.replace('IOA', '');
+        const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
+        return checkbox && checkbox.checked && input.value.trim() !== '';
+    });
+
+    const iec101Values = iec101ActiveInputs.map(input => input.value.trim());
     const iec101Duplicates = findDuplicates(iec101Values);
+
     if (iec101Duplicates.length > 0) {
         isValid = false;
-        iec101Inputs.forEach(input => {
-            if (iec101Duplicates.includes(input.value.trim()) && input.value.trim() !== '') {
+        // Highlight only the active inputs that have duplicates
+        iec101ActiveInputs.forEach(input => {
+            if (iec101Duplicates.includes(input.value.trim())) {
                 input.style.border = '2px solid red';
             }
         });
         duplicateFields.push(`IEC101: Duplicate values found (${iec101Duplicates.join(', ')})`);
     }
 
-    // Check for duplicate values in IEC104 column (only for filled values)
-    const iec104Values = Array.from(iec104Inputs)
-        .map(input => input.value.trim())
-        .filter(val => val !== ''); // Only check non-empty values
-    
+    // 4. Check for duplicate values in IEC104 column
+    // Filter: Only include inputs where the checkbox is CHECKED
+    const iec104ActiveInputs = Array.from(iec104Inputs).filter(input => {
+        const checkboxName = input.name.replace('IOA', '');
+        const checkbox = document.querySelector(`input[name="${checkboxName}"]`);
+        return checkbox && checkbox.checked && input.value.trim() !== '';
+    });
+
+    const iec104Values = iec104ActiveInputs.map(input => input.value.trim());
     const iec104Duplicates = findDuplicates(iec104Values);
+
     if (iec104Duplicates.length > 0) {
         isValid = false;
-        iec104Inputs.forEach(input => {
-            if (iec104Duplicates.includes(input.value.trim()) && input.value.trim() !== '') {
+        // Highlight only the active inputs that have duplicates
+        iec104ActiveInputs.forEach(input => {
+            if (iec104Duplicates.includes(input.value.trim())) {
                 input.style.border = '2px solid red';
             }
         });
@@ -355,22 +426,13 @@ function validateVirtualAlarmIOAIndexFields() {
     }
 
     if (duplicateFields.length > 0) {
-        alert(`Duplicate IOA index values found:\n${duplicateFields.join('\n')}\n\n`);
+        alert(`Duplicate IOA index values found among checked items:\n${duplicateFields.join('\n')}\n\n`);
         return false;
     }
 
     return true;
 }
 
-// Helper function to get alarm name from input element
-function getAlarmNameFromInput(input) {
-    const row = input.closest('tr');
-    if (row) {
-        const alarmCell = row.querySelector('td:first-child');
-        return alarmCell ? alarmCell.textContent.trim() : 'Unknown Alarm';
-    }
-    return 'Unknown Alarm';
-}
 
 // Helper function to find duplicate values in an array
 function findDuplicates(arr) {
