@@ -1268,7 +1268,7 @@ function validateRequiredFields() {
     }
 
     // Validate Software Record - both must be OK
-    const softwareOk1 = document.querySelector('input[name="software_ok_1"]');
+    /*const softwareOk1 = document.querySelector('input[name="software_ok_1"]');
     const softwareOk2 = document.querySelector('input[name="software_ok_2"]');
     
     if (softwareOk1 && softwareOk2) {
@@ -1281,7 +1281,7 @@ function validateRequiredFields() {
                 el.parentElement.style.border = '';
             });
         }
-    }
+    }*/
 
     return isValid;
 }

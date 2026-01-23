@@ -158,10 +158,10 @@ function goToQualityPage() {
 
 function saveAndGoToProcessor() {
     // First validate the functionality test
-    if (!validateFunctionalityTest()) {
+    /*if (!validateFunctionalityTest()) {
         alert('Please complete all required fields before continuing. All tests must be marked OK and voltage values must be filled.');
         return;
-    }
+    }*/
     
     // Save the functionality test data
     saveFunctionalityTestData();
