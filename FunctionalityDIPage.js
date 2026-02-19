@@ -167,6 +167,34 @@ function showFunctionalityDI16Page() {
     }
 }
 
+// NEW: Function to handle checkbox radio-like behavior for DI-32
+function handleCheckboxGroupClick(clickedCheckbox, groupName) {
+    if (clickedCheckbox.checked) {
+        // Get all checkboxes in the same group
+        const checkboxes = document.querySelectorAll(`input[name="${groupName}"]`);
+        // Uncheck all other checkboxes in the group
+        checkboxes.forEach(cb => {
+            if (cb !== clickedCheckbox) {
+                cb.checked = false;
+            }
+        });
+    }
+}
+
+// NEW: Function to handle checkbox radio-like behavior for DI-16
+function handleDI16CheckboxGroupClick(clickedCheckbox, groupName) {
+    if (clickedCheckbox.checked) {
+        // Get all checkboxes in the same group
+        const checkboxes = document.querySelectorAll(`input[name="${groupName}"]`);
+        // Uncheck all other checkboxes in the group
+        checkboxes.forEach(cb => {
+            if (cb !== clickedCheckbox) {
+                cb.checked = false;
+            }
+        });
+    }
+}
+
 function generateDIRows() {
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) {
@@ -180,14 +208,15 @@ function generateDIRows() {
         const row = document.createElement("tr");
         const rowNumber = i + 1;
         
-        // Left channels (1-16)
+        // Left channels (1-16) - Using checkboxes with radio-like behavior
+        const leftGroupName = `DI_${window.currentDIModule}_checkbox_left_${rowNumber}`;
         row.innerHTML += `
             <td>${rowNumber}</td>
             <td style="text-align: center;">
-                <input type="radio" name="DI_${window.currentDIModule}_radio_left_${rowNumber}" value="0" class="di-test-radio">
+                <input type="checkbox" name="${leftGroupName}" value="0" class="di-test-checkbox di-checkbox-group">
             </td>
             <td style="text-align: center;">
-                <input type="radio" name="DI_${window.currentDIModule}_radio_left_${rowNumber}" value="1" class="di-test-radio">
+                <input type="checkbox" name="${leftGroupName}" value="1" class="di-test-checkbox di-checkbox-group">
             </td>
             <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rowNumber}"></td>
             <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rowNumber}"></td>
@@ -196,13 +225,14 @@ function generateDIRows() {
         
         // Right channels (17-32)
         const rightRowNumber = i + 17;
+        const rightGroupName = `DI_${window.currentDIModule}_checkbox_right_${i + 1}`;
         row.innerHTML += `
             <td>${rightRowNumber}</td>
             <td style="text-align: center;">
-                <input type="radio" name="DI_${window.currentDIModule}_radio_right_${i + 1}" value="0" class="di-test-radio">
+                <input type="checkbox" name="${rightGroupName}" value="0" class="di-test-checkbox di-checkbox-group">
             </td>
             <td style="text-align: center;">
-                <input type="radio" name="DI_${window.currentDIModule}_radio_right_${i + 1}" value="1" class="di-test-radio">
+                <input type="checkbox" name="${rightGroupName}" value="1" class="di-test-checkbox di-checkbox-group">
             </td>
             <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rightRowNumber}"></td>
             <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rightRowNumber}"></td>
@@ -212,9 +242,25 @@ function generateDIRows() {
         tableBody.appendChild(row);
     }
 
-    // Add event listeners to radio buttons
-    document.querySelectorAll('.di-test-radio').forEach(radio => {
-        radio.addEventListener('change', updateSubmitButtonState);
+    // Add event listeners to checkboxes for radio-like behavior
+    document.querySelectorAll('.di-checkbox-group').forEach(checkbox => {
+        checkbox.addEventListener('click', function(e) {
+            const groupName = this.name;
+            if (this.checked) {
+                // Uncheck all other checkboxes in the same group
+                document.querySelectorAll(`input[name="${groupName}"]`).forEach(cb => {
+                    if (cb !== this) {
+                        cb.checked = false;
+                    }
+                });
+            }
+            updateSubmitButtonState();
+        });
+    });
+    
+    // Add event listeners to text inputs
+    document.querySelectorAll('.di-test-input').forEach(input => {
+        input.addEventListener('input', updateSubmitButtonState);
     });
 }
 
@@ -228,14 +274,15 @@ function generateDI16Rows() {
     for (let i = 0; i < 16; i++) {
         const row = document.createElement("tr");
         const rowNumber = i + 1;
+        const groupName = `DI_${window.currentDIModule}_checkbox_${rowNumber}`;
         
         row.innerHTML = `
             <td>${rowNumber}</td>
             <td style="text-align: center;">
-                <input type="radio" name="DI_${window.currentDIModule}_radio_${rowNumber}" value="0" class="di-test-radio">
+                <input type="checkbox" name="${groupName}" value="0" class="di16-test-checkbox di16-checkbox-group">
             </td>
             <td style="text-align: center;">
-                <input type="radio" name="DI_${window.currentDIModule}_radio_${rowNumber}" value="1" class="di-test-radio">
+                <input type="checkbox" name="${groupName}" value="1" class="di16-test-checkbox di16-checkbox-group">
             </td>
             <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rowNumber}"></td>
             <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rowNumber}"></td>
@@ -245,17 +292,94 @@ function generateDI16Rows() {
         tableBody.appendChild(row);
     }
     
-    // Add event listeners to radio buttons
-    document.querySelectorAll('.di-test-radio').forEach(radio => {
-        radio.addEventListener('change', updateDI16SubmitButtonState);
+    // Add event listeners to checkboxes for radio-like behavior
+    document.querySelectorAll('.di16-checkbox-group').forEach(checkbox => {
+        checkbox.addEventListener('click', function(e) {
+            const groupName = this.name;
+            if (this.checked) {
+                // Uncheck all other checkboxes in the same group
+                document.querySelectorAll(`input[name="${groupName}"]`).forEach(cb => {
+                    if (cb !== this) {
+                        cb.checked = false;
+                    }
+                });
+            }
+            updateDI16SubmitButtonState();
+        });
+    });
+    
+    // Add event listeners to text inputs
+    document.querySelectorAll('#di16TableBody .di-test-input').forEach(input => {
+        input.addEventListener('input', updateDI16SubmitButtonState);
     });
 }
 
-// Update SelectAll function for radio buttons (this will now select "1" for all)
+// Update SelectAll function for checkboxes (this will now select "1" for all)
 function SelectAll() {
-    const radios = document.querySelectorAll('#tableBody input[type="radio"][value="1"]');
-    radios.forEach(radio => {
-        radio.checked = true;
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) return;
+    
+    const rows = tableBody.querySelectorAll('tr');
+    
+    // First, determine the current state pattern
+    // Check the first row's left side to see what pattern we're toggling to
+    const firstRow = rows[0];
+    if (!firstRow) return;
+    
+    const leftCheckbox0 = firstRow.querySelector('td:nth-child(2) input[type="checkbox"][value="0"]');
+    const leftCheckbox1 = firstRow.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
+    
+    // Determine if we're setting to all 1s or criss-cross pattern
+    // If all checkboxes are already 1, toggle to criss-cross pattern
+    let setToAllOne = true;
+    
+    // Check if currently all are 1
+    rows.forEach((row, index) => {
+        // Left side
+        const left1 = row.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
+        const left0 = row.querySelector('td:nth-child(2) input[type="checkbox"][value="0"]');
+        
+        // Right side
+        const right1 = row.querySelector('td:nth-child(9) input[type="checkbox"][value="1"]');
+        const right0 = row.querySelector('td:nth-child(8) input[type="checkbox"][value="0"]');
+        
+        if (!left1?.checked || !right1?.checked) {
+            setToAllOne = false;
+        }
+    });
+    
+    rows.forEach((row, index) => {
+        // Left side checkboxes (columns 2 and 3)
+        const leftCheckbox0 = row.querySelector('td:nth-child(2) input[type="checkbox"][value="0"]');
+        const leftCheckbox1 = row.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
+        
+        // Right side checkboxes (columns 8 and 9)
+        const rightCheckbox0 = row.querySelector('td:nth-child(8) input[type="checkbox"][value="0"]');
+        const rightCheckbox1 = row.querySelector('td:nth-child(9) input[type="checkbox"][value="1"]');
+        
+        if (setToAllOne) {
+            // Toggle to criss-cross pattern
+            // Even rows: Left=1, Right=0 | Odd rows: Left=0, Right=1
+            if (index % 2 === 0) { // Even row (0-based)
+                // Left = 1, Right = 0
+                if (leftCheckbox1) leftCheckbox1.checked = false;
+                if (leftCheckbox0) leftCheckbox0.checked = true;
+                if (rightCheckbox0) rightCheckbox0.checked = true;
+                if (rightCheckbox1) rightCheckbox1.checked = false;
+            } else { // Odd row
+                // Left = 0, Right = 1
+                if (leftCheckbox0) leftCheckbox0.checked = false;
+                if (leftCheckbox1) leftCheckbox1.checked = true;
+                if (rightCheckbox1) rightCheckbox1.checked = true;
+                if (rightCheckbox0) rightCheckbox0.checked = false;
+            }
+        } else {
+            // Set all to 1 (current behavior)
+            if (leftCheckbox1) leftCheckbox1.checked = true;
+            if (leftCheckbox0) leftCheckbox0.checked = false;
+            if (rightCheckbox1) rightCheckbox1.checked = true;
+            if (rightCheckbox0) rightCheckbox0.checked = false;
+        }
     });
     
     updateSubmitButtonState();
@@ -263,10 +387,10 @@ function SelectAll() {
 
 // Update clearAll function
 function clearAll() {
-    // Clear all radio buttons
-    const radios = document.querySelectorAll('.di-test-radio');
-    radios.forEach(radio => {
-        radio.checked = false;
+    // Clear all checkboxes
+    const checkboxes = document.querySelectorAll('.di-test-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
     });
     
     // Clear all text inputs
@@ -282,16 +406,49 @@ function updateSubmitButtonState() {
     const submitBtn = document.getElementById('submitBtn');
     if (!submitBtn) return;
     
-    // Enable the button by default (modify this logic if you need different behavior)
+    // Enable the button by default
     submitBtn.disabled = false;
 }
 
 function SelectAllDI16() {
-    const checkboxes = document.querySelectorAll("#di16TableBody input[type='checkbox']");
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    const tableBody = document.getElementById('di16TableBody');
+    if (!tableBody) return;
     
-    checkboxes.forEach(cb => {
-        cb.checked = !allChecked;
+    const rows = tableBody.querySelectorAll('tr');
+    
+    // Determine current pattern
+    const firstRow = rows[0];
+    if (!firstRow) return;
+    
+    const firstCheckbox1 = firstRow.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
+    
+    // Check if all are set to 1
+    let setToAllOne = true;
+    rows.forEach(row => {
+        const checkbox1 = row.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
+        if (!checkbox1?.checked) {
+            setToAllOne = false;
+        }
+    });
+    
+    rows.forEach((row, index) => {
+        const checkbox0 = row.querySelector('td:nth-child(2) input[type="checkbox"][value="0"]');
+        const checkbox1 = row.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
+        
+        if (setToAllOne) {
+            // Toggle to alternating pattern: 1,0,1,0,... vertically
+            if (index % 2 === 0) { // Even rows (0,2,4,...)
+                if (checkbox1) checkbox1.checked = false;
+                if (checkbox0) checkbox0.checked = true;
+            } else { // Odd rows (1,3,5,...)
+                if (checkbox0) checkbox0.checked = false;
+                if (checkbox1) checkbox1.checked = true;
+            }
+        } else {
+            // Set all to 1
+            if (checkbox1) checkbox1.checked = true;
+            if (checkbox0) checkbox0.checked = false;
+        }
     });
     
     updateDI16SubmitButtonState();
@@ -301,7 +458,7 @@ function clearAllDI16() {
     const checkboxes = document.querySelectorAll("#di16TableBody input[type='checkbox']");
     checkboxes.forEach(cb => cb.checked = false);
 
-    const textInputs = document.querySelectorAll("#di16TableBody input[type='text']");
+    const textInputs = document.querySelectorAll("#di16TableBody input[type='number']");
     textInputs.forEach(input => input.value = '');
 
     updateDI16SubmitButtonState();
@@ -310,7 +467,7 @@ function clearAllDI16() {
 function updateDI16SubmitButtonState() {
     const submitBtn = document.getElementById('submitBtnDI16');
     if (submitBtn) {
-        submitBtn.disabled = false; // always enabled, let submission handler validate
+        submitBtn.disabled = false;
     }
 }
 
@@ -321,69 +478,80 @@ function saveDITestData(moduleNumber) {
     }
     
     // Ensure all required properties exist
-    if (!window.diTestResults[moduleNumber].iec101Values) window.diTestResults[moduleNumber].iec101Values = {};
-    if (!window.diTestResults[moduleNumber].iec104Values) window.diTestResults[moduleNumber].iec104Values = {};
-    if (!window.diTestResults[moduleNumber].dnp3Values) window.diTestResults[moduleNumber].dnp3Values = {};
-    if (!window.diTestResults[moduleNumber].radioValues) window.diTestResults[moduleNumber].radioValues = {};
+    if (!window.diTestResults[moduleNumber].iec101Values) {
+        window.diTestResults[moduleNumber].iec101Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].iec104Values) {
+        window.diTestResults[moduleNumber].iec104Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].dnp3Values) {
+        window.diTestResults[moduleNumber].dnp3Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].checkboxValues) {
+        window.diTestResults[moduleNumber].checkboxValues = {};
+    }
     
     // Set the type
     window.diTestResults[moduleNumber].type = 'DI-32';
     
-    // Initialize inputs array
-    window.diTestResults[moduleNumber].inputs = [];
+    // Initialize inputs array if it doesn't exist
+    if (!window.diTestResults[moduleNumber].inputs) {
+        window.diTestResults[moduleNumber].inputs = [];
+    }
     
-    // Save all inputs (Generic array backup)
+    // Save all inputs
     const inputs = document.querySelectorAll("#tableBody input");
     window.diTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
-        return input.type === 'radio' ? input.checked : input.value;
+        return input.type === 'checkbox' ? input.checked : input.value;
     });
 
-    // --- FIX STARTS HERE ---
-    // Save radio button values (Handle Empty State)
+    // Save checkbox values with their positions
     const rows = document.querySelectorAll("#tableBody tr");
     rows.forEach((row, rowIndex) => {
-        const rowNum = rowIndex + 1;
-
-        // 1. Handle Left Side Radios
-        const leftKey = `DI_${moduleNumber}_radio_left_${rowNum}`;
-        const leftChecked = row.querySelector(`input[name="${leftKey}"]:checked`);
+        // Left side checkboxes (columns 2 and 3)
+        const leftCheckbox1 = row.querySelector("td:nth-child(2) input[type='checkbox']");
+        const leftCheckbox2 = row.querySelector("td:nth-child(3) input[type='checkbox']");
         
-        if (leftChecked) {
-            // If checked, save the value
-            window.diTestResults[moduleNumber].radioValues[leftKey] = leftChecked.value;
-        } else {
-            // If EMPTY, delete the key so it doesn't persist
-            delete window.diTestResults[moduleNumber].radioValues[leftKey];
+        // Right side checkboxes (columns 8 and 9)
+        const rightCheckbox1 = row.querySelector("td:nth-child(8) input[type='checkbox']");
+        const rightCheckbox2 = row.querySelector("td:nth-child(9) input[type='checkbox']");
+
+        // Save left side checkboxes (channels 1-16)
+        if (leftCheckbox1) {
+            window.diTestResults[moduleNumber].checkboxValues[`Check_Box_DI_${moduleNumber}_FT_1_${rowIndex + 1}`] = leftCheckbox1.checked;
+        }
+        if (leftCheckbox2) {
+            window.diTestResults[moduleNumber].checkboxValues[`Check_Box_DI_${moduleNumber}_FT_2_${rowIndex + 1}`] = leftCheckbox2.checked;
         }
         
-        // 2. Handle Right Side Radios
-        // Note: In your generate function, right side starts at 17, but the logic inside the loop 
-        // uses the row index logic. Let's ensure we target the correct name attribute.
-        // Your generate function uses: name="DI_${window.currentDIModule}_radio_right_${i + 1}"
-        const rightKey = `DI_${moduleNumber}_radio_right_${rowNum}`;
-        const rightChecked = row.querySelector(`input[name="${rightKey}"]:checked`);
-        
-        if (rightChecked) {
-            window.diTestResults[moduleNumber].radioValues[rightKey] = rightChecked.value;
-        } else {
-            delete window.diTestResults[moduleNumber].radioValues[rightKey];
+        // Save right side checkboxes (channels 17-32)
+        if (rightCheckbox1) {
+            window.diTestResults[moduleNumber].checkboxValues[`Check_Box_DI_${moduleNumber}_FT_3_${rowIndex + 1}`] = rightCheckbox1.checked;
+        }
+        if (rightCheckbox2) {
+            window.diTestResults[moduleNumber].checkboxValues[`Check_Box_DI_${moduleNumber}_FT_4_${rowIndex + 1}`] = rightCheckbox2.checked;
         }
     });
-    // --- FIX ENDS HERE ---
 
     // Save protocol values
     for (let i = 1; i <= 32; i++) {
         // IEC101
         const inputIEC101 = document.querySelector(`input[name="DI_${moduleNumber}_IEC101_${i}"]`);
-        if (inputIEC101) window.diTestResults[moduleNumber].iec101Values[`DI_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
+        if (inputIEC101) {
+            window.diTestResults[moduleNumber].iec101Values[`DI_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
+        }
         
         // IEC104
         const inputIEC104 = document.querySelector(`input[name="DI_${moduleNumber}_IEC104_${i}"]`);
-        if (inputIEC104) window.diTestResults[moduleNumber].iec104Values[`DI_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
+        if (inputIEC104) {
+            window.diTestResults[moduleNumber].iec104Values[`DI_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
+        }
         
         // DNP3
         const inputDNP3 = document.querySelector(`input[name="DI_${moduleNumber}_DNP3_${i}"]`);
-        if (inputDNP3) window.diTestResults[moduleNumber].dnp3Values[`DI_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
+        if (inputDNP3) {
+            window.diTestResults[moduleNumber].dnp3Values[`DI_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
+        }
     }
 
     // Ensure qualityInspections exists (preserve existing)
@@ -398,29 +566,18 @@ function loadDITestData(moduleNumber) {
     const saved = window.diTestResults[moduleNumber];
     if (!saved || saved.type !== 'DI-32') return;
 
-    // Load radio button values
-    if (saved.radioValues) {
-        Object.keys(saved.radioValues).forEach(radioName => {
-            const radio = document.querySelector(`input[name="${radioName}"][value="${saved.radioValues[radioName]}"]`);
-            if (radio) {
-                radio.checked = true;
-            }
-        });
-    }
+    // Load table inputs
+    const inputs = document.querySelectorAll("#tableBody input");
+    saved.inputs.forEach((value, idx) => {
+        const input = inputs[idx];
+        if (!input) return;
 
-    // Load protocol input values
-    const inputs = document.querySelectorAll("#tableBody input[type='number']");
-    inputs.forEach(input => {
-        const name = input.name;
-        if (saved.iec101Values && saved.iec101Values[name]) {
-            input.value = saved.iec101Values[name];
-        } else if (saved.iec104Values && saved.iec104Values[name]) {
-            input.value = saved.iec104Values[name];
-        } else if (saved.dnp3Values && saved.dnp3Values[name]) {
-            input.value = saved.dnp3Values[name];
+        if (input.type === 'checkbox') {
+            input.checked = !!value;
+        } else {
+            input.value = value;
         }
     });
-    
     updateSubmitButtonState();
 }
 
@@ -429,26 +586,16 @@ function loadDI16TestData(moduleNumber) {
     const saved = window.diTestResults[moduleNumber];
     if (!saved || saved.type !== 'DI-16') return;
 
-    // Load radio button values
-    if (saved.radioValues) {
-        Object.keys(saved.radioValues).forEach(radioName => {
-            const radio = document.querySelector(`input[name="${radioName}"][value="${saved.radioValues[radioName]}"]`);
-            if (radio) {
-                radio.checked = true;
-            }
-        });
-    }
+    // Load table inputs
+    const inputs = document.querySelectorAll("#di16TableBody input");
+    saved.inputs.forEach((value, idx) => {
+        const input = inputs[idx];
+        if (!input) return;
 
-    // Load protocol input values
-    const inputs = document.querySelectorAll("#di16TableBody input[type='number']");
-    inputs.forEach(input => {
-        const name = input.name;
-        if (saved.iec101Values && saved.iec101Values[name]) {
-            input.value = saved.iec101Values[name];
-        } else if (saved.iec104Values && saved.iec104Values[name]) {
-            input.value = saved.iec104Values[name];
-        } else if (saved.dnp3Values && saved.dnp3Values[name]) {
-            input.value = saved.dnp3Values[name];
+        if (input.type === 'checkbox') {
+            input.checked = !!value;
+        } else {
+            input.value = value;
         }
     });
     
@@ -461,8 +608,8 @@ async function handleDITestSubmission() {
         return;
     }
 
-    // Validate that one radio button is selected for each pair
-    /*if (!validateRadioButtons()) {
+    /*// Validate that one checkbox is selected for each pair
+    if (!validateCheckboxGroups()) {
         alert("Please select either 0 or 1 for all channels before continuing.");
         return;
     }*/
@@ -480,7 +627,9 @@ async function handleDITestSubmission() {
     
     if (window.currentDIModule > window.diModulesToTest) {
         // All DI modules tested, go to DO page
-        navigationGuard.markPageAsCompleted();
+        if (typeof navigationGuard !== 'undefined' && navigationGuard.markPageAsCompleted) {
+            navigationGuard.markPageAsCompleted();
+        }
         window.location.href = 'FunctionalityDOPage.html';
     } else {
         // Update navigation
@@ -494,65 +643,83 @@ async function handleDITestSubmission() {
         }
     }
 }
-function saveDI16TestData(moduleNumber) {
-    // Initialize the module data structure if it doesn't exist
-    if (!window.diTestResults[moduleNumber] || window.diTestResults[moduleNumber].type !== 'DI-16') {
-        window.diTestResults[moduleNumber] = {
-            inputs: [],
-            iec101Values: {},
-            iec104Values: {},
-            dnp3Values: {},
-            radioValues: {},
-            type: 'DI-16',
-            qualityInspections: window.diTestResults[moduleNumber]?.qualityInspections || {}
-        };
-    } else {
-        // Ensure all necessary objects exist
-        if (!window.diTestResults[moduleNumber].iec101Values) window.diTestResults[moduleNumber].iec101Values = {};
-        if (!window.diTestResults[moduleNumber].iec104Values) window.diTestResults[moduleNumber].iec104Values = {};
-        if (!window.diTestResults[moduleNumber].dnp3Values) window.diTestResults[moduleNumber].dnp3Values = {};
-        if (!window.diTestResults[moduleNumber].radioValues) window.diTestResults[moduleNumber].radioValues = {};
-    }
 
+function saveDI16TestData(moduleNumber) {
+    // Initialize or ensure proper structure exists
+    if (!window.diTestResults[moduleNumber]) {
+        window.diTestResults[moduleNumber] = {};
+    }
+    
+    // Ensure all required properties exist
+    if (!window.diTestResults[moduleNumber].iec101Values) {
+        window.diTestResults[moduleNumber].iec101Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].iec104Values) {
+        window.diTestResults[moduleNumber].iec104Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].dnp3Values) {
+        window.diTestResults[moduleNumber].dnp3Values = {};
+    }
+    if (!window.diTestResults[moduleNumber].checkboxValues) {
+        window.diTestResults[moduleNumber].checkboxValues = {};
+    }
+    
+    // Set the type
+    window.diTestResults[moduleNumber].type = 'DI-16';
+    
+    // Initialize inputs array if it doesn't exist
+    if (!window.diTestResults[moduleNumber].inputs) {
+        window.diTestResults[moduleNumber].inputs = [];
+    }
+    
     // Save all inputs
     const inputs = document.querySelectorAll("#di16TableBody input");
     window.diTestResults[moduleNumber].inputs = Array.from(inputs).map(input => {
-        return input.type === 'radio' ? input.checked : input.value;
+        return input.type === 'checkbox' ? input.checked : input.value;
     });
 
-    // --- FIX STARTS HERE ---
-    // Save radio button values (Handle Empty State)
+    // Save checkbox values with their positions
     const rows = document.querySelectorAll("#di16TableBody tr");
     rows.forEach((row, rowIndex) => {
-        const rowNum = rowIndex + 1;
-        const radioKey = `DI_${moduleNumber}_radio_${rowNum}`;
+        const rowNumber = rowIndex + 1;
         
-        // Find if any radio in this group is checked
-        const checkedRadio = row.querySelector(`input[name="${radioKey}"]:checked`);
+        // Checkboxes for this row (columns 2 and 3)
+        const checkbox1 = row.querySelector("td:nth-child(2) input[type='checkbox']");
+        const checkbox2 = row.querySelector("td:nth-child(3) input[type='checkbox']");
 
-        if (checkedRadio) {
-            // Save value
-            window.diTestResults[moduleNumber].radioValues[radioKey] = checkedRadio.value;
-        } else {
-            // Delete key if empty
-            delete window.diTestResults[moduleNumber].radioValues[radioKey];
+        // Save checkboxes
+        if (checkbox1) {
+            window.diTestResults[moduleNumber].checkboxValues[`Check_Box_DI_${moduleNumber}_FT_1_${rowNumber}`] = checkbox1.checked;
+        }
+        if (checkbox2) {
+            window.diTestResults[moduleNumber].checkboxValues[`Check_Box_DI_${moduleNumber}_FT_2_${rowNumber}`] = checkbox2.checked;
         }
     });
-    // --- FIX ENDS HERE ---
 
-    // Save protocol values - only for 16 channels
+    // Save protocol values for 16 channels
     for (let i = 1; i <= 16; i++) {
         // IEC101
         const inputIEC101 = document.querySelector(`input[name="DI_${moduleNumber}_IEC101_${i}"]`);
-        if (inputIEC101) window.diTestResults[moduleNumber].iec101Values[`DI_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
+        if (inputIEC101) {
+            window.diTestResults[moduleNumber].iec101Values[`DI_${moduleNumber}_IEC101_${i}`] = inputIEC101.value;
+        }
         
         // IEC104
         const inputIEC104 = document.querySelector(`input[name="DI_${moduleNumber}_IEC104_${i}"]`);
-        if (inputIEC104) window.diTestResults[moduleNumber].iec104Values[`DI_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
+        if (inputIEC104) {
+            window.diTestResults[moduleNumber].iec104Values[`DI_${moduleNumber}_IEC104_${i}`] = inputIEC104.value;
+        }
         
         // DNP3
         const inputDNP3 = document.querySelector(`input[name="DI_${moduleNumber}_DNP3_${i}"]`);
-        if (inputDNP3) window.diTestResults[moduleNumber].dnp3Values[`DI_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
+        if (inputDNP3) {
+            window.diTestResults[moduleNumber].dnp3Values[`DI_${moduleNumber}_DNP3_${i}`] = inputDNP3.value;
+        }
+    }
+
+    // Ensure qualityInspections exists (preserve existing)
+    if (!window.diTestResults[moduleNumber].qualityInspections) {
+        window.diTestResults[moduleNumber].qualityInspections = {};
     }
 
     localStorage.setItem('diTestResults', JSON.stringify(window.diTestResults));
@@ -564,11 +731,11 @@ async function handleDI16TestSubmission() {
         return;
     }
 
-    // Validate that one radio button is selected for each row
-    if (!validateDI16RadioButtons()) {
+    // Validate that one checkbox is selected for each row
+    /*if (!validateDI16CheckboxGroups()) {
         alert("Please select either 0 or 1 for all channels before continuing.");
         return;
-    }
+    }*/
     
     // Save data and continue to next module
     saveDI16TestData(window.currentDIModule);
@@ -583,7 +750,9 @@ async function handleDI16TestSubmission() {
     
     if (window.currentDIModule > window.diModulesToTest) {
         // All DI modules tested, go to DO page
-        navigationGuard.markPageAsCompleted();
+        if (typeof navigationGuard !== 'undefined' && navigationGuard.markPageAsCompleted) {
+            navigationGuard.markPageAsCompleted();
+        }
         window.location.href = 'FunctionalityDOPage.html';
     } else {
         // Check module type for next module
@@ -596,20 +765,20 @@ async function handleDI16TestSubmission() {
     }
 }
 
-// New validation function for radio buttons (DI-32)
-function validateRadioButtons() {
+// New validation function for checkbox groups (DI-32)
+function validateCheckboxGroups() {
     const rows = document.querySelectorAll("#tableBody tr");
     
     for (const row of rows) {
         // Check left side (columns 2-3)
-        const leftRadios = row.querySelectorAll('td:nth-child(2) input[type="radio"], td:nth-child(3) input[type="radio"]');
-        const leftSelected = Array.from(leftRadios).some(radio => radio.checked);
+        const leftCheckboxes = row.querySelectorAll('td:nth-child(2) input[type="checkbox"], td:nth-child(3) input[type="checkbox"]');
+        const leftSelected = Array.from(leftCheckboxes).some(checkbox => checkbox.checked);
         
         // Check right side (columns 8-9)
-        const rightRadios = row.querySelectorAll('td:nth-child(8) input[type="radio"], td:nth-child(9) input[type="radio"]');
-        const rightSelected = Array.from(rightRadios).some(radio => radio.checked);
+        const rightCheckboxes = row.querySelectorAll('td:nth-child(8) input[type="checkbox"], td:nth-child(9) input[type="checkbox"]');
+        const rightSelected = Array.from(rightCheckboxes).some(checkbox => checkbox.checked);
         
-        // Both sides must have one radio selected
+        // Both sides must have one checkbox selected
         if (!leftSelected || !rightSelected) {
             return false;
         }
@@ -618,13 +787,13 @@ function validateRadioButtons() {
     return true;
 }
 
-// New validation function for radio buttons (DI-16)
-function validateDI16RadioButtons() {
+// New validation function for checkbox groups (DI-16)
+function validateDI16CheckboxGroups() {
     const rows = document.querySelectorAll("#di16TableBody tr");
     
     for (const row of rows) {
-        const radios = row.querySelectorAll('td:nth-child(2) input[type="radio"], td:nth-child(3) input[type="radio"]');
-        const hasSelection = Array.from(radios).some(radio => radio.checked);
+        const checkboxes = row.querySelectorAll('td:nth-child(2) input[type="checkbox"], td:nth-child(3) input[type="checkbox"]');
+        const hasSelection = Array.from(checkboxes).some(checkbox => checkbox.checked);
         
         if (!hasSelection) {
             return false;
@@ -674,7 +843,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved test results if available
     const savedResults = localStorage.getItem('diTestResults');
     if (savedResults) {
-        window.diTestResults = JSON.parse(savedResults);
+        try {
+            window.diTestResults = JSON.parse(savedResults);
+        } catch (e) {
+            console.error('Error parsing saved results:', e);
+            window.diTestResults = {};
+        }
     }
     
     // Initialize module tracking
@@ -685,7 +859,6 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.removeItem('returningToDI'); // Clear the flag
     
     if (returningFromDO) {
-        // Use the last DI module (but ensure it doesn't exceed total modules)
         const lastDIModule = parseInt(localStorage.getItem('lastDIModule')) || window.diModulesToTest;
         window.currentDIModule = Math.min(lastDIModule, window.diModulesToTest);
     } else {
@@ -702,12 +875,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved module types if available
     const savedTypes = localStorage.getItem('diModuleTypes');
     if (savedTypes) {
-        window.diModuleTypes = JSON.parse(savedTypes);
+        try {
+            window.diModuleTypes = JSON.parse(savedTypes);
+        } catch (e) {
+            console.error('Error parsing module types:', e);
+            window.diModuleTypes = {};
+        }
     } else {
         window.diModuleTypes = {};
-        // Initialize with default types if none saved
         for (let i = 1; i <= window.diModulesToTest; i++) {
-            window.diModuleTypes[i] = 'DI-32'; // Default type
+            window.diModuleTypes[i] = 'DI-32';
         }
     }
     
@@ -722,8 +899,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showFunctionalityDIPage();
     }
 });
-
-// Removed quality inspection validation functions - they're now in QualityInspectionDI.js
 
 function validateIOAIndexFields() {
     // 1. Determine current page and scope
@@ -767,26 +942,21 @@ function validateIOAIndexFields() {
     let globalIEC101 = [];
     let globalIEC104 = [];
     
-    // Track which module AND cell each value comes from
-    let cellSources101 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
-    let cellSources104 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
+    let cellSources101 = {};
+    let cellSources104 = {};
 
-    // A. Load ALL data from LocalStorage
     const rawData = localStorage.getItem('diTestResults');
     const savedResults = rawData ? JSON.parse(rawData) : {};
     
-    // B. REMOVE the current module's saved data from memory
     const currentModKey = String(window.currentDIModule);
     if (savedResults[currentModKey]) {
         delete savedResults[currentModKey];
     }
 
-    // C. Collect IEC101/104 from ALL OTHER modules with detailed cell tracking
     for (const modKey in savedResults) {
         const moduleData = savedResults[modKey];
         if (!moduleData) continue;
 
-        // Track IEC101 values with cell information
         if (moduleData.iec101Values) {
             Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
@@ -795,14 +965,11 @@ function validateIOAIndexFields() {
                     if (!cellSources101[trimmedVal]) {
                         cellSources101[trimmedVal] = [];
                     }
-                    // Extract channel number from the key format: "DI_X_IEC101_Y" or "DI_X_IEC101_Y"
                     let cellName = 'Unknown Cell';
-                    // Match patterns like "DI_1_IEC101_1" or "DI_1_IEC101_17"
                     const match = cellKey.match(/DI_\d+_IEC101_(\d+)/);
                     if (match) {
                         cellName = `IEC101-NO: ${match[1]}`;
                     } else if (cellKey.includes('IEC101')) {
-                        // Try alternative pattern
                         const altMatch = cellKey.match(/_(\d+)$/);
                         if (altMatch) {
                             cellName = `IEC101-NO: ${altMatch[1]}`;
@@ -813,7 +980,6 @@ function validateIOAIndexFields() {
             });
         }
 
-        // Track IEC104 values with cell information
         if (moduleData.iec104Values) {
             Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
@@ -822,7 +988,6 @@ function validateIOAIndexFields() {
                     if (!cellSources104[trimmedVal]) {
                         cellSources104[trimmedVal] = [];
                     }
-                    // Extract channel number from the key format: "DI_X_IEC104_Y"
                     let cellName = 'Unknown Cell';
                     const match = cellKey.match(/DI_\d+_IEC104_(\d+)/);
                     if (match) {
@@ -839,7 +1004,6 @@ function validateIOAIndexFields() {
         }
     }
 
-    // D. Add the LIVE data from the current screen with cell tracking
     currentIEC101Inputs.forEach(input => {
         const val = input.value.trim();
         if (val !== "") {
@@ -847,15 +1011,12 @@ function validateIOAIndexFields() {
             if (!cellSources101[val]) {
                 cellSources101[val] = [];
             }
-            // Get cell name from input name - format: "DI_X_IEC101_Y"
             let cellName = 'Current Cell';
             const inputName = input.name || '';
-            // Match patterns like "DI_1_IEC101_1" or "DI_1_IEC101_17"
             const match = inputName.match(/DI_\d+_IEC101_(\d+)/);
             if (match) {
                 cellName = `IEC101-NO: ${match[1]}`;
             } else if (inputName.includes('IEC101')) {
-                // Try alternative pattern
                 const altMatch = inputName.match(/_(\d+)$/);
                 if (altMatch) {
                     cellName = `IEC101-NO: ${altMatch[1]}`;
@@ -872,7 +1033,6 @@ function validateIOAIndexFields() {
             if (!cellSources104[val]) {
                 cellSources104[val] = [];
             }
-            // Get cell name from input name - format: "DI_X_IEC104_Y"
             let cellName = 'Current Cell';
             const inputName = input.name || '';
             const match = inputName.match(/DI_\d+_IEC104_(\d+)/);
@@ -888,7 +1048,6 @@ function validateIOAIndexFields() {
         }
     });
 
-    // E. Perform Validation (Limit: 2 duplicates allowed globally)
     let isValid = true;
     let errorMessages = [];
 
@@ -937,13 +1096,12 @@ function validateIOAIndexFields() {
     if (!isValid) {
         const alertMessage = `IOA/Index Validation Failed - Duplicate Values Found:\n\n${errorMessages.join('\n\n')}\n\n⚠️  Each IOA value can appear maximum TWICE across ALL modules.\nPlease change duplicate values to unique ones.`;
         alert(alertMessage);
-        //return false;
+        return false;
     }
 
     return true;
 }
 
-// Helper function to find values that appear more than maxAllowed times
 function findExcessiveDuplicates(array, maxAllowed) {
     const countMap = {};
     const excessive = [];
@@ -960,4 +1118,3 @@ function findExcessiveDuplicates(array, maxAllowed) {
     
     return excessive;
 }
-// You'll need to update the navigation in your main flow to use QualityInspectionDI.html instead of FunctionalityDIPage.html for the first step
