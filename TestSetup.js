@@ -1,5 +1,6 @@
 // Navigation functions
 function goToPreviousPage() {
+    saveCheckboxStates();  // Save before going back
     window.location.href = 'ProductDeclaration.html';
 }
 
