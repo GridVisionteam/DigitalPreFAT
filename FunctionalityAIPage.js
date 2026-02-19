@@ -72,6 +72,11 @@ function generateAIRows() {
 }
 
 async function saveAndGoToNext() {
+    // Validate all checkboxes are ticked
+    if (!validateAICheckboxes()) {
+        return;
+    }
+
     // Validate all required inputs are filled
     if (!validateAIInputs()) {
         return;
@@ -239,109 +244,285 @@ function validateAIInputs() {
             // Remove any existing error styling
             input.parentElement.style.backgroundColor = '';
             input.parentElement.style.border = '';
+            input.style.border = '';
             return;
         }
         
-        // For checkbox inputs - validate if they are checked
+        // For checkbox inputs - NO VALIDATION REQUIRED
         if (input.type === 'checkbox') {
-            if (!input.checked) {
-                // Apply more visible error styling to the parent cell
-                input.parentElement.style.backgroundColor = '#ffebee';
-                input.parentElement.style.border = '2px solid red';
-                emptyInputs.push(input.name);
-                isValid = false;
-            } else {
-                // Clear error styling
-                input.parentElement.style.backgroundColor = '';
-                input.parentElement.style.border = '';
-            }
+            // Just clear any previous error styling to be safe
+            input.parentElement.style.backgroundColor = '';
+            input.parentElement.style.border = '';
         }
-        // For number inputs (protocol) - validate they have values
+        // For number inputs (IOA) - validate they have values
         else if (input.type === 'number' && !input.value.trim()) {
             input.style.border = '2px solid red';
             input.style.backgroundColor = '#ffebee';
             emptyInputs.push(input.name);
             isValid = false;
         } else {
+            // Clear styles if valid
             input.style.border = '';
             input.style.backgroundColor = '';
         }
     });
     
     if (!isValid) {
-        alert('Please fill in all required fields before continuing. All checkboxes must be ticked and number fields must be filled.');
+        alert('Please fill in all required IOA/Index fields (IEC101/IEC104) before continuing.');
     }
     
     return isValid;
 }
 
-// Validate IOA index fields for IEC101 and IEC104 only
 function validateAIIOAIndexFields() {
-    // Get all IEC101 and IEC104 input fields
-    const iec101Inputs = document.querySelectorAll('input[class*="ai-test-input"][name*="IEC101"]');
-    const iec104Inputs = document.querySelectorAll('input[class*="ai-test-input"][name*="IEC104"]');
-    
-    let isValid = true;
-    let duplicateFields = [];
+    // 1. Determine current page and scope
+    const aiPage = document.getElementById('functionalityAIPage');
+    if (!aiPage || aiPage.style.display === 'none') {
+        return false;
+    }
 
-    // Reset previous red borders
-    [...iec101Inputs, ...iec104Inputs].forEach(input => {
-        input.style.border = ''; // clear border
-        input.style.backgroundColor = ''; // clear background
+    // 2. Get LIVE inputs from the current screen
+    const currentIEC101Inputs = document.querySelectorAll('#functionalityAIPage input.ai-test-input[name*="IEC101"]');
+    const currentIEC104Inputs = document.querySelectorAll('#functionalityAIPage input.ai-test-input[name*="IEC104"]');
+
+    // Reset red borders
+    [...currentIEC101Inputs, ...currentIEC104Inputs].forEach(input => {
+        input.style.border = '';
+        input.style.backgroundColor = '';
     });
 
-    // Check for duplicate values in IEC101 column
-    const iec101Values = Array.from(iec101Inputs).map(input => input.value.trim()).filter(val => val !== '');
-    const iec101Duplicates = findDuplicates(iec101Values);
-    if (iec101Duplicates.length > 0) {
+    // --- CHECK 1: Ensure Fields are Filled ---
+    let emptyFound = false;
+    currentIEC101Inputs.forEach(input => {
+        if (!input.value.trim()) { 
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            emptyFound = true; 
+        }
+    });
+    currentIEC104Inputs.forEach(input => {
+        if (!input.value.trim()) { 
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            emptyFound = true; 
+        }
+    });
+
+    if (emptyFound) {
+        alert("Please fill in all required IOA/Index fields before continuing.");
+        return false;
+    }
+
+    // --- CHECK 2: Global Duplicates (Max 1 Allowed Total for AI - Strict Unique) ---
+    let globalIEC101 = [];
+    let globalIEC104 = [];
+    
+    // Track which module AND cell each value comes from
+    let cellSources101 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
+    let cellSources104 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
+
+    // A. Load ALL data from LocalStorage
+    const rawData = localStorage.getItem('aiTestResults');
+    const savedResults = rawData ? JSON.parse(rawData) : {};
+    
+    // B. REMOVE the current module's saved data from memory
+    const currentModKey = String(window.currentAIModule);
+    if (savedResults[currentModKey]) {
+        delete savedResults[currentModKey];
+    }
+
+    // C. Collect IEC101/104 from ALL OTHER modules with detailed cell tracking
+    for (const modKey in savedResults) {
+        const moduleData = savedResults[modKey];
+        if (!moduleData) continue;
+
+        // Track IEC101 values with cell information
+        if (moduleData.iec101Values) {
+            Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
+                const trimmedVal = String(val).trim();
+                if (trimmedVal !== "") {
+                    globalIEC101.push(trimmedVal);
+                    if (!cellSources101[trimmedVal]) {
+                        cellSources101[trimmedVal] = [];
+                    }
+                    // Extract channel number from the key format: "AI_X_IEC101_Y"
+                    let cellName = 'Unknown Cell';
+                    // Match patterns like "AI_1_IEC101_1"
+                    const match = cellKey.match(/AI_(\d+)_IEC101_(\d+)/);
+                    if (match) {
+                        const moduleNum = match[1];
+                        const channelNum = match[2];
+                        cellName = `IEC101-NO: ${channelNum}`;
+                    } else if (cellKey.includes('IEC101')) {
+                        // Try alternative pattern
+                        const altMatch = cellKey.match(/_(\d+)$/);
+                        if (altMatch) {
+                            cellName = `IEC101-NO: ${altMatch[1]}`;
+                        }
+                    }
+                    cellSources101[trimmedVal].push({module: `Module ${modKey}`, cell: cellName});
+                }
+            });
+        }
+
+        // Track IEC104 values with cell information
+        if (moduleData.iec104Values) {
+            Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
+                const trimmedVal = String(val).trim();
+                if (trimmedVal !== "") {
+                    globalIEC104.push(trimmedVal);
+                    if (!cellSources104[trimmedVal]) {
+                        cellSources104[trimmedVal] = [];
+                    }
+                    // Extract channel number from the key format: "AI_X_IEC104_Y"
+                    let cellName = 'Unknown Cell';
+                    const match = cellKey.match(/AI_(\d+)_IEC104_(\d+)/);
+                    if (match) {
+                        const moduleNum = match[1];
+                        const channelNum = match[2];
+                        cellName = `IEC104-NO: ${channelNum}`;
+                    } else if (cellKey.includes('IEC104')) {
+                        const altMatch = cellKey.match(/_(\d+)$/);
+                        if (altMatch) {
+                            cellName = `IEC104-NO: ${altMatch[1]}`;
+                        }
+                    }
+                    cellSources104[trimmedVal].push({module: `Module ${modKey}`, cell: cellName});
+                }
+            });
+        }
+    }
+
+    // D. Add the LIVE data from the current screen with cell tracking
+    currentIEC101Inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val !== "") {
+            globalIEC101.push(val);
+            if (!cellSources101[val]) {
+                cellSources101[val] = [];
+            }
+            // Get cell name from input name - format: "AI_X_IEC101_Y"
+            let cellName = 'Current Cell';
+            const inputName = input.name || '';
+            // Match patterns like "AI_1_IEC101_1"
+            const match = inputName.match(/AI_(\d+)_IEC101_(\d+)/);
+            if (match) {
+                const moduleNum = match[1];
+                const channelNum = match[2];
+                cellName = `IEC101-NO: ${channelNum}`;
+            } else if (inputName.includes('IEC101')) {
+                // Try alternative pattern
+                const altMatch = inputName.match(/_(\d+)$/);
+                if (altMatch) {
+                    cellName = `IEC101-NO: ${altMatch[1]}`;
+                }
+            }
+            cellSources101[val].push({module: `Current Module (${currentModKey})`, cell: cellName});
+        }
+    });
+
+    currentIEC104Inputs.forEach(input => {
+        const val = input.value.trim();
+        if (val !== "") {
+            globalIEC104.push(val);
+            if (!cellSources104[val]) {
+                cellSources104[val] = [];
+            }
+            // Get cell name from input name - format: "AI_X_IEC104_Y"
+            let cellName = 'Current Cell';
+            const inputName = input.name || '';
+            const match = inputName.match(/AI_(\d+)_IEC104_(\d+)/);
+            if (match) {
+                const moduleNum = match[1];
+                const channelNum = match[2];
+                cellName = `IEC104-NO: ${channelNum}`;
+            } else if (inputName.includes('IEC104')) {
+                const altMatch = inputName.match(/_(\d+)$/);
+                if (altMatch) {
+                    cellName = `IEC104-NO: ${altMatch[1]}`;
+                }
+            }
+            cellSources104[val].push({module: `Current Module (${currentModKey})`, cell: cellName});
+        }
+    });
+
+    // E. Perform Validation (Limit: 1 duplicate allowed globally for AI - Strict Unique)
+    let isValid = true;
+    let errorMessages = [];
+
+    const excessiveIEC101 = findExcessiveDuplicates(globalIEC101, 1); // Max 1 for AI
+    if (excessiveIEC101.length > 0) {
         isValid = false;
-        iec101Inputs.forEach(input => {
-            if (iec101Duplicates.includes(input.value.trim())) {
+        excessiveIEC101.forEach(duplicateValue => {
+            const sources = cellSources101[duplicateValue] || [];
+            const sourceDetails = sources.map((source, index) => 
+                `     ${index + 1}. ${source.module} - ${source.cell}`
+            ).join('\n');
+            
+            const locationText = sources.length > 0 ? 
+                `Found in:\n${sourceDetails}` : 
+                'Location not identified';
+            
+            errorMessages.push(`IEC101: Value "${duplicateValue}" appears more than once.\n${locationText}`);
+        });
+        
+        currentIEC101Inputs.forEach(input => {
+            if (excessiveIEC101.includes(input.value.trim())) {
                 input.style.border = '2px solid red';
                 input.style.backgroundColor = '#ffebee';
             }
         });
-        duplicateFields.push(`IEC101: Duplicate values found (${iec101Duplicates.join(', ')})`);
     }
 
-    // Check for duplicate values in IEC104 column
-    const iec104Values = Array.from(iec104Inputs).map(input => input.value.trim()).filter(val => val !== '');
-    const iec104Duplicates = findDuplicates(iec104Values);
-    if (iec104Duplicates.length > 0) {
+    const excessiveIEC104 = findExcessiveDuplicates(globalIEC104, 1); // Max 1 for AI
+    if (excessiveIEC104.length > 0) {
         isValid = false;
-        iec104Inputs.forEach(input => {
-            if (iec104Duplicates.includes(input.value.trim())) {
+        excessiveIEC104.forEach(duplicateValue => {
+            const sources = cellSources104[duplicateValue] || [];
+            const sourceDetails = sources.map((source, index) => 
+                `     ${index + 1}. ${source.module} - ${source.cell}`
+            ).join('\n');
+            
+            const locationText = sources.length > 0 ? 
+                `Found in:\n${sourceDetails}` : 
+                'Location not identified';
+            
+            errorMessages.push(`IEC104: Value "${duplicateValue}" appears more than once.\n${locationText}`);
+        });
+        
+        currentIEC104Inputs.forEach(input => {
+            if (excessiveIEC104.includes(input.value.trim())) {
                 input.style.border = '2px solid red';
                 input.style.backgroundColor = '#ffebee';
             }
         });
-        duplicateFields.push(`IEC104: Duplicate values found (${iec104Duplicates.join(', ')})`);
     }
 
-    if (duplicateFields.length > 0) {
-        alert(`Duplicate IOA index values found:\n${duplicateFields.join('\n')}\n\n`);
+    if (!isValid) {
+        const alertMessage = `IOA/Index Validation Failed - Duplicate Values Found:\n\n${errorMessages.join('\n\n')}\n\n⚠️  For AI modules, each IOA value must be UNIQUE across ALL AI modules.\nPlease change duplicate values to unique ones.`;
+        alert(alertMessage);
         return false;
     }
 
     return true;
 }
 
-// Helper function to find duplicate values in an array
-function findDuplicates(arr) {
-    const duplicates = [];
-    const seen = {};
+// Helper function to find values that appear more than maxAllowed times
+function findExcessiveDuplicates(array, maxAllowed) {
+    const countMap = {};
+    const excessive = [];
     
-    arr.forEach(value => {
-        if (seen[value]) {
-            if (!duplicates.includes(value)) {
-                duplicates.push(value);
-            }
-        } else {
-            seen[value] = true;
-        }
+    array.forEach(value => {
+        countMap[value] = (countMap[value] || 0) + 1;
     });
     
-    return duplicates;
+    for (const [value, count] of Object.entries(countMap)) {
+        if (count > maxAllowed) {
+            excessive.push(value);
+        }
+    }
+    
+    return excessive;
 }
 
 function showCustomAlert(message) {
@@ -370,3 +551,34 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize with AI page
     showFunctionalityAIPage();
 });
+
+
+function validateAICheckboxes() {
+    let allChecked = true;
+    const checkboxes = document.querySelectorAll('#functionalityAIPage input[type="checkbox"].ai-test-input');
+    const emptyCheckboxes = [];
+    
+    checkboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            allChecked = false;
+            emptyCheckboxes.push(checkbox);
+            // Highlight unchecked checkboxes
+            checkbox.parentElement.style.backgroundColor = '#ffebee';
+            checkbox.parentElement.style.border = '2px solid red';
+        } else {
+            // Clear styles if checked
+            checkbox.parentElement.style.backgroundColor = '';
+            checkbox.parentElement.style.border = '';
+        }
+    });
+    
+    if (!allChecked) {
+        // Scroll to first unchecked checkbox
+        if (emptyCheckboxes.length > 0) {
+            emptyCheckboxes[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showCustomAlert('Please tick all checkboxes (0mA, 4mA, 8mA, 12mA, 16mA, 20mA) for all channels before continuing.');
+    }
+    
+    return allChecked;
+}
