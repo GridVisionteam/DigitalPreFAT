@@ -2,7 +2,7 @@ let userData = {};
 window.diTestResults = {};
 window.diModuleTypes = {};
 const serialNumberTracker = {
-    usedSerials: new Map(),
+    usedSerials: new Map(), // Stores serial -> {moduleType, moduleNo}
     checkDuplicate: function(serial) {
         if (!serial) return false;
         return this.usedSerials.has(serial);
@@ -26,12 +26,14 @@ function updatePartNumberSummary(moduleSheet) {
     
     if (!summaryElement) return;
     
+    // Count part number selections
     const partCounts = {};
     partNoSelects.forEach(select => {
         const partNo = select.value;
         partCounts[partNo] = (partCounts[partNo] || 0) + 1;
     });
     
+    // Update summary text
     const summaryParts = [];
     for (const [partNo, count] of Object.entries(partCounts)) {
         summaryParts.push(`${count}x ${partNo}`);
@@ -40,28 +42,37 @@ function updatePartNumberSummary(moduleSheet) {
     summaryElement.textContent = summaryParts.join(', ') || 'No parts selected';
 }
 
-async function goToNext() {
-    window.formTiming = window.formTiming || {};
+async function goToNext(returnOnly = false) {
+    // ==========================================
+    // 1. VALIDATION PHASE
+    // ==========================================
 
-    // 1. ENABLED VALIDATION
+    // Generic validation
     if (typeof validateAllModuleFields === 'function') {
-        if (!validateAllModuleFields()) return;
+        if (!validateAllModuleFields()) {
+            if (returnOnly) return null;
+            return;
+        }
     }
 
-    // 2. Initialize types
+    // ==========================================
+    // 2. DATA SAVING PHASE
+    // ==========================================
+    
+    // Initialize module types if needed
     if (!window.diModuleTypes) window.diModuleTypes = {};
     if (!window.doModuleTypes) window.doModuleTypes = {};
-
-    // 3. Save Headers
+    
+    // Save checker name & vendor - UPDATED TO SAVE BOTH FORMATS
     const checkerName = document.getElementById('checkerName')?.value || '';
     const vendorNumber = document.getElementById('vendorNumber')?.value || '';
 
     localStorage.setItem('checkerName', checkerName);
     localStorage.setItem('vendorNumber', vendorNumber);
-    localStorage.setItem('session_checkerName', checkerName);
-    localStorage.setItem('session_vendorNumber', vendorNumber);
+    localStorage.setItem('session_checkerName', checkerName);  // ADD THIS
+    localStorage.setItem('session_vendorNumber', vendorNumber); // ADD THIS
 
-    // 4. Save Counts
+    // Get the counts
     const processorCount = parseInt(document.getElementById('processorCount').value) || 0;
     const powerCount = parseInt(document.getElementById('powerCount').value) || 0;
     const diCount = parseInt(document.getElementById('diCount').value) || 0;
@@ -70,78 +81,203 @@ async function goToNext() {
     const comCount = parseInt(document.getElementById('comCount').value) || 0;
     const aoCount = parseInt(document.getElementById('aoCount')?.value) || 0;
 
-    // 5. Helper to extract data
-    const extractRowData = (selector) => {
-        const rows = document.querySelectorAll(selector);
-        return [...rows].map(row => ({
-            partNo: row.querySelector('select[name$="_part_no"]')?.value || '',
-            subrack: row.querySelector('input[name$="_subrack"]')?.value || '',
-            slot: row.querySelector('input[name$="_slot"]')?.value || '',
-            serial: row.querySelector('input[name$="_serial"]')?.value || ''
-        }));
+    // Helper to extract row data
+    const extractRowData = (rows) => {
+        const data = [];
+        rows.forEach(row => {
+            data.push({
+                partNo: row.querySelector('select[name$="_part_no"]')?.value,
+                subrack: row.querySelector('input[name$="_subrack"]')?.value,
+                slot: row.querySelector('input[name$="_slot"]')?.value,
+                serial: row.querySelector('input[name$="_serial"]')?.value
+            });
+        });
+        return data;
     };
 
-    // 6. Save Module Details to LocalStorage
-    localStorage.setItem('processorModulesDetails', JSON.stringify(extractRowData('.module-sheet[data-module-type="Processor"] tbody tr')));
-    localStorage.setItem('powerModulesDetails', JSON.stringify(extractRowData('.module-sheet[data-module-type="Power"] tbody tr')));
-    localStorage.setItem('subrackModulesDetails', JSON.stringify(extractRowData('.module-sheet[data-module-type="Subrack"] tbody tr')));
-    localStorage.setItem('comModulesDetails', JSON.stringify(extractRowData('.module-sheet[data-module-type="COM"] tbody tr')));
-    localStorage.setItem('aiModulesDetails', JSON.stringify(extractRowData('.module-sheet[data-module-type="AI"] tbody tr')));
-    localStorage.setItem('aoModulesDetails', JSON.stringify(extractRowData('.module-sheet[data-module-type="AO"] tbody tr')));
+    // Save Processor modules
+    const processorModulesData = extractRowData(document.querySelectorAll('.module-sheet[data-module-type="Processor"] tbody tr'));
+    localStorage.setItem('processorModulesDetails', JSON.stringify(processorModulesData));
+    
+    // Save Power modules
+    const powerModulesData = extractRowData(document.querySelectorAll('.module-sheet[data-module-type="Power"] tbody tr'));
+    localStorage.setItem('powerModulesDetails', JSON.stringify(powerModulesData));
 
+    // Save Subrack modules
+    const subrackModulesData = extractRowData(document.querySelectorAll('.module-sheet[data-module-type="Subrack"] tbody tr'));
+    localStorage.setItem('subrackModulesDetails', JSON.stringify(subrackModulesData));
+
+    // Save COM modules
+    const comModulesData = extractRowData(document.querySelectorAll('.module-sheet[data-module-type="COM"] tbody tr'));
+    localStorage.setItem('comModulesDetails', JSON.stringify(comModulesData));
+    
+    // Save DI modules (with type logic)
     const diModulesData = [];
-    document.querySelectorAll('.module-sheet[data-module-type="DI"] tbody tr').forEach((row, i) => {
+    document.querySelectorAll('.module-sheet[data-module-type="DI"] tbody tr').forEach((row, index) => {
         const partNo = row.querySelector('select[name$="_part_no"]')?.value;
-        const type = partNo?.includes('DI-16') ? 'DI-16' : 'DI-32';
-        window.diModuleTypes[i + 1] = type;
+        let moduleType = 'DI-32'; 
+        if (partNo && partNo.includes('DI-16')) moduleType = 'DI-16';
+        
+        window.diModuleTypes[index + 1] = moduleType;
         diModulesData.push({
-            partNo,
+            partNo: partNo,
             subrack: row.querySelector('input[name$="_subrack"]')?.value,
             slot: row.querySelector('input[name$="_slot"]')?.value,
             serial: row.querySelector('input[name$="_serial"]')?.value,
-            type
+            type: moduleType
         });
     });
-    localStorage.setItem('diModulesDetails', JSON.stringify(diModulesData));
-
+    localStorage.setItem('diModuleTypes', JSON.stringify(window.diModuleTypes));
+    
+    // Save DO modules (with type logic)
     const doModulesData = [];
-    document.querySelectorAll('.module-sheet[data-module-type="DO"] tbody tr').forEach((row, i) => {
+    document.querySelectorAll('.module-sheet[data-module-type="DO"] tbody tr').forEach((row, index) => {
         const partNo = row.querySelector('select[name$="_part_no"]')?.value;
-        const type = partNo?.includes('CO-8') ? 'CO-8-A' : 'CO-16-A';
-        window.doModuleTypes[i + 1] = type;
+        let moduleType = 'CO-16-A';
+        if (partNo && partNo.includes('CO-8')) moduleType = 'CO-8-A';
+        
+        window.doModuleTypes[index + 1] = moduleType;
         doModulesData.push({
-            partNo,
+            partNo: partNo,
             subrack: row.querySelector('input[name$="_subrack"]')?.value,
             slot: row.querySelector('input[name$="_slot"]')?.value,
             serial: row.querySelector('input[name$="_serial"]')?.value,
-            type
+            type: moduleType
         });
     });
-    localStorage.setItem('doModulesDetails', JSON.stringify(doModulesData));
+    localStorage.setItem('doModuleTypes', JSON.stringify(window.doModuleTypes));
 
+    // Save AI modules
+    const aiModulesData = extractRowData(document.querySelectorAll('.module-sheet[data-module-type="AI"] tbody tr'));
+
+    // Save AO modules
+    const aoModulesData = extractRowData(document.querySelectorAll('.module-sheet[data-module-type="AO"] tbody tr'));
+    localStorage.setItem('aoModulesDetails', JSON.stringify(aoModulesData));
+
+    // Save final counts and details
     localStorage.setItem('diModulesToTest', diCount);
     localStorage.setItem('doModulesToTest', doCount);
     localStorage.setItem('aiModulesToTest', aiCount);
     localStorage.setItem('processorCount', processorCount);
     localStorage.setItem('powerCount', powerCount);
+    localStorage.setItem('diModulesDetails', JSON.stringify(diModulesData));
+    localStorage.setItem('doModulesDetails', JSON.stringify(doModulesData));
+    localStorage.setItem('aiModulesDetails', JSON.stringify(aiModulesData));
+    localStorage.setItem('currentDIModule', 1);
+    localStorage.setItem('currentDOModule', 1);
+    localStorage.setItem('currentAIModule', 1);
     localStorage.setItem('comCount', comCount);
     localStorage.setItem('aoModulesToTest', aoCount);
 
-    // ✅ DIRECT REDIRECT - NO FILE GENERATION
-    setTimeout(() => {
-        window.location.href = "Pre-requisite.html";
-    }, 100);
+    // ==========================================
+    // 3. DATA PREPARATION FOR BOTH MODES
+    // ==========================================
+    
+    // Create the Export Data Object (needed for both modes)
+    const exportData = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        try {
+            exportData[key] = JSON.parse(localStorage.getItem(key));
+        } catch (e) {
+            exportData[key] = localStorage.getItem(key);
+        }
+    }
+    
+    // Metadata setup
+    const now = new Date();
+    const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
+    const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+    
+    exportData.metadata = {
+        generationDate: now.toISOString(),
+        rtuSerial: rtuSerial,
+        contractNo: contractNo,
+        testerName: localStorage.getItem('session_name') || 'N/A'
+    };
+
+    // ==========================================
+    // 4. RETURN-ONLY MODE (for Drive upload)
+    // ==========================================
+    if (returnOnly) {
+        try {
+            // Generate TXT content
+            let txtContent = '';
+            if (typeof generateTXTContent === 'function') {
+                txtContent = generateTXTContent();
+            }
+            
+            // Generate PDF blob
+            let pdfResult = null;
+            if (typeof generateAndDownloadPDF === 'function') {
+                pdfResult = await generateAndDownloadPDF(contractNo, rtuSerial, true);
+            }
+            
+            // Return the data for Drive upload
+            return {
+                jsonData: JSON.stringify(exportData, null, 2),
+                txtContent: txtContent,
+                pdfBlob: pdfResult
+            };
+        } catch (error) {
+            console.error('Error in returnOnly mode:', error);
+            return null;
+        }
+    }
+    
+    // ==========================================
+    // 5. DOWNLOAD MODE (original behavior)
+    // ==========================================
+    try {
+        showCustomAlert('Saving and Generating Backup Files...');
+
+        // A. DOWNLOAD JSON
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`);
+        document.body.appendChild(linkElement);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+
+        // B. DOWNLOAD TXT
+        if (typeof generateTXTContent === 'function') {
+            const txtContent = generateTXTContent();
+            const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
+            const txtLinkElement = document.createElement('a');
+            txtLinkElement.setAttribute('href', txtDataUri);
+            txtLinkElement.setAttribute('download', `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`);
+            document.body.appendChild(txtLinkElement);
+            txtLinkElement.click();
+            document.body.removeChild(txtLinkElement);
+
+            // C. GENERATE QR CODE
+            if (typeof generateAndDownloadQRCode === 'function') {
+                await generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial);
+            }
+        }
+
+        // D. GENERATE PDF
+        if (typeof generateAndDownloadPDF === 'function') {
+            await generateAndDownloadPDF(contractNo, rtuSerial, false);
+        }
+
+    } catch (error) {
+        console.error('Export Warning:', error);
+    }
+
+    // ==========================================
+    // 6. REDIRECT PHASE - Only redirect if not in returnOnly mode
+    // ==========================================
+    if (!returnOnly) {
+        setTimeout(() => {
+            window.location.href = './Pre-requisite.html';
+        }, 1500); 
+    }
 }
 
-// --- UPDATE EVENT LISTENER ---
-const submitBtn = document.getElementById('submitBtn');
-if (submitBtn) {
-    submitBtn.addEventListener('click', async function () {
-        saveCurrentBQCounts();
-        // ENABLED VALIDATION
-        await goToNext();
-    });
-}
 
 function validateAllModuleFields() {
     // Check if any sheets have been generated
@@ -152,7 +288,7 @@ function validateAllModuleFields() {
     }
     
     serialNumberTracker.clearAll();
-    // REMOVED duplicate checking logic
+    let duplicateDetails = [];
     
     // First, clear all previous error styles
     document.querySelectorAll('input[name$="_serial"]').forEach(input => {
@@ -160,7 +296,7 @@ function validateAllModuleFields() {
     });
 
     // Validate Serial Number Checker's Name
-   /* const checkerNameInput = document.getElementById('checkerName');
+    const checkerNameInput = document.getElementById('checkerName');
     if (checkerNameInput && checkerNameInput.style.display !== 'none') {
         const checkerName = checkerNameInput.value.trim();
         if (!checkerName) {
@@ -171,10 +307,10 @@ function validateAllModuleFields() {
         } else {
             checkerNameInput.style.border = '';
         }
-    }*/
+    }
 
     // Validate Vendor Number
-    /*const vendorNumberInput = document.getElementById('vendorNumber');
+    const vendorNumberInput = document.getElementById('vendorNumber');
     if (vendorNumberInput && vendorNumberInput.style.display !== 'none') {
         const vendorNumber = vendorNumberInput.value.trim();
         if (!vendorNumber) {
@@ -185,7 +321,7 @@ function validateAllModuleFields() {
         } else {
             vendorNumberInput.style.border = '';
         }
-    }*/
+    }
 
     for (const sheet of sheets) {
         const tableRows = sheet.querySelectorAll('tbody tr');
@@ -203,22 +339,18 @@ function validateAllModuleFields() {
                 return false;
             }
 
-            // 2. Validate Text Inputs (Subrack, Slot ONLY - NOT Serial)
+            // 2. Validate Text Inputs (Subrack, Slot, Serial)
             const inputs = row.querySelectorAll('input[required]');
             for (const input of inputs) {
                 const value = input.value.trim();
-                
-                // SKIP SERIAL NUMBER VALIDATION
-                if (input.name.includes('_serial')) {
-                    continue; // Skip validation for serial number
-                }
 
                 // Determine readable field name
                 let fieldName = 'Field';
                 if (input.name.includes('_subrack')) fieldName = 'Subrack No.';
                 else if (input.name.includes('_slot')) fieldName = 'Slot No.';
+                else if (input.name.includes('_serial')) fieldName = 'Serial No.';
 
-                // CHECK A: Is it empty? (for non-serial fields)
+                // CHECK A: Is it empty?
                 if (!value) {
                     showCustomAlert(`Please fill in ${fieldName} for ${moduleType} Module ${moduleNo}`);
                     input.focus();
@@ -240,9 +372,41 @@ function validateAllModuleFields() {
                 }
             }
             
-            // REMOVED serial number format validation (12 digits)
-            // REMOVED duplicate serial number checking
+            // Validate Serial Number format (12 digits)
+            const serialInput = row.querySelector('input[name$="_serial"]');
+            const serialValue = serialInput?.value.trim();
+            if (serialValue) {
+                // Check if serial number is exactly 12 digits
+                if (!/^\d{12}$/.test(serialValue)) {
+                    // Make the border red for invalid serial number
+                    serialInput.style.border = '2px solid red';
+                    showCustomAlert(`Serial Number for ${moduleType} Module ${moduleNo} must be exactly 12 digits.`);
+                    serialInput.focus();
+                    return false;
+                } else {
+                    // Ensure border is normal for valid serial numbers
+                    serialInput.style.border = '';
+                }
+                
+                if (serialNumberTracker.checkDuplicate(serialValue)) {
+                    duplicateDetails.push({
+                        serial: serialValue,
+                        location1: serialNumberTracker.getDuplicateLocation(serialValue),
+                        location2: `${moduleType} Module ${moduleNo}`
+                    });
+                } else {
+                    serialNumberTracker.addSerial(serialValue, moduleType, moduleNo);
+                }
+            } 
         }
+    }
+
+    if (duplicateDetails.length > 0) {
+        const duplicateMessages = duplicateDetails.map(d => 
+            `'${d.serial}' is used in both ${d.location1} and ${d.location2}`
+        );
+        showCustomAlert(`Duplicate Serial Numbers found:\n${duplicateMessages.join('\n')}`);
+        return false;
     }
 
     return true;
@@ -254,7 +418,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const backBtn = document.getElementById('backBtn');
     const submitBtn = document.getElementById('submitBtn');
     const sheetsContainer = document.getElementById('sheetsContainer');
-    
     function saveBQDetails(diCount, diModulesData) {
         localStorage.setItem('diModulesToTest', diCount);
         localStorage.setItem('currentDIModule', 1);
@@ -268,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pdfGeneratedTime: null,
         getFormFillingTime: function() {
             if (!this.loginTime || !this.generationStartTime) return null;
-            return (this.generationStartTime - this.loginTime) / 1000;
+            return (this.generationStartTime - this.loginTime) / 1000; // in seconds
         }
     };
 
@@ -298,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const sessionDesignation = localStorage.getItem('session_designation');
         const sessionExperience = localStorage.getItem('session_experience');
         const sessionContractNo = localStorage.getItem('session_contractNo');
+
 
         userData = {
             username: sessionUsername,
@@ -343,11 +507,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (aiCountInput) localStorage.setItem('session_aiCount', aiCountInput.value);
         if (aoCountInput) localStorage.setItem('session_aoCount', aoCountInput.value);
         
+        // Save checker name - ADD/UPDATE THIS
         const checkerNameInput = document.getElementById('checkerName');
         if (checkerNameInput) {
             localStorage.setItem('session_checkerName', checkerNameInput.value);
         }
         
+        // Save vendor number - ADD/UPDATE THIS
         const vendorNumberInput = document.getElementById('vendorNumber');
         if (vendorNumberInput) {
             localStorage.setItem('session_vendorNumber', vendorNumberInput.value);
@@ -367,17 +533,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const aiCountInput = document.getElementById('aiCount');
         const aoCountInput = document.getElementById('aoCount');
 
+        // Helper function to safely parse localStorage values
         const getParsedValue = (key) => {
             const value = localStorage.getItem(key);
             if (value === null) return '0';
             try {
+                // Try to parse JSON first (in case it's a stringified number)
                 const parsed = JSON.parse(value);
                 return String(parsed);
             } catch (e) {
+                // If not JSON, use directly (but remove any quotes)
                 return value.replace(/"/g, '');
             }
         };
 
+        // Load and set values from localStorage
         if (subrackCountInput) subrackCountInput.value = getParsedValue('session_subrackCount');
         if (processorCountInput) processorCountInput.value = getParsedValue('session_processorCount');
         if (powerCountInput) powerCountInput.value = getParsedValue('session_powerCount');
@@ -447,17 +617,20 @@ document.addEventListener('DOMContentLoaded', function() {
             checkerNameInput.value = localStorage.getItem('session_checkerName') || '';
         }
 
+        // Load vendor number
         const vendorNumberInput = document.getElementById('vendorNumber');
         if (vendorNumberInput) {
             vendorNumberInput.value = localStorage.getItem('session_vendorNumber') || '';
         }
 
+        // Show checker name section if there are modules
         const sheets = document.querySelectorAll('#sheetsContainer .module-sheet');
         const checkerNameSection = document.getElementById('checkerNameSection');
         if (checkerNameSection && sheets.length > 0) {
             checkerNameSection.style.display = 'block';
         }
 
+        // Show vendor number section if there are modules
         const vendorNumberSection = document.getElementById('vendorNumberSection');
         if (vendorNumberSection && sheets.length > 0) {
             vendorNumberSection.style.display = 'block';
@@ -465,96 +638,102 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Dynamic Sheet Creation Functions ---
-    function createModuleSheetBase(count, moduleType, partNumbers) {
-        const container = document.createElement('div');
-        container.className = 'module-sheet';
-        container.dataset.moduleType = moduleType;
+function createModuleSheetBase(count, moduleType, partNumbers) {
+    const container = document.createElement('div');
+    container.className = 'module-sheet';
+    container.dataset.moduleType = moduleType;
 
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'sheet-header';
-        const h3 = document.createElement('h3');
-        h3.textContent = `${moduleType.toUpperCase()} Modules (${count})`;
-        const label = document.createElement('span');
-        label.className = `module-type ${moduleType.toLowerCase()}`;
-        label.textContent = moduleType.toUpperCase();
-        headerDiv.appendChild(h3);
-        headerDiv.appendChild(label);
-        container.appendChild(headerDiv);
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'sheet-header';
+    const h3 = document.createElement('h3');
+    h3.textContent = `${moduleType.toUpperCase()} Modules (${count})`;
+    const label = document.createElement('span');
+    label.className = `module-type ${moduleType.toLowerCase()}`;
+    label.textContent = moduleType.toUpperCase();
+    headerDiv.appendChild(h3);
+    headerDiv.appendChild(label);
+    container.appendChild(headerDiv);
+    
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    ['Module No.', 'Part Number', 'Subrack No.', 'Slot No.', 'Serial No.'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+    });
+    
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    const tbody = document.createElement('tbody');
+    for (let i = 1; i <= count; i++) {
+        const row = document.createElement('tr');
         
-        const table = document.createElement('table');
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
+        row.insertCell().textContent = i;
         
-        ['Module No.', 'Part Number', 'Subrack No.', 'Slot No.', 'Serial No.'].forEach(text => {
-            const th = document.createElement('th');
-            th.textContent = text;
-            headerRow.appendChild(th);
+        const cellPartNo = row.insertCell();
+        const partNoSelect = document.createElement('select');
+        partNoSelect.name = `${moduleType.toLowerCase()}_${i}_part_no`;
+        partNoSelect.required = true;
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = "";
+        placeholderOption.textContent = "-- Select Part --";
+        placeholderOption.disabled = true;
+        partNoSelect.appendChild(placeholderOption);
+
+        partNumbers.forEach(part => {
+            const option = document.createElement('option');
+            option.value = part;
+            option.textContent = part;
+            partNoSelect.appendChild(option);
         });
-        
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-        
-        const tbody = document.createElement('tbody');
-        for (let i = 1; i <= count; i++) {
-            const row = document.createElement('tr');
-            
-            row.insertCell().textContent = i;
-            
-            const cellPartNo = row.insertCell();
-            const partNoSelect = document.createElement('select');
-            partNoSelect.name = `${moduleType.toLowerCase()}_${i}_part_no`;
-            partNoSelect.required = true;
-            const placeholderOption = document.createElement('option');
-            placeholderOption.value = "";
-            placeholderOption.textContent = "-- Select Part --";
-            placeholderOption.disabled = true;
-            partNoSelect.appendChild(placeholderOption);
+        if (partNumbers.length > 0) partNoSelect.value = partNumbers[0];
+        cellPartNo.appendChild(partNoSelect);
 
-            partNumbers.forEach(part => {
-                const option = document.createElement('option');
-                option.value = part;
-                option.textContent = part;
-                partNoSelect.appendChild(option);
-            });
-            if (partNumbers.length > 0) partNoSelect.value = partNumbers[0];
-            cellPartNo.appendChild(partNoSelect);
+        const subrackCell = row.insertCell();
+        const subrackInput = document.createElement('input');
+        subrackInput.type = 'number';
+        subrackInput.name = `${moduleType.toLowerCase()}_${i}_subrack`;
+        subrackInput.placeholder = 'Enter subrack';
+        subrackInput.required = true;
+        subrackCell.appendChild(subrackInput);
 
-            const subrackCell = row.insertCell();
-            const subrackInput = document.createElement('input');
-            subrackInput.type = 'number';
-            subrackInput.name = `${moduleType.toLowerCase()}_${i}_subrack`;
-            subrackInput.placeholder = 'Enter subrack';
-            subrackInput.required = true;
-            subrackCell.appendChild(subrackInput);
+        // --- SLOT NUMBER SECTION ---
+        const slotCell = row.insertCell();
+        const slotInput = document.createElement('input');
+        slotInput.type = 'number';
+        slotInput.name = `${moduleType.toLowerCase()}_${i}_slot`;
+        slotInput.placeholder = 'Enter slot';
+        slotInput.required = true;
 
-            const slotCell = row.insertCell();
-            const slotInput = document.createElement('input');
-            slotInput.type = 'number';
-            slotInput.name = `${moduleType.toLowerCase()}_${i}_slot`;
-            slotInput.placeholder = 'Enter slot';
-            slotInput.required = true;
-
-            if (['Subrack', 'Power', 'Processor'].includes(moduleType)) {
-                slotInput.value = '0';
-            }
-
-            slotCell.appendChild(slotInput);
-
-            const serialCell = row.insertCell();
-            const serialInput = document.createElement('input');
-            serialInput.type = 'number';
-            serialInput.name = `${moduleType.toLowerCase()}_${i}_serial`;
-            serialInput.placeholder = 'Enter serial number';
-            serialInput.required = true;
-            serialCell.appendChild(serialInput);
-
-            tbody.appendChild(row);
+        // === NEW CODE ADDED BELOW ===
+        // Check if the current module is Subrack, Power, or Processor
+        // and set default value to 0
+        if (['Subrack', 'Power', 'Processor'].includes(moduleType)) {
+            slotInput.value = '0';
         }
-        table.appendChild(tbody);
-        container.appendChild(table);
-        
-        return container; 
+        // ============================
+
+        slotCell.appendChild(slotInput);
+
+        const serialCell = row.insertCell();
+        const serialInput = document.createElement('input');
+        serialInput.type = 'number';
+        serialInput.name = `${moduleType.toLowerCase()}_${i}_serial`;
+        serialInput.placeholder = 'Enter serial number';
+        serialInput.required = true;
+        serialCell.appendChild(serialInput);
+
+        tbody.appendChild(row);
     }
+    table.appendChild(tbody);
+    container.appendChild(table);
+    
+    return container; 
+}
+
 
     function createSUBRACKSheet(count) { return createModuleSheetBase(count, 'Subrack', [' Subrack 19"', 'Subrack 2/3 19"', 'Subrack 1/2 19"']); }
     function createPROCESSORSheet(count) { return createModuleSheetBase(count, 'Processor', ['MCU-1-A', 'MCU-4-A']); }
@@ -567,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- Initialize Page ---
     if (!loadUserData()) {
-        return;
+        return; // Stop script execution if user data is invalid
     }
     loadBQCounts();
 
@@ -584,14 +763,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const aiCount = parseInt(document.getElementById('aiCount')?.value) || 0;
             const aoCount = parseInt(document.getElementById('aoCount')?.value) || 0;
             
+            // --- FIX IS HERE: Sum ALL inputs ---
             const totalCount = subrackCount + processorCount + powerCount + comCount + diCount + doCount + aiCount + aoCount;
             
-            // ENABLED VALIDATION
             if (totalCount === 0) {
                 showCustomAlert('Please enter at least one module count to generate sheets.');
                 return;
             }
             
+            // Save all current module data before regenerating
             const allCurrentData = {};
             document.querySelectorAll('.module-sheet').forEach(sheet => {
                 const moduleType = sheet.dataset.moduleType;
@@ -613,25 +793,37 @@ document.addEventListener('DOMContentLoaded', function() {
             serialNumberTracker.clearAll();
             if (sheetsContainer) sheetsContainer.innerHTML = "";
             
+            // Generate new sheets
+            // 1. Subrack
             if (subrackCount > 0 && sheetsContainer) sheetsContainer.appendChild(createSUBRACKSheet(subrackCount));
+            // 2. Processor
             if (processorCount > 0 && sheetsContainer) sheetsContainer.appendChild(createPROCESSORSheet(processorCount));
+            // 3. COM
             if (comCount > 0 && sheetsContainer) sheetsContainer.appendChild(createCOMSheet(comCount));
+            // 4. DI
             if (diCount > 0 && sheetsContainer) sheetsContainer.appendChild(createDISheet(diCount));
+            // 5. DO
             if (doCount > 0 && sheetsContainer) sheetsContainer.appendChild(createDOSheet(doCount));
+            // 6. AI
             if (aiCount > 0 && sheetsContainer) sheetsContainer.appendChild(createAISheet(aiCount));
+            // 7. AO
             if (aoCount > 0 && sheetsContainer) sheetsContainer.appendChild(createAOSheet(aoCount));
+            // 8. Power (At the bottom)
             if (powerCount > 0 && sheetsContainer) sheetsContainer.appendChild(createPOWERSheet(powerCount));
        
+            // Show the checker name section
             const checkerNameSection = document.getElementById('checkerNameSection');
             if (checkerNameSection) {
                 checkerNameSection.style.display = 'block';
             }
             
+            // Show the vendor number section
             const vendorNumberSection = document.getElementById('vendorNumberSection');
             if (vendorNumberSection) {
                 vendorNumberSection.style.display = 'block';
             }
             
+            // Restore data for all modules
             document.querySelectorAll('.module-sheet').forEach(sheet => {
                 const moduleType = sheet.dataset.moduleType;
                 const rows = sheet.querySelectorAll('tbody tr');
@@ -685,11 +877,13 @@ document.addEventListener('DOMContentLoaded', function() {
             serialNumberTracker.clearAll();
             saveCurrentBQCounts();
             
+            // Hide the checker name section when clearing
             const checkerNameSection = document.getElementById('checkerNameSection');
             if (checkerNameSection) {
                 checkerNameSection.style.display = 'none';
             }
             
+            // Hide the vendor number section when clearing
             const vendorNumberSection = document.getElementById('vendorNumberSection');
             if (vendorNumberSection) {
                 vendorNumberSection.style.display = 'none';
@@ -708,8 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.addEventListener('click', async function() {
             saveCurrentBQCounts();
             formTiming.generationStartTime = new Date();
-            
-            // ENABLED VALIDATION
+
             const totalModules = ['diCount', 'doCount', 'aiCount', 'aoCount', 'subrackCount', 'processorCount', 'powerCount', 'comCount']
                 .reduce((sum, id) => sum + (parseInt(document.getElementById(id)?.value) || 0), 0);
 
@@ -725,74 +918,148 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCustomAlert("Please click 'Generate Sheets' first to create the forms for your modules.");
                 return;
             }
+            if (!validateAllModuleFields()) {
+                return; 
+            }
             
-            window.goToNext();
+            // Try to use the integrated Drive upload version if available
+            if (typeof goToNextWithDriveUpload === 'function' && 
+                typeof uploadToDrive !== 'undefined') {
+                // Use integrated version with Drive upload
+                await goToNextWithDriveUpload();
+            } else {
+                // Fall back to original version
+                window.goToNext();
+            }
         });
     }
 
-    document.getElementById('exportBtn').addEventListener('click', async function() {
-        // REMOVED serial number format validation from export
-        try {
-            const exportData = {};
+document.getElementById('exportBtn').addEventListener('click', async function() {
+    
+    // --- PART 1: VALIDATION BLOCK ---
+    // Select all inputs ending in "_serial"
+    const serialInputs = document.querySelectorAll('input[name$="_serial"]');
+    
+    for (const input of serialInputs) {
+        const serialValue = input.value.trim();
+
+        // Check if value is NOT 12 digits
+        // Note: This regex (!/^\d{12}$/) will fail if the field is empty OR if it has the wrong number of digits.
+        if (!/^\d{12}$/.test(serialValue)) {
             
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                try {
-                    exportData[key] = JSON.parse(localStorage.getItem(key));
-                } catch (e) {
-                    exportData[key] = localStorage.getItem(key);
-                }
+            // 1. Highlight the bad input
+            input.style.border = '2px solid red';
+            
+            // 2. Scroll to and focus the bad input so the user sees it
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            input.focus();
+            
+            // 3. Show Alert
+            // We try to find the module name for a better error message, if possible
+            // Assuming the input is inside a row with some identifier, otherwise generic message
+            showCustomAlert('Export Blocked: Found a serial number that is not exactly 12 digits. Please correct the highlighted field.');
+            
+            // 4. STOP THE EXPORT IMMEDIATELY
+            return; 
+        } else {
+            // If valid, ensure border is clean
+            input.style.border = '';
+        }
+    }
+    // --------------------------------
+
+
+    // --- PART 2: EXPORT LOGIC (Only runs if Part 1 passes) ---
+    try {
+        // Create the data structure similar to generateJSON.js
+        const exportData = {};
+        
+        // Copy all localStorage items
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            try {
+                // Try to parse JSON data
+                exportData[key] = JSON.parse(localStorage.getItem(key));
+            } catch (e) {
+                // If not JSON, store as text
+                exportData[key] = localStorage.getItem(key);
             }
+        }
+        
+        // Add the current module data from the form
+        const moduleData = gatherAllModuleData();
+        exportData.currentModuleData = moduleData;
+        
+        // Add required metadata
+        exportData.metadata = {
+            generationDate: new Date().toISOString(),
+            rtuSerial: localStorage.getItem('session_rtuSerial') || 'N/A',
+            contractNo: localStorage.getItem('session_contractNo') || 'N/A',
+            testerName: localStorage.getItem('session_name') || 'N/A'
+        };
+        
+        // Create date format: YYYYMMDD
+        const now = new Date();
+        const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        
+        const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
+        const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+        
+        // Create and trigger download for JSON
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        const exportFileDefaultName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        document.body.appendChild(linkElement);
+        linkElement.click();
+        document.body.removeChild(linkElement);
+        
+        // Generate and download TXT file with similar naming
+        const txtContent = generateTXTContent();
+        const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
+        const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
+        
+        const txtLinkElement = document.createElement('a');
+        txtLinkElement.setAttribute('href', txtDataUri);
+        txtLinkElement.setAttribute('download', txtFileName);
+        document.body.appendChild(txtLinkElement);
+        txtLinkElement.click();
+        document.body.removeChild(txtLinkElement);
+        
+        // Generate and download QR Code with a small delay
+        setTimeout(async () => {
+            const qrSuccess = await generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial);
+            if (qrSuccess) {
+                showCustomAlert('Configuration exported successfully as JSON, TXT, and QR Code files!');
+            } else {
+                showCustomAlert('Configuration exported as JSON and TXT files, but QR code generation failed.');
+            }
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error during export:', error);
+        showCustomAlert('Error during export: ' + error.message);
+    }
+});
+    
+
+    document.addEventListener('input', function(event) {
+        if (event.target && event.target.matches('input[name$="_serial"]')) {
+            const serialInput = event.target;
+            const serialValue = serialInput.value.trim();
             
-            const moduleData = gatherAllModuleData();
-            exportData.currentModuleData = moduleData;
-            
-            exportData.metadata = {
-                generationDate: new Date().toISOString(),
-                rtuSerial: localStorage.getItem('session_rtuSerial') || 'N/A',
-                contractNo: localStorage.getItem('session_contractNo') || 'N/A',
-                testerName: localStorage.getItem('session_name') || 'N/A'
-            };
-            
-            const now = new Date();
-            const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-            
-            const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
-            const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            const exportFileDefaultName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            document.body.appendChild(linkElement);
-            linkElement.click();
-            document.body.removeChild(linkElement);
-            
-            const txtContent = generateTXTContent();
-            const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
-            const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
-            
-            const txtLinkElement = document.createElement('a');
-            txtLinkElement.setAttribute('href', txtDataUri);
-            txtLinkElement.setAttribute('download', txtFileName);
-            document.body.appendChild(txtLinkElement);
-            txtLinkElement.click();
-            document.body.removeChild(txtLinkElement);
-            
-            setTimeout(async () => {
-                const qrSuccess = await generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial);
-                if (qrSuccess) {
-                    showCustomAlert('Configuration exported successfully as JSON, TXT, and QR Code files!');
+            // Remove any existing error styling when user starts typing
+            if (serialValue.length > 0) {
+                if (!/^\d{12}$/.test(serialValue)) {
+                    serialInput.style.border = '2px solid red';
                 } else {
-                    showCustomAlert('Configuration exported as JSON and TXT files, but QR code generation failed.');
+                    serialInput.style.border = '2px solid green'; // Optional: green for valid
                 }
-            }, 500);
-            
-        } catch (error) {
-            console.error('Error during export:', error);
-            showCustomAlert('Error during export: ' + error.message);
+            } else {
+                serialInput.style.border = ''; // Reset to default when empty
+            }
         }
     });
 
@@ -804,8 +1071,130 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false) {
-    // Keep this function but it won't be called
-    return true;
+    // Ensure jsPDF is loaded
+    if (!window.jspdf) {
+        console.error("jsPDF library not found");
+        return returnBlob ? null : false;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // --- 1. Header Information ---
+    const now = new Date();
+
+    // 1. Get the day and pad with '0' if it's single digit
+    const day = String(now.getDate()).padStart(2, '0');
+
+    // 2. Get the month (Add 1 because months are 0-indexed: Jan=0, Dec=11)
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+
+    // 3. Get the full year
+    const year = now.getFullYear();
+
+    // 4. Combine them
+    const dateString = `${day}/${month}/${year}`;
+
+    console.log(dateString); // Output: 09/12/2025
+
+    const testerName = localStorage.getItem('session_checkerName') || 'N/A';
+    const vendorNum = localStorage.getItem('session_vendorNumber') || 'N/A';
+
+    doc.setFontSize(18);
+    doc.text(`RTU Serial Number List for ${contractNo} | ${rtuSerial}`, 14, 20);
+
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${dateString}`, 14, 26);
+    
+    doc.setTextColor(0);
+    doc.setFontSize(11);
+    doc.text(`Contract No: ${contractNo}`, 14, 35);
+    doc.text(`RTU Serial No: ${rtuSerial}`, 14, 40);
+    doc.text(`Vendor No: ${vendorNum}`, 14, 45);
+    doc.text(`Tester: ${testerName}`, 14, 50);
+
+    // --- 2. Define Module Order & Colors ---
+    // You can customize HEX colors here
+    const moduleConfig = [
+        { type: 'Subrack', color: '#808080' }, // Gray
+        { type: 'Processor', color: '#0000FF' }, // Blue (Requested)
+        { type: 'COM', color: '#2E8B57' },      // SeaGreen
+        { type: 'DI', color: '#FFA500' },       // Orange
+        { type: 'DO', color: '#800080' },       // Purple
+        { type: 'AI', color: '#008080' },       // Teal
+        { type: 'AO', color: '#DAA520' },       // GoldenRod
+        { type: 'Power', color: '#FF0000' }     // Red (Requested)
+    ];
+
+    // Get Data
+    const allData = gatherAllModuleData();
+    let currentY = 55; // Start position for first table
+
+    // --- 3. Generate Tables ---
+    moduleConfig.forEach(config => {
+        const modules = allData[config.type];
+
+        // Only generate table if data exists for this module type
+        if (modules && modules.length > 0) {
+            
+            // Prepare Table Body
+            const tableBody = modules.map((m, index) => [
+                index + 1,
+                m.partNo || '-',
+                m.subrack || '-',
+                (m.slot == '0' || m.slot === 0) ? 'N/A' : (m.slot || '-'),                
+                m.serial || '-'
+            ]);
+
+            // Generate Table
+            doc.autoTable({
+                startY: currentY + 5,
+                head: [[`${config.type} Module`, 'Part Number', 'Subrack', 'Slot', 'Serial No.']],
+                body: tableBody,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: config.color, 
+                    textColor: 255, 
+                    fontStyle: 'bold',
+                    halign: 'center' 
+                },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 25 }, // No.
+                    1: { halign : 'center', cellWidth: 50 }, // Part No
+                    2: { halign: 'center' }, // Subrack
+                    3: { halign: 'center' }, // Slot
+                    4: { halign: 'center' }  // Serial
+                },
+                didDrawPage: function (data) {
+                    // Update currentY to the end of this table so the next one starts below it
+                    currentY = data.cursor.y;
+                },
+                margin: { top: 20 } 
+            });
+            
+            // Update Y for next loop (in case table didn't break page)
+            currentY = doc.lastAutoTable.finalY;
+        }
+    });
+
+    // --- 4. Save File ---
+    const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const filename = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+    
+    if (returnBlob) {
+        // Return PDF as blob instead of downloading
+        const pdfBlob = doc.output('blob');
+        return {
+            blob: pdfBlob,
+            filename: filename
+        };
+    } else {
+        // Original behavior: download immediately
+        doc.save(filename);
+        return true;
+    }
 }
 
 function restoreModuleData() {
@@ -820,11 +1209,13 @@ function restoreModuleData() {
             const savedData = JSON.parse(localStorage.getItem(`${moduleType.toLowerCase()}ModulesDetails`))?.[index];
             
             if (savedData) {
+                // Restore part number
                 const partNoSelect = row.querySelector('select[name$="_part_no"]');
                 if (partNoSelect && savedData.partNo) {
                     partNoSelect.value = savedData.partNo;
                 }
                 
+                // Restore subrack, slot, and serial
                 const subrackInput = row.querySelector('input[name$="_subrack"]');
                 if (subrackInput && savedData.subrack) {
                     subrackInput.value = savedData.subrack;
@@ -838,14 +1229,17 @@ function restoreModuleData() {
                 const serialInput = row.querySelector('input[name$="_serial"]');
                 if (serialInput && savedData.serial) {
                     serialInput.value = savedData.serial;
+                    // Add to serial number tracker
                     serialNumberTracker.addSerial(savedData.serial, moduleType, moduleNo);
                 }
                 
+                // Update part number summary
                 updatePartNumberSummary(sheet);
             }
         });
     });
     
+    // RESTORE CHECKER NAME AND VENDOR NUMBER - ADD THIS CODE
     const checkerNameInput = document.getElementById('checkerName');
     const vendorNumberInput = document.getElementById('vendorNumber');
     
@@ -898,8 +1292,10 @@ function generateTXTContent() {
     const rtuSerial = localStorage.getItem('session_rtuSerial') || '';
     const vendorNumber = document.getElementById('vendorNumber')?.value || localStorage.getItem('session_vendorNumber') || '(VENDOR NUMBER)';
     
+    // Gather all module data
     const moduleData = gatherAllModuleData();
     
+    // Initialize txtContent variable
     let txtContent = '';
     
     txtContent += `${contractNo} |\n`;
@@ -910,6 +1306,7 @@ function generateTXTContent() {
     txtContent += `CN |\n`;
     txtContent += `${rtuSerial} |\n`;
     
+    // Subrack modules
     if (moduleData.Subrack && moduleData.Subrack.length > 0) {
         moduleData.Subrack.forEach((subrack, index) => {
             if (subrack.serial) {
@@ -919,6 +1316,7 @@ function generateTXTContent() {
     }
     txtContent += `||\n`;
     
+    // Power modules
     if (moduleData.Power && moduleData.Power.length > 0) {
         moduleData.Power.forEach((power, index) => {
             if (power.serial) {
@@ -931,6 +1329,7 @@ function generateTXTContent() {
     txtContent += `||\n`;
     txtContent += `||\n`;
     
+    // Processor modules
     if (moduleData.Processor && moduleData.Processor.length > 0) {
         moduleData.Processor.forEach((processor, index) => {
             if (processor.serial) {
@@ -943,6 +1342,7 @@ function generateTXTContent() {
     txtContent += `||\n`;
     txtContent += `||\n`;
     
+    // DI modules
     if (moduleData.DI && moduleData.DI.length > 0) {
         moduleData.DI.forEach((di, index) => {
             if (di.serial) {
@@ -955,6 +1355,7 @@ function generateTXTContent() {
     txtContent += `||\n`;
     txtContent += `||\n`;
     
+    // DO modules
     if (moduleData.DO && moduleData.DO.length > 0) {
         moduleData.DO.forEach((doModule, index) => {
             if (doModule.serial) {
@@ -966,6 +1367,7 @@ function generateTXTContent() {
     txtContent += `||\n`;
     txtContent += `||\n`;
     
+    // AI modules
     if (moduleData.AI && moduleData.AI.length > 0) {
         moduleData.AI.forEach((ai, index) => {
             if (ai.serial) {
@@ -985,29 +1387,44 @@ function generateTXTContent() {
     return txtContent;
 }
 
+
 function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial) {
     try {
         console.log("Starting QR code generation with alternative method...");
         
-        const typeNumber = 0;
+        // Use qrcode-generator library
+        const typeNumber = 0; // Auto detect type
         const errorCorrectionLevel = 'L';
         const qr = qrcode(typeNumber, errorCorrectionLevel);
         qr.addData(txtContent);
         qr.make();
         
-        const canvas = document.createElement('canvas');
-        const size = 400;
-        const cellSize = size / qr.getModuleCount();
-        const margin = 2;
-        const totalSize = size + margin * 2 * cellSize;
+        // Create filename for the label
+        const filename = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+        const labelText = filename.replace('.png', '');
         
-        canvas.width = totalSize;
-        canvas.height = totalSize;
+        // QR code dimensions
+        const qrSize = 400;
+        const cellSize = qrSize / qr.getModuleCount();
+        const margin = 2;
+        const qrTotalSize = qrSize + margin * 2 * cellSize;
+        
+        // Label area dimensions
+        const labelHeight = 50;
+        const labelPadding = 10;
+        const totalHeight = qrTotalSize + labelHeight;
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = qrTotalSize;
+        canvas.height = totalHeight;
         const ctx = canvas.getContext('2d');
         
+        // Fill background (white)
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, totalSize, totalSize);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
+        // Draw QR code with a light border
         ctx.fillStyle = '#000000';
         for (let row = 0; row < qr.getModuleCount(); row++) {
             for (let col = 0; col < qr.getModuleCount(); col++) {
@@ -1022,21 +1439,159 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
             }
         }
         
+        // Draw a light border around the QR code
+        ctx.strokeStyle = '#DDDDDD';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, qrTotalSize, qrTotalSize);
+        
+        // Draw a separator line
+        ctx.beginPath();
+        ctx.strokeStyle = '#CCCCCC';
+        ctx.lineWidth = 1;
+        ctx.moveTo(20, qrTotalSize);
+        ctx.lineTo(qrTotalSize - 20, qrTotalSize);
+        ctx.stroke();
+        
+        // Add label with background
+        ctx.fillStyle = '#F5F5F5';
+        ctx.fillRect(0, qrTotalSize + 1, qrTotalSize, labelHeight - 1);
+        
+        // Add label text
+        ctx.fillStyle = '#333333';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, canvas.width / 2, qrTotalSize + (labelHeight / 2));
+        
+        // Optional: Add a small metadata line (contract and serial)
+        ctx.fillStyle = '#666666';
+        ctx.font = '10px Arial';
+        ctx.fillText(`${contractNo} | ${rtuSerial}`, canvas.width / 2, qrTotalSize + (labelHeight / 2) + 15);
+        
+        // Convert to data URL and download
         const qrDataUrl = canvas.toDataURL('image/png');
         
         const qrLink = document.createElement('a');
         qrLink.href = qrDataUrl;
-        qrLink.download = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+        qrLink.download = filename;
         document.body.appendChild(qrLink);
         qrLink.click();
         document.body.removeChild(qrLink);
         
-        console.log("QR code generated successfully with alternative method");
+        console.log("QR code generated successfully with enhanced label");
         return true;
         
     } catch (error) {
         console.error('Error generating QR code with alternative method:', error);
         showCustomAlert('Error generating QR code: ' + error.message);
         return false;
+    }
+}
+
+async function generateBQPDFForDrive(contractNo, rtuSerial) {
+    try {
+        // Ensure jsPDF is loaded
+        if (!window.jspdf) {
+            console.error("jsPDF library not found");
+            return null;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // --- 1. Header Information ---
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const dateString = `${day}/${month}/${year}`;
+
+        const testerName = localStorage.getItem('session_checkerName') || 'N/A';
+        const vendorNum = localStorage.getItem('session_vendorNumber') || 'N/A';
+
+        doc.setFontSize(18);
+        doc.text(`RTU Serial Number List for ${contractNo} | ${rtuSerial}`, 14, 20);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated: ${dateString}`, 14, 26);
+        
+        doc.setTextColor(0);
+        doc.setFontSize(11);
+        doc.text(`Contract No: ${contractNo}`, 14, 35);
+        doc.text(`RTU Serial No: ${rtuSerial}`, 14, 40);
+        doc.text(`Vendor No: ${vendorNum}`, 14, 45);
+        doc.text(`Tester: ${testerName}`, 14, 50);
+
+        // --- 2. Define Module Order & Colors ---
+        const moduleConfig = [
+            { type: 'Subrack', color: '#808080' },
+            { type: 'Processor', color: '#0000FF' },
+            { type: 'COM', color: '#2E8B57' },
+            { type: 'DI', color: '#FFA500' },
+            { type: 'DO', color: '#800080' },
+            { type: 'AI', color: '#008080' },
+            { type: 'AO', color: '#DAA520' },
+            { type: 'Power', color: '#FF0000' }
+        ];
+
+        // Get Data
+        const allData = gatherAllModuleData();
+        let currentY = 55;
+
+        // --- 3. Generate Tables ---
+        moduleConfig.forEach(config => {
+            const modules = allData[config.type];
+
+            if (modules && modules.length > 0) {
+                const tableBody = modules.map((m, index) => [
+                    index + 1,
+                    m.partNo || '-',
+                    m.subrack || '-',
+                    (m.slot == '0' || m.slot === 0) ? 'N/A' : (m.slot || '-'),                
+                    m.serial || '-'
+                ]);
+
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [[`${config.type} Module`, 'Part Number', 'Subrack', 'Slot', 'Serial No.']],
+                    body: tableBody,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: config.color, 
+                        textColor: 255, 
+                        fontStyle: 'bold',
+                        halign: 'center' 
+                    },
+                    columnStyles: {
+                        0: { halign: 'center', cellWidth: 25 },
+                        1: { halign : 'center', cellWidth: 50 },
+                        2: { halign: 'center' },
+                        3: { halign: 'center' },
+                        4: { halign: 'center' }
+                    },
+                    didDrawPage: function (data) {
+                        currentY = data.cursor.y;
+                    },
+                    margin: { top: 20 } 
+                });
+                
+                currentY = doc.lastAutoTable.finalY;
+            }
+        });
+
+        // Return PDF as blob
+        const pdfBlob = doc.output('blob');
+        const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const filename = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+        
+        return {
+            blob: pdfBlob,
+            filename: filename
+        };
+        
+    } catch (error) {
+        console.error('Error generating PDF for Drive:', error);
+        return null;
     }
 }
