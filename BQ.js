@@ -1399,22 +1399,32 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         qr.addData(txtContent);
         qr.make();
         
-        // Create canvas element
-        const canvas = document.createElement('canvas');
-        const size = 400;
-        const cellSize = size / qr.getModuleCount();
-        const margin = 2;
-        const totalSize = size + margin * 2 * cellSize;
+        // Create filename for the label
+        const filename = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+        const labelText = filename.replace('.png', '');
         
-        canvas.width = totalSize;
-        canvas.height = totalSize;
+        // QR code dimensions
+        const qrSize = 400;
+        const cellSize = qrSize / qr.getModuleCount();
+        const margin = 2;
+        const qrTotalSize = qrSize + margin * 2 * cellSize;
+        
+        // Label area dimensions
+        const labelHeight = 50;
+        const labelPadding = 10;
+        const totalHeight = qrTotalSize + labelHeight;
+        
+        // Create canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = qrTotalSize;
+        canvas.height = totalHeight;
         const ctx = canvas.getContext('2d');
         
-        // Fill background
+        // Fill background (white)
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, totalSize, totalSize);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw QR code
+        // Draw QR code with a light border
         ctx.fillStyle = '#000000';
         for (let row = 0; row < qr.getModuleCount(); row++) {
             for (let col = 0; col < qr.getModuleCount(); col++) {
@@ -1429,17 +1439,46 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
             }
         }
         
+        // Draw a light border around the QR code
+        ctx.strokeStyle = '#DDDDDD';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, 0, qrTotalSize, qrTotalSize);
+        
+        // Draw a separator line
+        ctx.beginPath();
+        ctx.strokeStyle = '#CCCCCC';
+        ctx.lineWidth = 1;
+        ctx.moveTo(20, qrTotalSize);
+        ctx.lineTo(qrTotalSize - 20, qrTotalSize);
+        ctx.stroke();
+        
+        // Add label with background
+        ctx.fillStyle = '#F5F5F5';
+        ctx.fillRect(0, qrTotalSize + 1, qrTotalSize, labelHeight - 1);
+        
+        // Add label text
+        ctx.fillStyle = '#333333';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, canvas.width / 2, qrTotalSize + (labelHeight / 2));
+        
+        // Optional: Add a small metadata line (contract and serial)
+        ctx.fillStyle = '#666666';
+        ctx.font = '10px Arial';
+        ctx.fillText(`${contractNo} | ${rtuSerial}`, canvas.width / 2, qrTotalSize + (labelHeight / 2) + 15);
+        
         // Convert to data URL and download
         const qrDataUrl = canvas.toDataURL('image/png');
         
         const qrLink = document.createElement('a');
         qrLink.href = qrDataUrl;
-        qrLink.download = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+        qrLink.download = filename;
         document.body.appendChild(qrLink);
         qrLink.click();
         document.body.removeChild(qrLink);
         
-        console.log("QR code generated successfully with alternative method");
+        console.log("QR code generated successfully with enhanced label");
         return true;
         
     } catch (error) {
