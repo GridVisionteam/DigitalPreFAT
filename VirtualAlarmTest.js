@@ -177,24 +177,22 @@ function loadVirtualAlarmTestData() {
         const iec101IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec101IOA"]`);
         if (iec101IOAInput) {
             if (testResult && testResult.iec101IOA !== undefined && testResult.iec101IOA !== null) {
-                // Load saved value (including empty string)
+                // Load saved value
                 iec101IOAInput.value = testResult.iec101IOA;
-            } else {
-                // Clear the input if no saved value exists
-                iec101IOAInput.value = '';
             }
+            // REMOVE THE ELSE CLAUSE THAT WAS CLEARING THE VALUE
+            // Don't clear the input - keep the default value from row generation
         }
         
         // Set IEC104 IOA value
         const iec104IOAInput = document.querySelector(`input[name="virtualAlarm_${itemNum}_iec104IOA"]`);
         if (iec104IOAInput) {
             if (testResult && testResult.iec104IOA !== undefined && testResult.iec104IOA !== null) {
-                // Load saved value (including empty string)
+                // Load saved value
                 iec104IOAInput.value = testResult.iec104IOA;
-            } else {
-                // Clear the input if no saved value exists
-                iec104IOAInput.value = '';
             }
+            // REMOVE THE ELSE CLAUSE THAT WAS CLEARING THE VALUE
+            // Don't clear the input - keep the default value from row generation
         }
     }
 }
