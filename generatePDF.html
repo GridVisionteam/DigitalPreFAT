@@ -48,8 +48,8 @@
         <div class="button-container">
             <button id="backBtn" onclick="window.location.href='signature.html'">Back (A)</button>
             <button id="StartNewSession" onclick="startNewSession()">Start New Session</button>
-            <button id="generatePdfBtn" onclick="generateFinalPdf()">Generate PDF Report</button>
-            <button id="generateAndUploadBtn" onclick="generateAndUploadToDrive()" style="background-color: #2196F3;">Generate & Upload to Drive</button>
+            <!-- Generate PDF Report button removed -->
+            <button id="uploadToDriveBtn" onclick="generateAndUploadToDrive()" style="background-color: #2196F3;">Generate & Upload to Drive</button>
         </div>
     </div>
 
@@ -127,44 +127,11 @@
             }
         };
         
-        // Modified to use the external JSON generation functions
-        async function generateFinalPdf() {
-            const statusElement = document.getElementById('generationStatus');
-            const progressBar = document.getElementById('progressBar');
-            
-            try {
-                statusElement.textContent = "Loading user data...";
-                progressBar.style.width = '10%';
-                
-                // Load user data
-                const userData = loadUserData();
-                
-                statusElement.textContent = "Generating PDF and JSON...";
-                progressBar.style.width = '30%';
-                
-                // Generate the PDF
-                await generateFinalPDF(userData);
-                
-                // Also generate JSON backup using the external function
-                generateJsonFile();
-                
-                statusElement.textContent = "PDF and JSON generated successfully!";
-                progressBar.style.width = '100%';
-                progressBar.style.backgroundColor = '#4CAF50';
-                
-            } catch (error) {
-                statusElement.textContent = "Generation failed: " + error.message;
-                progressBar.style.width = '100%';
-                progressBar.style.backgroundColor = '#f44336';
-                console.error("Generation failed:", error);
-            }
-        }
-        
-        // New function to generate and upload to Google Drive
+        // Modified function to generate and upload to Google Drive ONLY (no local downloads)
         async function generateAndUploadToDrive() {
             const statusElement = document.getElementById('generationStatus');
             const progressBar = document.getElementById('progressBar');
-            const uploadBtn = document.getElementById('generateAndUploadBtn');
+            const uploadBtn = document.getElementById('uploadToDriveBtn');
             
             // Disable button during process
             if (uploadBtn) {
@@ -210,13 +177,13 @@
                 const pdfFileName = `${dateformat}_RTU_Report_${cleanContractNo}_${cleanRtuSerial}.pdf`;
                 const jsonFileName = `${dateformat}_RTU_Backup_${cleanContractNo}_${cleanRtuSerial}.json`;
                 
-                // Step 3: Get or create contract folder for JSON ONLY
+                // Step 3: Get or create contract folder for JSON
                 progressBar.style.width = '40%';
                 updateDriveStatus(`Checking/Creating JSON folder for contract ${cleanContractNo}...`, false, false);
 
-                // Define folder IDs (use the new GENERATED_PDF_FOLDER_ID for generated PDFs)
+                // Define folder IDs
                 const JSON_FOLDER_ID = '1ciLbAkJkOjaWP0yvWzbpguKI73jICASj';
-                const GENERATED_PDF_FOLDER_ID = '1fkuWaxOUT98UFncrCLxweBEQeNlhyzij'; // <-- Use the same ID as in googleDrive.js
+                const GENERATED_PDF_FOLDER_ID = '1fkuWaxOUT98UFncrCLxweBEQeNlhyzij';
 
                 // PDF goes to GENERATED_PDF_FOLDER_ID -> contract folder
                 let pdfContractFolderId = null;
@@ -247,16 +214,15 @@
                         data: pdfBytes,
                         name: pdfFileName,
                         mimeType: 'application/pdf',
-                        folderId: pdfContractFolderId  // PDF goes to original contract folder
+                        folderId: pdfContractFolderId  // PDF goes to contract folder
                     },
                     {
                         data: jsonBytes,
                         name: jsonFileName,
                         mimeType: 'application/json',
-                        folderId: jsonContractFolderId  // JSON goes to contract folder inside 1ciLbAkJkOjaWP0yvWzbpguKI73jICASj
+                        folderId: jsonContractFolderId  // JSON goes to contract folder inside JSON_FOLDER_ID
                     }
                 ];
-
                 
                 // Step 5: Upload both files
                 progressBar.style.width = '60%';
@@ -329,7 +295,7 @@
                     shareableLink = await window.createShareableLink(pdfUploadResult.id);
                 }
                 
-                // Complete
+                // Complete - NO LOCAL DOWNLOADS
                 statusElement.textContent = "Files uploaded to Google Drive!";
                 progressBar.style.width = '100%';
                 progressBar.style.backgroundColor = '#4CAF50';
@@ -365,13 +331,13 @@
                     updateDriveStatus(`⚠️ Some files failed to upload: ${failedFiles}`, true, false);
                 }
                 
-                // Also offer local downloads
-                try {
-                    await generateFinalPDF(userData);
-                    generateJsonFile();
-                } catch (localError) {
-                    console.log("Local download also attempted");
-                }
+                // NO LOCAL DOWNLOADS - The following lines are removed:
+                // try {
+                //     await generateFinalPDF(userData);
+                //     generateJsonFile();
+                // } catch (localError) {
+                //     console.log("Local download also attempted");
+                // }
                 
             } catch (error) {
                 console.error("Generation/upload failed:", error);
@@ -381,20 +347,21 @@
                 
                 updateDriveStatus(`❌ Upload failed: ${error.message}`, true, false);
                 
-                // If upload fails, still try to generate local files
-                try {
-                    const userData = loadUserData();
-                    await generateFinalPDF(userData);
-                    generateJsonFile();
-                    updateDriveStatus("❌ Upload failed, but local files were generated.", true, false);
-                } catch (localError) {
-                    console.error("Local generation also failed:", localError);
-                }
+                // NO LOCAL FALLBACK - The following lines are removed:
+                // try {
+                //     const userData = loadUserData();
+                //     await generateFinalPDF(userData);
+                //     generateJsonFile();
+                //     updateDriveStatus("❌ Upload failed, but local files were generated.", true, false);
+                // } catch (localError) {
+                //     console.error("Local generation also failed:", localError);
+                // }
+                
             } finally {
                 // Re-enable button
                 if (uploadBtn) {
                     uploadBtn.disabled = false;
-                    uploadBtn.textContent = 'Generate & Upload to Drive';
+                    uploadBtn.textContent = 'Upload to Drive Only';
                 }
             }
         }
@@ -455,7 +422,7 @@
             cursor: not-allowed;
         }
         
-        #generateAndUploadBtn:hover {
+        #uploadToDriveBtn:hover {
             background-color: #0b7dda;
         }
         
@@ -512,5 +479,3 @@
 </body>
 
 </html>
-
-
