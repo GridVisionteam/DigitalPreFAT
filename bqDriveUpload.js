@@ -477,6 +477,10 @@ async function overrideSubmitButton() {
             
             // 6. Wait a moment then redirect
             setTimeout(() => {
+                // Mark page as completed in navigation guard
+                if (window.navigationGuard && typeof window.navigationGuard.markPageAsCompleted === 'function') {
+                    window.navigationGuard.markPageAsCompleted();
+                }
                 console.log('Redirecting to Pre-requisite.html');
                 window.location.href = './Pre-requisite.html';
             }, 2000);

@@ -69,8 +69,8 @@ async function goToNext(returnOnly = false) {
 
     localStorage.setItem('checkerName', checkerName);
     localStorage.setItem('vendorNumber', vendorNumber);
-    localStorage.setItem('session_checkerName', checkerName);  // ADD THIS
-    localStorage.setItem('session_vendorNumber', vendorNumber); // ADD THIS
+    localStorage.setItem('session_checkerName', checkerName);
+    localStorage.setItem('session_vendorNumber', vendorNumber);
 
     // Get the counts
     const processorCount = parseInt(document.getElementById('processorCount').value) || 0;
@@ -227,43 +227,42 @@ async function goToNext(returnOnly = false) {
     }
     
     // ==========================================
-    // 5. DOWNLOAD MODE (modified - only QR and PDF)
+    // 5. DOWNLOAD MODE - ONLY RUNS WHEN returnOnly IS FALSE
     // ==========================================
     try {
         showCustomAlert('Saving and Generating Backup Files...');
 
-        // A. JSON DOWNLOAD REMOVED - keeping only QR and PDF
-        
-        // B. GENERATE TXT CONTENT (needed for QR code)
+        // Generate QR Code
         let txtContent = '';
         if (typeof generateTXTContent === 'function') {
             txtContent = generateTXTContent();
             
-            // C. GENERATE QR CODE - KEEP THIS (PNG file)
             if (typeof generateAndDownloadQRCode === 'function' && txtContent) {
                 await generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial);
             }
         }
 
-        // D. GENERATE PDF - KEEP THIS (PDF file)
+        // Generate PDF
         if (typeof generateAndDownloadPDF === 'function') {
             await generateAndDownloadPDF(contractNo, rtuSerial, false);
         }
-        
-        // Note: JSON and TXT file downloads have been removed
 
     } catch (error) {
         console.error('Export Warning:', error);
     }
 
     // ==========================================
-    // 6. REDIRECT PHASE - Only redirect if not in returnOnly mode
+    // 6. MARK PAGE AS COMPLETED AND REDIRECT
     // ==========================================
-    if (!returnOnly) {
-        setTimeout(() => {
-            window.location.href = './Pre-requisite.html';
-        }, 1500); 
+    // Mark the page as completed in navigation guard
+    if (window.navigationGuard && typeof window.navigationGuard.markPageAsCompleted === 'function') {
+        window.navigationGuard.markPageAsCompleted();
     }
+    
+    // Redirect
+    setTimeout(() => {
+        window.location.href = './Pre-requisite.html';
+    }, 1500);
 }
 
 
@@ -1053,7 +1052,6 @@ document.getElementById('exportBtn').addEventListener('click', async function() 
 
     // Make the function available globally
     window.validateAllModuleFields = validateAllModuleFields;
-    navigationGuard.markPageAsCompleted();
     window.goToNext = goToNext;
 
 });
