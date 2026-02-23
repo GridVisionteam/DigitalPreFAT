@@ -227,42 +227,30 @@ async function goToNext(returnOnly = false) {
     }
     
     // ==========================================
-    // 5. DOWNLOAD MODE (original behavior)
+    // 5. DOWNLOAD MODE (modified - only QR and PDF)
     // ==========================================
     try {
         showCustomAlert('Saving and Generating Backup Files...');
 
-        // A. DOWNLOAD JSON
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-        const linkElement = document.createElement('a');
-        linkElement.setAttribute('href', dataUri);
-        linkElement.setAttribute('download', `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`);
-        document.body.appendChild(linkElement);
-        linkElement.click();
-        document.body.removeChild(linkElement);
-
-        // B. DOWNLOAD TXT
+        // A. JSON DOWNLOAD REMOVED - keeping only QR and PDF
+        
+        // B. GENERATE TXT CONTENT (needed for QR code)
+        let txtContent = '';
         if (typeof generateTXTContent === 'function') {
-            const txtContent = generateTXTContent();
-            const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
-            const txtLinkElement = document.createElement('a');
-            txtLinkElement.setAttribute('href', txtDataUri);
-            txtLinkElement.setAttribute('download', `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`);
-            document.body.appendChild(txtLinkElement);
-            txtLinkElement.click();
-            document.body.removeChild(txtLinkElement);
-
-            // C. GENERATE QR CODE
-            if (typeof generateAndDownloadQRCode === 'function') {
+            txtContent = generateTXTContent();
+            
+            // C. GENERATE QR CODE - KEEP THIS (PNG file)
+            if (typeof generateAndDownloadQRCode === 'function' && txtContent) {
                 await generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial);
             }
         }
 
-        // D. GENERATE PDF
+        // D. GENERATE PDF - KEEP THIS (PDF file)
         if (typeof generateAndDownloadPDF === 'function') {
             await generateAndDownloadPDF(contractNo, rtuSerial, false);
         }
+        
+        // Note: JSON and TXT file downloads have been removed
 
     } catch (error) {
         console.error('Export Warning:', error);

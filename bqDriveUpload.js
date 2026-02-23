@@ -248,19 +248,25 @@ async function generateQRCodeDataURL(txtContent) {
             qr.addData(txtContent);
             qr.make();
             
-            const canvas = document.createElement('canvas');
-            const size = 400;
-            const cellSize = size / qr.getModuleCount();
+            // Match the exact dimensions from BQ.js
+            const qrSize = 400; // QR code size
+            const cellSize = qrSize / qr.getModuleCount();
             const margin = 2;
-            const totalSize = size + margin * 2 * cellSize;
+            const qrTotalSize = qrSize + margin * 2 * cellSize;
             
-            canvas.width = totalSize;
-            canvas.height = totalSize;
+            // Add space for label (40px for text) - same as BQ.js
+            const labelHeight = 40;
+            const totalHeight = qrTotalSize + labelHeight;
+            
+            // Create canvas with extra height for label
+            const canvas = document.createElement('canvas');
+            canvas.width = qrTotalSize;
+            canvas.height = totalHeight;
             const ctx = canvas.getContext('2d');
             
-            // Fill background
+            // Fill background (white)
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, totalSize, totalSize);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             // Draw QR code
             ctx.fillStyle = '#000000';
@@ -276,6 +282,28 @@ async function generateQRCodeDataURL(txtContent) {
                     }
                 }
             }
+            
+            // Add label below QR code - MATCHING BQ.js STYLE
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            // Create a filename for the label (similar to BQ.js)
+            const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
+            const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+            const now = new Date();
+            const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+            const filename = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+            
+            // Draw the label text (filename without .png extension)
+            const labelText = filename.replace('.png', '');
+            ctx.fillText(labelText, canvas.width / 2, qrTotalSize + 10);
+            
+            // Optional: Add a light gray border around the QR code section
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 0, qrTotalSize, qrTotalSize);
             
             // Convert to data URL
             const dataUrl = canvas.toDataURL('image/png');
@@ -478,7 +506,7 @@ async function generateLocalFiles() {
         const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
         
         // 1. Generate and download JSON
-        const jsonData = await generateBQJsonData(contractNo, rtuSerial);
+        /*const jsonData = await generateBQJsonData(contractNo, rtuSerial);
         if (jsonData) {
             const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(jsonData);
             const linkElement = document.createElement('a');
@@ -487,10 +515,10 @@ async function generateLocalFiles() {
             document.body.appendChild(linkElement);
             linkElement.click();
             document.body.removeChild(linkElement);
-        }
+        }*/
         
         // 2. Generate and download TXT
-        if (typeof generateTXTContent === 'function') {
+        /*if (typeof generateTXTContent === 'function') {
             const txtContent = generateTXTContent();
             if (txtContent) {
                 const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
@@ -501,7 +529,7 @@ async function generateLocalFiles() {
                 txtLinkElement.click();
                 document.body.removeChild(txtLinkElement);
             }
-        }
+        }*/
         
         // 3. Generate and download PDF
         if (typeof generateAndDownloadPDF === 'function') {
