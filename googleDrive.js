@@ -1,17 +1,28 @@
 // googleDrive.js - Google Drive Integration
 
 // ============================================
-// CONFIGURATION - UPDATE THESE VALUES
+/*
+// CONFIGURATION - UPDATE THESE VALUES  (amin99boyz@gmail.com)
 // ============================================
 const GOOGLE_API_KEY = 'AIzaSyA9I3SyapNGGv3y26Jk-bo37XQ4zUKo5qs';
 const GOOGLE_CLIENT_ID = '656211138338-35iq6or29q9ea6583v80ofq746hinlha.apps.googleusercontent.com';
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+*/
+//------------------------------------------------------------------------------------------------------------
+// CONFIGURATION - UPDATE THESE VALUES  (testingdigitalform@gmail.com)
+// ============================================
+const GOOGLE_API_KEY = 'AIzaSyDmEfrpPBRaPvQO6LrDLw2SOuUGCW17DxY';
+const GOOGLE_CLIENT_ID = '266459609799-r2daskhooeeboqgaq58pr8u8nsei3vdf.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+//--------------------------------------------------------------------------------------------------------------
+
 
 // FOLDER IDs FOR DIFFERENT FILE TYPES
-const JSON_FOLDER_ID = '1ciLbAkJkOjaWP0yvWzbpguKI73jICASj';  // JSON files folder
-const TXT_PNG_FOLDER_ID = '1qg4cyMgdK1gpvHY-07BOZzb0YlzWDTDd';  // TXT and PNG files folder
-const PDF_FOLDER_ID = '1yl-IuYckdZouFvNFep25rG8lJJ-Fd8yu';  // PDF files folder
-const GENERATED_PDF_FOLDER_ID = '1fkuWaxOUT98UFncrCLxweBEQeNlhyzij'; // PDF RTU Report
+const JSON_FOLDER_ID = '1c2tPDiI2gX29Uh40n_vRDeqe7A_AChUA';  // JSON files folder
+const TXT_PNG_FOLDER_ID = '1iygtU_4YlLvM_Kx0XUQsGnbBsiZmCKTW';  // TXT and PNG files folder
+const PDF_FOLDER_ID = '1enQcRQDoiNXMf4La1VANdybHFvzFzMHZ';  // PDF files folder
+const GENERATED_PDF_FOLDER_ID = '1Wnl9fF4V7ZKDiAjDDkNwI3ILdP7i3TjX'; // PDF RTU Report
 
 // ============================================
 // GLOBAL VARIABLES
