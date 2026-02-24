@@ -167,6 +167,18 @@ function setGenerationTime(form, timeString) {
     } catch (err) {
         // Warning suppressed as not all pages might have this field
     }
+    
+    // Set GenerationTimeWitness with date only
+    try {
+        const witnessField = form.getTextField('GenerationTimeWitness');
+        if (witnessField) {
+            // Extract date part from timeString (format: DD-MM-YYYY Time: HH:MM:SS)
+            const datePart = timeString.split(' Time:')[0];
+            witnessField.setText(datePart);
+        }
+    } catch (err) {
+        // Warning suppressed as not all pages might have this field
+    }
 }
 
 function startNewSession() {
