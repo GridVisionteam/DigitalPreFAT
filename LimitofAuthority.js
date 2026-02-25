@@ -78,35 +78,35 @@ function generateAuthorityRows() {
             <td style="text-align: center;">${user.defaults.dataViewing}</td>
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="${user.id}_dataViewing" unchecked>
+                    <input type="checkbox" name="${user.id}_dataViewing">
                     <span class="toggle-text"></span>
                 </label>
             </td>
             <td style="text-align: center;">${user.defaults.controlOperation}</td>
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="${user.id}_controlOperation"  unchecked>
+                    <input type="checkbox" name="${user.id}_controlOperation">
                     <span class="toggle-text"></span>
                 </label>
             </td>
             <td style="text-align: center;">${user.defaults.editConfiguration}</td>
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="${user.id}_editConfiguration" unchecked>
+                    <input type="checkbox" name="${user.id}_editConfiguration">
                     <span class="toggle-text"></span>
                 </label>
             </td>
             <td style="text-align: center;">${user.defaults.manageUser}</td>
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="${user.id}_manageUser" unchecked>
+                    <input type="checkbox" name="${user.id}_manageUser">
                     <span class="toggle-text"></span>
                 </label>
             </td>
             <td style="text-align: center;">${user.defaults.securitySetup}</td>
             <td style="text-align: center;">
                 <label class="toggle-button">
-                    <input type="checkbox" name="${user.id}_securitySetup" unchecked>
+                    <input type="checkbox" name="${user.id}_securitySetup">
                     <span class="toggle-text"></span>
                 </label>
             </td>
@@ -186,7 +186,22 @@ function goToPreviousPage() {
 }
 
 function handleLimitofAuthoritySubmission() {    
-    // Save the current settings
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    
+    // Filter out checkboxes with empty names
+    const validCheckboxes = Array.from(checkboxes).filter(cb => cb.name.trim() !== '');
+    
+    console.log('Valid checkboxes:', validCheckboxes.length);
+    
+    // Check if any valid checkbox is not ticked
+    for (let i = 0; i < validCheckboxes.length; i++) {
+        if (!validCheckboxes[i].checked) {
+            alert('Please tick ALL checkboxes before proceeding.');
+            return;
+        }
+    }
+    
+    // All checkboxes are ticked, proceed
     saveAuthorityData();
     navigationGuard.markPageAsCompleted();
     window.location.href = 'userdetail.html';
