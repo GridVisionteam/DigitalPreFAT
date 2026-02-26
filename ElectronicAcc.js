@@ -252,9 +252,14 @@ function generateElectronicAccessoriesRows() {
             // 2. Handle Quantity Input
             const quantityInput = row.querySelector(`input[name="accessory_${rowNumber}_quantity"]`);
             if (this.checked) {
-                // If ticked, set default to 1 if currently empty
+                // If ticked, set default based on item number
+                // Items 7-11 get default value 2, others get 1
                 if (quantityInput.value === "") {
-                    quantityInput.value = "1";
+                    if (rowNumber >= 7 && rowNumber <= 11) {
+                        quantityInput.value = "2";
+                    } else {
+                        quantityInput.value = "1";
+                    }
                 }
             } else {
                 // If unticked, clear the value
