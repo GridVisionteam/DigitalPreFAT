@@ -405,6 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const backBtn = document.getElementById('backBtn');
     const submitBtn = document.getElementById('submitBtn');
     const sheetsContainer = document.getElementById('sheetsContainer');
+    
     function saveBQDetails(diCount, diModulesData) {
         localStorage.setItem('diModulesToTest', diCount);
         localStorage.setItem('currentDIModule', 1);
@@ -494,13 +495,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (aiCountInput) localStorage.setItem('session_aiCount', aiCountInput.value);
         if (aoCountInput) localStorage.setItem('session_aoCount', aoCountInput.value);
         
-        // Save checker name - ADD/UPDATE THIS
+        // Save checker name
         const checkerNameInput = document.getElementById('checkerName');
         if (checkerNameInput) {
             localStorage.setItem('session_checkerName', checkerNameInput.value);
         }
         
-        // Save vendor number - ADD/UPDATE THIS
+        // Save vendor number
         const vendorNumberInput = document.getElementById('vendorNumber');
         if (vendorNumberInput) {
             localStorage.setItem('session_vendorNumber', vendorNumberInput.value);
@@ -695,22 +696,26 @@ function createModuleSheetBase(count, moduleType, partNumbers) {
         slotInput.placeholder = 'Enter slot';
         slotInput.required = true;
 
-        // === NEW CODE ADDED BELOW ===
         // Check if the current module is Subrack, Power, or Processor
         // and set default value to 0
         if (['Subrack', 'Power', 'Processor'].includes(moduleType)) {
             slotInput.value = '0';
         }
-        // ============================
 
         slotCell.appendChild(slotInput);
 
+        // Serial Number field with 12-digit limit
         const serialCell = row.insertCell();
         const serialInput = document.createElement('input');
-        serialInput.type = 'number';
+        serialInput.type = 'text'; // Changed from 'number' to 'text' for better control
         serialInput.name = `${moduleType.toLowerCase()}_${i}_serial`;
-        serialInput.placeholder = 'Enter serial number';
+        serialInput.placeholder = 'Enter 12-digit serial';
         serialInput.required = true;
+        serialInput.setAttribute('maxlength', '12'); // Add maxlength attribute
+        serialInput.setAttribute('pattern', '\\d{12}'); // Add pattern for validation
+        serialInput.setAttribute('inputmode', 'numeric'); // Show numeric keyboard on mobile
+        serialInput.style.padding = '8px';
+        serialInput.style.width = '140px';
         serialCell.appendChild(serialInput);
 
         tbody.appendChild(row);
@@ -750,7 +755,7 @@ function createModuleSheetBase(count, moduleType, partNumbers) {
             const aiCount = parseInt(document.getElementById('aiCount')?.value) || 0;
             const aoCount = parseInt(document.getElementById('aoCount')?.value) || 0;
             
-            // --- FIX IS HERE: Sum ALL inputs ---
+            // Sum ALL inputs
             const totalCount = subrackCount + processorCount + powerCount + comCount + diCount + doCount + aiCount + aoCount;
             
             if (totalCount === 0) {
@@ -840,6 +845,9 @@ function createModuleSheetBase(count, moduleType, partNumbers) {
                 }
                 updatePartNumberSummary(sheet);
             });
+            
+            // Re-attach serial number handling for new sheets
+            setupSerialNumberHandling();
         });
     }
 
@@ -931,7 +939,6 @@ document.getElementById('exportBtn').addEventListener('click', async function() 
         const serialValue = input.value.trim();
 
         // Check if value is NOT 12 digits
-        // Note: This regex (!/^\d{12}$/) will fail if the field is empty OR if it has the wrong number of digits.
         if (!/^\d{12}$/.test(serialValue)) {
             
             // 1. Highlight the bad input
@@ -942,8 +949,6 @@ document.getElementById('exportBtn').addEventListener('click', async function() 
             input.focus();
             
             // 3. Show Alert
-            // We try to find the module name for a better error message, if possible
-            // Assuming the input is inside a row with some identifier, otherwise generic message
             showCustomAlert('Export Blocked: Found a serial number that is not exactly 12 digits. Please correct the highlighted field.');
             
             // 4. STOP THE EXPORT IMMEDIATELY
@@ -954,7 +959,6 @@ document.getElementById('exportBtn').addEventListener('click', async function() 
         }
     }
     // --------------------------------
-
 
     // --- PART 2: EXPORT LOGIC (Only runs if Part 1 passes) ---
     try {
@@ -1030,31 +1034,158 @@ document.getElementById('exportBtn').addEventListener('click', async function() 
         showCustomAlert('Error during export: ' + error.message);
     }
 });
+
+    // Setup serial number handling
+    setupSerialNumberHandling();
     
-
-    document.addEventListener('input', function(event) {
-        if (event.target && event.target.matches('input[name$="_serial"]')) {
-            const serialInput = event.target;
-            const serialValue = serialInput.value.trim();
-            
-            // Remove any existing error styling when user starts typing
-            if (serialValue.length > 0) {
-                if (!/^\d{12}$/.test(serialValue)) {
-                    serialInput.style.border = '2px solid red';
-                } else {
-                    serialInput.style.border = '2px solid green'; // Optional: green for valid
-                }
-            } else {
-                serialInput.style.border = ''; // Reset to default when empty
-            }
-        }
-    });
-
     // Make the function available globally
     window.validateAllModuleFields = validateAllModuleFields;
     window.goToNext = goToNext;
 
 });
+
+// Function to handle serial number input and auto-advance
+function setupSerialNumberHandling() {
+    // Use event delegation on the sheetsContainer to catch events on dynamically created inputs
+    const sheetsContainer = document.getElementById('sheetsContainer');
+    
+    if (sheetsContainer) {
+        // Handle input events (typing, pasting)
+        sheetsContainer.addEventListener('input', function(event) {
+            if (event.target && event.target.matches('input[name$="_serial"]')) {
+                handleSerialInput(event.target);
+            }
+        });
+        
+        // Handle keyup events for backspace navigation
+        sheetsContainer.addEventListener('keyup', function(event) {
+            if (event.target && event.target.matches('input[name$="_serial"]')) {
+                if (event.key === 'Backspace' || event.keyCode === 8) {
+                    handleSerialBackspace(event.target);
+                }
+            }
+        });
+        
+        // Handle keydown to prevent non-numeric input
+        sheetsContainer.addEventListener('keydown', function(event) {
+            if (event.target && event.target.matches('input[name$="_serial"]')) {
+                // Allow: backspace, delete, tab, escape, enter, arrow keys, home, end
+                if (event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || 
+                    event.key === 'Escape' || event.key === 'Enter' || event.key === 'ArrowLeft' || 
+                    event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+                    event.key === 'Home' || event.key === 'End') {
+                    return; // Let it happen
+                }
+                
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl/X
+                if (event.ctrlKey && (event.key === 'a' || event.key === 'c' || event.key === 'v' || event.key === 'x')) {
+                    return; // Let it happen
+                }
+                
+                // Prevent if not a number
+                if (!/^\d$/.test(event.key) && event.key !== ' ') {
+                    event.preventDefault();
+                }
+            }
+        });
+        
+        // Handle paste events separately
+        sheetsContainer.addEventListener('paste', function(event) {
+            if (event.target && event.target.matches('input[name$="_serial"]')) {
+                event.preventDefault();
+                
+                // Get pasted data
+                const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+                
+                // Extract only digits
+                const digitsOnly = pastedData.replace(/\D/g, '');
+                
+                // Limit to 12 digits
+                const limitedDigits = digitsOnly.slice(0, 12);
+                
+                // Set the value
+                event.target.value = limitedDigits;
+                
+                // Trigger input event to handle auto-advance
+                const inputEvent = new Event('input', { bubbles: true });
+                event.target.dispatchEvent(inputEvent);
+            }
+        });
+    }
+}
+
+// Function to handle serial input
+function handleSerialInput(input) {
+    // Get current value and remove any non-digit characters
+    let value = input.value.replace(/\D/g, '');
+    
+    // Limit to 12 digits
+    if (value.length > 12) {
+        value = value.slice(0, 12);
+    }
+    
+    // Update the input value
+    input.value = value;
+    
+    // Apply styling based on validity
+    if (value.length === 12) {
+        input.style.border = '2px solid green';
+        input.style.backgroundColor = '#f0fff0'; // Light green background
+        
+        // Auto-advance to next serial number field
+        autoAdvanceToSerial(input, 'next');
+    } else if (value.length > 0) {
+        input.style.border = '2px solid red';
+        input.style.backgroundColor = '#fff0f0'; // Light red background
+    } else {
+        input.style.border = '';
+        input.style.backgroundColor = '';
+    }
+}
+
+// Function to auto-advance to next serial field
+function autoAdvanceToSerial(currentInput, direction = 'next') {
+    const allSerialInputs = Array.from(document.querySelectorAll('input[name$="_serial"]'));
+    const currentIndex = allSerialInputs.indexOf(currentInput);
+    
+    if (direction === 'next' && currentIndex !== -1 && currentIndex < allSerialInputs.length - 1) {
+        // Focus on the next serial input
+        const nextInput = allSerialInputs[currentIndex + 1];
+        nextInput.focus();
+        
+        // Optional: highlight the next field briefly
+        nextInput.style.backgroundColor = '#ffffe0'; // Light yellow highlight
+        setTimeout(() => {
+            if (nextInput.value.length === 12) {
+                nextInput.style.backgroundColor = '#f0fff0';
+            } else if (nextInput.value.length > 0) {
+                nextInput.style.backgroundColor = '#fff0f0';
+            } else {
+                nextInput.style.backgroundColor = '';
+            }
+        }, 200);
+    }
+}
+
+// Function to handle backspace on empty field
+function handleSerialBackspace(input) {
+    const value = input.value;
+    
+    // If current field becomes empty after backspace, move to previous field
+    if (value.length === 0) {
+        const allSerialInputs = Array.from(document.querySelectorAll('input[name$="_serial"]'));
+        const currentIndex = allSerialInputs.indexOf(input);
+        
+        if (currentIndex > 0) {
+            const prevInput = allSerialInputs[currentIndex - 1];
+            prevInput.focus();
+            // Position cursor at the end of previous input
+            setTimeout(() => {
+                prevInput.setSelectionRange(prevInput.value.length, prevInput.value.length);
+            }, 10);
+        }
+    }
+}
 
 async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false) {
     // Ensure jsPDF is loaded
@@ -1102,16 +1233,15 @@ async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false)
     doc.text(`Tester: ${testerName}`, 14, 50);
 
     // --- 2. Define Module Order & Colors ---
-    // You can customize HEX colors here
     const moduleConfig = [
         { type: 'Subrack', color: '#808080' }, // Gray
-        { type: 'Processor', color: '#0000FF' }, // Blue (Requested)
+        { type: 'Processor', color: '#0000FF' }, // Blue
         { type: 'COM', color: '#2E8B57' },      // SeaGreen
         { type: 'DI', color: '#FFA500' },       // Orange
         { type: 'DO', color: '#800080' },       // Purple
         { type: 'AI', color: '#008080' },       // Teal
         { type: 'AO', color: '#DAA520' },       // GoldenRod
-        { type: 'Power', color: '#FF0000' }     // Red (Requested)
+        { type: 'Power', color: '#FF0000' }     // Red
     ];
 
     // Get Data
@@ -1225,7 +1355,7 @@ function restoreModuleData() {
         });
     });
     
-    // RESTORE CHECKER NAME AND VENDOR NUMBER - ADD THIS CODE
+    // RESTORE CHECKER NAME AND VENDOR NUMBER
     const checkerNameInput = document.getElementById('checkerName');
     const vendorNumberInput = document.getElementById('vendorNumber');
     
