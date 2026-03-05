@@ -66,11 +66,14 @@ async function goToNext(returnOnly = false) {
     // Save checker name & vendor - UPDATED TO SAVE BOTH FORMATS
     const checkerName = document.getElementById('checkerName')?.value || '';
     const vendorNumber = document.getElementById('vendorNumber')?.value || '';
+    const supplierName = document.getElementById('supplierName')?.value || '';
 
     localStorage.setItem('checkerName', checkerName);
     localStorage.setItem('vendorNumber', vendorNumber);
     localStorage.setItem('session_checkerName', checkerName);
     localStorage.setItem('session_vendorNumber', vendorNumber);
+    localStorage.setItem('session_supplierName', supplierName);
+    localStorage.setItem('supplierName', supplierName);
 
     // Get the counts
     const processorCount = parseInt(document.getElementById('processorCount').value) || 0;
@@ -471,6 +474,20 @@ function validateAllModuleFields() {
         }
     }
 
+    // Validate Supplier Name
+    const supplierNameInput = document.getElementById('supplierName');
+    if (supplierNameInput && supplierNameInput.style.display !== 'none') {
+        const supplierName = supplierNameInput.value.trim();
+        if (!supplierName) {
+            showCustomAlert('Please enter Supplier Name.');
+            supplierNameInput.style.border = '2px solid red';
+            supplierNameInput.focus();
+            return false;
+        } else {
+            supplierNameInput.style.border = '';
+        }
+    }
+
     return true;
 }
 
@@ -581,7 +598,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (vendorNumberInput) {
             localStorage.setItem('session_vendorNumber', vendorNumberInput.value);
         }
-        
+        // Save supplier name
+        const supplierNameInput = document.getElementById('supplierName');
+        if (supplierNameInput) {
+            localStorage.setItem('session_supplierName', supplierNameInput.value);
+        }
+
         const moduleData = gatherAllModuleData();
         localStorage.setItem('currentModuleData', JSON.stringify(moduleData));
     }
@@ -684,6 +706,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const vendorNumberInput = document.getElementById('vendorNumber');
         if (vendorNumberInput) {
             vendorNumberInput.value = localStorage.getItem('session_vendorNumber') || '';
+        }
+        // Load supplier name
+        const supplierNameInput = document.getElementById('supplierName');
+        if (supplierNameInput) {
+            supplierNameInput.value = localStorage.getItem('session_supplierName') || '';
         }
 
         // Show checker name section if there are modules
@@ -1482,6 +1509,7 @@ async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false)
 
     const testerName = localStorage.getItem('session_checkerName') || 'N/A';
     const vendorNum = localStorage.getItem('session_vendorNumber') || 'N/A';
+    const supplierName = localStorage.getItem('session_supplierName') || 'N/A';
 
     doc.setFontSize(18);
     doc.text(`RTU Serial Number List for ${contractNo} | ${rtuSerial}`, 14, 20);
@@ -1496,7 +1524,8 @@ async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false)
     doc.text(`Contract No: ${contractNo}`, 14, 35);
     doc.text(`RTU Serial No: ${rtuSerial}`, 14, 40);
     doc.text(`Vendor No: ${vendorNum}`, 14, 45);
-    doc.text(`Tester: ${testerName}`, 14, 50);
+    doc.text(`Supplier: ${supplierName}`, 14, 50);
+    doc.text(`Tester: ${testerName}`, 14, 55);
 
     // --- 2. Define Module Order & Colors ---
     const moduleConfig = [
@@ -1624,7 +1653,8 @@ function restoreModuleData() {
     // RESTORE CHECKER NAME AND VENDOR NUMBER
     const checkerNameInput = document.getElementById('checkerName');
     const vendorNumberInput = document.getElementById('vendorNumber');
-    
+    const supplierNameInput = document.getElementById('supplierName');
+
     if (checkerNameInput) {
         const savedCheckerName = localStorage.getItem('session_checkerName');
         if (savedCheckerName) {
@@ -1638,6 +1668,14 @@ function restoreModuleData() {
             vendorNumberInput.value = savedVendorNumber;
         }
     }
+    // Restore supplier name
+    if (supplierNameInput) {
+        const savedSupplierName = localStorage.getItem('session_supplierName');
+        if (savedSupplierName) {
+            supplierNameInput.value = savedSupplierName;
+        }
+    }
+
 }
 
 function gatherAllModuleData() {
@@ -1790,8 +1828,8 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         const margin = 2;
         const qrTotalSize = qrSize + margin * 2 * cellSize;
         
-        // Add space for label (approximately 40px for text)
-        const labelHeight = 40;
+        // Add space for label (approximately 60px for two lines of text)
+        const labelHeight = 60;
         const totalHeight = qrTotalSize + labelHeight;
         
         // Create canvas with extra height for label
@@ -1819,15 +1857,20 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
             }
         }
         
-        // Add label below QR code
+        // Add label below QR code - MODIFIED FORMAT
         ctx.fillStyle = '#000000';
-        ctx.font = 'bold 14px Arial';
+        ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         
-        // Draw the label text (filename without .png extension)
-        const labelText = filename.replace('.png', '');
-        ctx.fillText(labelText, canvas.width / 2, qrTotalSize + 10);
+        // Get supplier name from the input field
+        const supplierName = document.getElementById('supplierName')?.value || localStorage.getItem('session_supplierName') || 'Unknown Supplier';
+        
+        // First line: RTU Serial No
+        ctx.fillText(rtuSerial, canvas.width / 2, qrTotalSize + 10);
+        
+        // Second line: contract no. - supplier name
+        ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, qrTotalSize + 30);
         
         // Optional: Add a light gray border around the QR code section
         ctx.strokeStyle = '#CCCCCC';
@@ -1874,6 +1917,7 @@ async function generateBQPDFForDrive(contractNo, rtuSerial) {
 
         const testerName = localStorage.getItem('session_checkerName') || 'N/A';
         const vendorNum = localStorage.getItem('session_vendorNumber') || 'N/A';
+        const supplierName = localStorage.getItem('session_supplierName') || 'N/A';
 
         doc.setFontSize(18);
         doc.text(`RTU Serial Number List for ${contractNo} | ${rtuSerial}`, 14, 20);
@@ -1887,7 +1931,8 @@ async function generateBQPDFForDrive(contractNo, rtuSerial) {
         doc.text(`Contract No: ${contractNo}`, 14, 35);
         doc.text(`RTU Serial No: ${rtuSerial}`, 14, 40);
         doc.text(`Vendor No: ${vendorNum}`, 14, 45);
-        doc.text(`Tester: ${testerName}`, 14, 50);
+        doc.text(`Supplier: ${supplierName}`, 14, 50);
+        doc.text(`Tester: ${testerName}`, 14, 55); 
 
         // --- 2. Define Module Order & Colors ---
         const moduleConfig = [
