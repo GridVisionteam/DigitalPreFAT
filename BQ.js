@@ -282,15 +282,17 @@ function validateAllModuleFields() {
     let duplicateDetails = [];
     
     // First, clear all previous error styles
-    document.querySelectorAll('input[name$="_serial"]').forEach(input => {
+    document.querySelectorAll('input[name$="_serial"], input[required]').forEach(input => {
         input.style.border = '';
         input.style.backgroundColor = '';
-        input.classList.remove('duplicate-serial');
+        input.classList.remove('duplicate-serial', 'missing-serial');
         input.title = ''; // Clear tooltips
     });
 
-    // First pass: Collect all serial numbers and validate format
+    // First pass: Collect all serial numbers and validate format AND check for empty fields
     const serialMap = new Map(); // serial -> array of {element, location, moduleType, moduleNo}
+    let missingSerialFound = false;
+    let firstMissingSerial = null;
     
     for (const sheet of sheets) {
         const tableRows = sheet.querySelectorAll('tbody tr');
@@ -340,33 +342,56 @@ function validateAllModuleFields() {
                 }
             }
             
-            // Collect serial number data
+            // Collect serial number data and check for empty serials
             const serialInput = row.querySelector('input[name$="_serial"]');
             const serialValue = serialInput?.value.trim();
             
-            if (serialValue) {
-                // Check serial number format (12 digits)
-                if (!/^\d{12}$/.test(serialValue)) {
-                    serialInput.style.border = '2px solid red';
-                    serialInput.style.backgroundColor = '#fff0f0';
-                    showCustomAlert(`Serial Number for ${moduleType} Module ${moduleNo} must be exactly 12 digits.`);
-                    serialInput.focus();
-                    return false;
-                }
+            // NEW VALIDATION: Check if serial field is empty
+            if (!serialValue) {
+                // Mark as missing
+                serialInput.style.border = '2px solid red';
+                serialInput.style.backgroundColor = '#fff0f0';
+                serialInput.classList.add('missing-serial');
+                serialInput.title = 'Serial number is required';
                 
-                const location = `${moduleType} Module ${moduleNo}`;
-                
-                if (!serialMap.has(serialValue)) {
-                    serialMap.set(serialValue, []);
+                missingSerialFound = true;
+                if (!firstMissingSerial) {
+                    firstMissingSerial = serialInput;
                 }
-                serialMap.get(serialValue).push({
-                    element: serialInput,
-                    location: location,
-                    moduleType: moduleType,
-                    moduleNo: moduleNo
-                });
+                continue; // Skip further validation for this empty field
             }
+            
+            // Check serial number format (12 digits)
+            if (!/^\d{12}$/.test(serialValue)) {
+                serialInput.style.border = '2px solid red';
+                serialInput.style.backgroundColor = '#fff0f0';
+                showCustomAlert(`Serial Number for ${moduleType} Module ${moduleNo} must be exactly 12 digits.`);
+                serialInput.focus();
+                return false;
+            }
+            
+            const location = `${moduleType} Module ${moduleNo}`;
+            
+            if (!serialMap.has(serialValue)) {
+                serialMap.set(serialValue, []);
+            }
+            serialMap.get(serialValue).push({
+                element: serialInput,
+                location: location,
+                moduleType: moduleType,
+                moduleNo: moduleNo
+            });
         }
+    }
+
+    // If missing serials found, show alert and focus first missing field
+    if (missingSerialFound) {
+        showCustomAlert('Please fill in all Serial Number fields.');
+        if (firstMissingSerial) {
+            firstMissingSerial.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstMissingSerial.focus();
+        }
+        return false;
     }
 
     // Second pass: Check for duplicates and highlight them
@@ -408,6 +433,11 @@ function validateAllModuleFields() {
         } else {
             // Valid unique serial - add to tracker
             serialNumberTracker.addSerial(serial, occurrences[0].moduleType, occurrences[0].moduleNo);
+            
+            // Mark as valid (green border)
+            occurrences[0].element.style.border = '2px solid green';
+            occurrences[0].element.style.backgroundColor = '#f0fff0';
+            occurrences[0].element.title = 'Valid unique serial';
         }
     });
 
@@ -617,6 +647,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const doCountInput = document.getElementById('doCount');
         const aiCountInput = document.getElementById('aiCount');
         const aoCountInput = document.getElementById('aoCount');
+        const sheetsContainer = document.getElementById('sheetsContainer');
 
         // Helper function to safely parse localStorage values
         const getParsedValue = (key) => {
@@ -668,7 +699,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (powerCount > 0) sheetsContainer.appendChild(createPOWERSheet(powerCount));
             
             restoreModuleData();
+            
+            // CRITICAL FIX: Reattach serial number handling after restoring data
+            // This ensures auto-advance works when importing JSON data
+            setTimeout(() => {
+                setupSerialNumberHandling();
+                highlightDuplicateSerials();
+                console.log("Serial number handling reattached after data load");
+            }, 300);
         }
+        
         const savedModuleData = JSON.parse(localStorage.getItem('currentModuleData'));
         if (savedModuleData) {
             document.querySelectorAll('.module-sheet').forEach(sheet => {
@@ -697,6 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
         const checkerNameInput = document.getElementById('checkerName');
         if (checkerNameInput) {
             checkerNameInput.value = localStorage.getItem('session_checkerName') || '';
@@ -1871,11 +1912,6 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         
         // Second line: contract no. - supplier name
         ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, qrTotalSize + 30);
-        
-        // Optional: Add a light gray border around the QR code section
-        ctx.strokeStyle = '#CCCCCC';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0, 0, qrTotalSize, qrTotalSize);
         
         // Convert to data URL and download
         const qrDataUrl = canvas.toDataURL('image/png');

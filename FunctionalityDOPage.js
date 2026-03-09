@@ -103,9 +103,9 @@ function generateDORows() {
             <td style="text-align: center;">
                 <input type="checkbox" name="DO_${window.currentDOModule}_checkbox_${rowNumber}" value="2" class="do-test-checkbox do-checkbox-group">
             </td>
-            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_IEC101_${rowNumber}"></td>
-            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_IEC104_${rowNumber}"></td>
-            <td><input type="number" class="do-test-input" name="DO_${window.currentDOModule}_DNP3_${rowNumber}"></td>
+            <td><input type="text" class="do-test-input" name="DO_${window.currentDOModule}_IEC101_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="do-test-input" name="DO_${window.currentDOModule}_IEC104_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="do-test-input" name="DO_${window.currentDOModule}_DNP3_${rowNumber}" placeholder="Enter IOA or -"></td>
         `;
         
         tableBody.appendChild(row);
@@ -153,9 +153,9 @@ function generateDO8Rows() {
             <td style="text-align: center;">
                 <input type="checkbox" name="DO8_${window.currentDOModule}_checkbox_${rowNumber}" value="2" class="do8-test-checkbox do8-checkbox-group">
             </td>
-            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_IEC101_${rowNumber}"></td>
-            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_IEC104_${rowNumber}"></td>
-            <td><input type="number" class="do8-test-input" name="DO_${window.currentDOModule}_DNP3_${rowNumber}"></td>
+            <td><input type="text" class="do8-test-input" name="DO_${window.currentDOModule}_IEC101_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="do8-test-input" name="DO_${window.currentDOModule}_IEC104_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="do8-test-input" name="DO_${window.currentDOModule}_DNP3_${rowNumber}" placeholder="Enter IOA or -"></td>
         `;
         
         tableBody.appendChild(row);
@@ -665,21 +665,51 @@ function validateDOIOAIndexFields() {
     // Reset red borders
     [...currentIEC101Inputs, ...currentIEC104Inputs].forEach(input => input.style.border = '');
 
-    // --- CHECK 1: Ensure Fields are Filled ---
+    // --- CHECK 1: Ensure Fields are Filled (now accepts "-") ---
     let emptyFound = false;
     currentIEC101Inputs.forEach(input => {
-        if (!input.value.trim()) { input.style.border = '2px solid red'; emptyFound = true; }
+        const value = input.value.trim();
+        if (value === "") { 
+            input.style.border = '2px solid red'; 
+            emptyFound = true; 
+        }
     });
     currentIEC104Inputs.forEach(input => {
-        if (!input.value.trim()) { input.style.border = '2px solid red'; emptyFound = true; }
+        const value = input.value.trim();
+        if (value === "") { 
+            input.style.border = '2px solid red'; 
+            emptyFound = true; 
+        }
     });
 
     if (emptyFound) {
-        alert("Please fill in all required IOA/Index fields before continuing.");
+        alert("Please fill in all required IOA/Index fields before continuing (use '-' for empty fields).");
         return false;
     }
 
-    // --- CHECK 2: Global Duplicates (Max 2 Allowed Total) ---
+    // --- CHECK 2: Validate Format (only numbers or "-") ---
+    let formatErrorFound = false;
+    currentIEC101Inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!isValidDOIOAValue(value)) {
+            input.style.border = '2px solid red';
+            formatErrorFound = true;
+        }
+    });
+    currentIEC104Inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!isValidDOIOAValue(value)) {
+            input.style.border = '2px solid red';
+            formatErrorFound = true;
+        }
+    });
+
+    if (formatErrorFound) {
+        alert("IOA/Index fields can only contain numbers or '-' (for empty fields). Please correct the highlighted fields.");
+        return false;
+    }
+
+    // --- CHECK 3: Global Duplicates (Max 2 Allowed Total, ignore "-") ---
     let globalIEC101 = [];
     let globalIEC104 = [];
     
@@ -701,7 +731,8 @@ function validateDOIOAIndexFields() {
         if (moduleData.iec101Values) {
             Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                if (trimmedVal !== "") {
+                // Ignore "-" and empty strings in duplicate checking
+                if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC101.push(trimmedVal);
                     if (!cellSources101[trimmedVal]) {
                         cellSources101[trimmedVal] = [];
@@ -725,7 +756,8 @@ function validateDOIOAIndexFields() {
         if (moduleData.iec104Values) {
             Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                if (trimmedVal !== "") {
+                // Ignore "-" and empty strings in duplicate checking
+                if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC104.push(trimmedVal);
                     if (!cellSources104[trimmedVal]) {
                         cellSources104[trimmedVal] = [];
@@ -749,7 +781,8 @@ function validateDOIOAIndexFields() {
 
     currentIEC101Inputs.forEach(input => {
         const val = input.value.trim();
-        if (val !== "") {
+        // Ignore "-" and empty strings in duplicate checking
+        if (val !== "" && val !== "-") {
             globalIEC101.push(val);
             if (!cellSources101[val]) {
                 cellSources101[val] = [];
@@ -772,7 +805,8 @@ function validateDOIOAIndexFields() {
 
     currentIEC104Inputs.forEach(input => {
         const val = input.value.trim();
-        if (val !== "") {
+        // Ignore "-" and empty strings in duplicate checking
+        if (val !== "" && val !== "-") {
             globalIEC104.push(val);
             if (!cellSources104[val]) {
                 cellSources104[val] = [];
@@ -997,4 +1031,16 @@ function validateDO8CheckboxGroups() {
     }
     
     return true;
+}
+
+function isValidDOIOAValue(value) {
+    // Allow empty values (these will be caught by empty field validation)
+    if (value === "") return false;
+    
+    // Allow single dash
+    if (value === "-") return true;
+    
+    // Check if the value contains only numbers (no letters or special characters)
+    // This regex matches only digits (0-9)
+    return /^\d+$/.test(value);
 }

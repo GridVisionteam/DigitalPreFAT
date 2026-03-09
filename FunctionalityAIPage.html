@@ -96,20 +96,24 @@
     }
 
     function clearAllFunctionality() {
-        // Clear Inputs
-        const inputs = document.querySelectorAll('#tableBody input[type="text"], #tableBody input[type="number"]');
-        inputs.forEach(input => {
-            input.value = '';
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        });
+            // Clear Inputs
+            const inputs = document.querySelectorAll('#tableBody input[type="text"], #tableBody input[type="checkbox"]');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
 
-        // Uncheck Checkboxes
-        const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-            cb.checked = false;
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-    }
+            // Uncheck Checkboxes (already handled above, but keeping for clarity)
+            const checkboxes = document.querySelectorAll('#tableBody input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                cb.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
 </script>
 
 <script>

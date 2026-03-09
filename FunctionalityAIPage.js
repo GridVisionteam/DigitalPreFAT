@@ -28,6 +28,9 @@ function showFunctionalityAIPage() {
     } else {
         clearAllFunctionality();
     }
+    
+    // Add input restrictions for IOA fields
+    addAIIOAInputRestrictions();
 }
 
 function generateAIRows() {
@@ -60,11 +63,11 @@ function generateAIRows() {
             <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_20mA_${i + 1}"></td>
         `;
 
-        // Protocol inputs (keep as number type)
+        // Protocol inputs (change to text type to allow dash, with input restrictions)
         row.innerHTML += `
-            <td><input type="number" class="ai-test-input" name="AI_${window.currentAIModule}_IEC101_${i + 1}"></td>
-            <td><input type="number" class="ai-test-input" name="AI_${window.currentAIModule}_IEC104_${i + 1}"></td>
-            <td><input type="number" class="ai-test-input" name="AI_${window.currentAIModule}_DNP3_${i + 1}"></td>
+            <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC101_${i + 1}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC104_${i + 1}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_DNP3_${i + 1}" placeholder="Enter IOA or -"></td>
         `;
 
         tableBody.appendChild(row);
@@ -254,8 +257,8 @@ function validateAIInputs() {
             input.parentElement.style.backgroundColor = '';
             input.parentElement.style.border = '';
         }
-        // For number inputs (IOA) - validate they have values
-        else if (input.type === 'number' && !input.value.trim()) {
+        // For text inputs (IOA) - validate they have values (now allows dash)
+        else if (input.type === 'text' && !input.value.trim()) {
             input.style.border = '2px solid red';
             input.style.backgroundColor = '#ffebee';
             emptyInputs.push(input.name);
@@ -268,7 +271,7 @@ function validateAIInputs() {
     });
     
     if (!isValid) {
-        alert('Please fill in all required IOA/Index fields (IEC101/IEC104) before continuing.');
+        alert('Please fill in all required IOA/Index fields (IEC101/IEC104) before continuing (use "-" for empty fields).');
     }
     
     return isValid;
@@ -291,17 +294,19 @@ function validateAIIOAIndexFields() {
         input.style.backgroundColor = '';
     });
 
-    // --- CHECK 1: Ensure Fields are Filled ---
+    // --- CHECK 1: Ensure Fields are Filled (now accepts "-") ---
     let emptyFound = false;
     currentIEC101Inputs.forEach(input => {
-        if (!input.value.trim()) { 
+        const value = input.value.trim();
+        if (value === "") { 
             input.style.border = '2px solid red';
             input.style.backgroundColor = '#ffebee';
             emptyFound = true; 
         }
     });
     currentIEC104Inputs.forEach(input => {
-        if (!input.value.trim()) { 
+        const value = input.value.trim();
+        if (value === "") { 
             input.style.border = '2px solid red';
             input.style.backgroundColor = '#ffebee';
             emptyFound = true; 
@@ -309,11 +314,35 @@ function validateAIIOAIndexFields() {
     });
 
     if (emptyFound) {
-        alert("Please fill in all required IOA/Index fields before continuing.");
+        alert("Please fill in all required IOA/Index fields before continuing (use '-' for empty fields).");
         return false;
     }
 
-    // --- CHECK 2: Global Duplicates (Max 1 Allowed Total for AI - Strict Unique) ---
+    // --- CHECK 2: Validate Format (only numbers or "-") ---
+    let formatErrorFound = false;
+    currentIEC101Inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!isValidAIIOAValue(value)) {
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            formatErrorFound = true;
+        }
+    });
+    currentIEC104Inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!isValidAIIOAValue(value)) {
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            formatErrorFound = true;
+        }
+    });
+
+    if (formatErrorFound) {
+        alert("IOA/Index fields can only contain numbers or '-' (for empty fields). Please correct the highlighted fields.");
+        return false;
+    }
+
+    // --- CHECK 3: Global Duplicates (Max 1 Allowed Total for AI - Strict Unique, ignore "-") ---
     let globalIEC101 = [];
     let globalIEC104 = [];
     
@@ -340,7 +369,8 @@ function validateAIIOAIndexFields() {
         if (moduleData.iec101Values) {
             Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                if (trimmedVal !== "") {
+                // Ignore "-" and empty strings in duplicate checking
+                if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC101.push(trimmedVal);
                     if (!cellSources101[trimmedVal]) {
                         cellSources101[trimmedVal] = [];
@@ -369,7 +399,8 @@ function validateAIIOAIndexFields() {
         if (moduleData.iec104Values) {
             Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                if (trimmedVal !== "") {
+                // Ignore "-" and empty strings in duplicate checking
+                if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC104.push(trimmedVal);
                     if (!cellSources104[trimmedVal]) {
                         cellSources104[trimmedVal] = [];
@@ -396,7 +427,8 @@ function validateAIIOAIndexFields() {
     // D. Add the LIVE data from the current screen with cell tracking
     currentIEC101Inputs.forEach(input => {
         const val = input.value.trim();
-        if (val !== "") {
+        // Ignore "-" and empty strings in duplicate checking
+        if (val !== "" && val !== "-") {
             globalIEC101.push(val);
             if (!cellSources101[val]) {
                 cellSources101[val] = [];
@@ -423,7 +455,8 @@ function validateAIIOAIndexFields() {
 
     currentIEC104Inputs.forEach(input => {
         const val = input.value.trim();
-        if (val !== "") {
+        // Ignore "-" and empty strings in duplicate checking
+        if (val !== "" && val !== "-") {
             globalIEC104.push(val);
             if (!cellSources104[val]) {
                 cellSources104[val] = [];
@@ -581,4 +614,72 @@ function validateAICheckboxes() {
     }
     
     return allChecked;
+}
+function isValidAIIOAValue(value) {
+    // Allow empty values (these will be caught by empty field validation)
+    if (value === "") return false;
+    
+    // Allow single dash
+    if (value === "-") return true;
+    
+    // Check if the value contains only numbers (no letters or special characters)
+    // This regex matches only digits (0-9)
+    return /^\d+$/.test(value);
+}
+
+// Add input restriction function
+function restrictAIIOAInput(event) {
+    const input = event.target;
+    const value = input.value;
+    
+    // Allow backspace, delete, tab, escape, enter, etc.
+    const key = event.key;
+    if (event.keyCode === 8 || event.keyCode === 46 || event.keyCode === 9 || 
+        event.keyCode === 27 || event.keyCode === 13 || event.keyCode === 37 || 
+        event.keyCode === 39 || event.keyCode === 35 || event.keyCode === 36) {
+        return true;
+    }
+    
+    // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+    if (event.ctrlKey && (key === 'a' || key === 'c' || key === 'v' || key === 'x')) {
+        return true;
+    }
+    
+    // Allow numbers and dash
+    if (!/^[\d-]$/.test(key)) {
+        event.preventDefault();
+        return false;
+    }
+    
+    // Prevent multiple dashes
+    if (key === '-' && value.includes('-')) {
+        event.preventDefault();
+        return false;
+    }
+    
+    return true;
+}
+
+// Add input restrictions for AI IOA inputs
+function addAIIOAInputRestrictions() {
+    document.querySelectorAll('.ai-ioa-input').forEach(input => {
+        input.addEventListener('keydown', restrictAIIOAInput);
+        
+        // Also validate on paste
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+            // Only allow numbers and dash
+            if (/^[\d-]+$/.test(pastedText)) {
+                // Prevent multiple dashes
+                if (pastedText.includes('-') && pastedText.indexOf('-') !== pastedText.lastIndexOf('-')) {
+                    alert('Only one dash character is allowed per field');
+                    return;
+                }
+                this.value = pastedText;
+            } else {
+                alert('Only numbers and dash character are allowed');
+            }
+        });
+    });
 }

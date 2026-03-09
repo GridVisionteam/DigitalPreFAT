@@ -218,9 +218,9 @@ function generateDIRows() {
             <td style="text-align: center;">
                 <input type="checkbox" name="${leftGroupName}" value="1" class="di-test-checkbox di-checkbox-group">
             </td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rowNumber}"></td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rowNumber}"></td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_DNP3_${rowNumber}"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_DNP3_${rowNumber}" placeholder="Enter IOA or -"></td>
         `;
         
         // Right channels (17-32)
@@ -234,9 +234,9 @@ function generateDIRows() {
             <td style="text-align: center;">
                 <input type="checkbox" name="${rightGroupName}" value="1" class="di-test-checkbox di-checkbox-group">
             </td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rightRowNumber}"></td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rightRowNumber}"></td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_DNP3_${rightRowNumber}"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rightRowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rightRowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_DNP3_${rightRowNumber}" placeholder="Enter IOA or -"></td>
         `;
         
         tableBody.appendChild(row);
@@ -284,9 +284,9 @@ function generateDI16Rows() {
             <td style="text-align: center;">
                 <input type="checkbox" name="${groupName}" value="1" class="di16-test-checkbox di16-checkbox-group">
             </td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rowNumber}"></td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rowNumber}"></td>
-            <td><input type="number" class="di-test-input" name="DI_${window.currentDIModule}_DNP3_${rowNumber}"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_IEC101_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_IEC104_${rowNumber}" placeholder="Enter IOA or -"></td>
+            <td><input type="text" class="di-test-input" name="DI_${window.currentDIModule}_DNP3_${rowNumber}" placeholder="Enter IOA or -"></td>
         `;
         
         tableBody.appendChild(row);
@@ -927,18 +927,48 @@ function validateIOAIndexFields() {
     // --- CHECK 1: Ensure Fields are Filled ---
     let emptyFound = false;
     currentIEC101Inputs.forEach(input => {
-        if (!input.value.trim()) { input.style.border = '2px solid red'; emptyFound = true; }
+        const value = input.value.trim();
+        if (value === "") { 
+            input.style.border = '2px solid red'; 
+            emptyFound = true; 
+        }
     });
     currentIEC104Inputs.forEach(input => {
-        if (!input.value.trim()) { input.style.border = '2px solid red'; emptyFound = true; }
+        const value = input.value.trim();
+        if (value === "") { 
+            input.style.border = '2px solid red'; 
+            emptyFound = true; 
+        }
     });
 
     if (emptyFound) {
-        alert("Please fill in all required IOA/Index fields before continuing.");
+        alert("Please fill in all required IOA/Index fields before continuing (use '-' for empty fields).");
         return false;
     }
 
-    // --- CHECK 2: Global Duplicates (Max 2 Allowed Total) ---
+    // --- CHECK 2: Validate Format (only numbers or "-") ---
+    let formatErrorFound = false;
+    currentIEC101Inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!isValidIOAValue(value)) {
+            input.style.border = '2px solid red';
+            formatErrorFound = true;
+        }
+    });
+    currentIEC104Inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!isValidIOAValue(value)) {
+            input.style.border = '2px solid red';
+            formatErrorFound = true;
+        }
+    });
+
+    if (formatErrorFound) {
+        alert("IOA/Index fields can only contain numbers or '-' (for empty fields). Please correct the highlighted fields.");
+        return false;
+    }
+
+    // --- CHECK 3: Global Duplicates (Max 2 Allowed Total, ignore "-") ---
     let globalIEC101 = [];
     let globalIEC104 = [];
     
@@ -960,7 +990,8 @@ function validateIOAIndexFields() {
         if (moduleData.iec101Values) {
             Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                if (trimmedVal !== "") {
+                // Ignore "-" and empty strings in duplicate checking
+                if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC101.push(trimmedVal);
                     if (!cellSources101[trimmedVal]) {
                         cellSources101[trimmedVal] = [];
@@ -983,7 +1014,8 @@ function validateIOAIndexFields() {
         if (moduleData.iec104Values) {
             Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                if (trimmedVal !== "") {
+                // Ignore "-" and empty strings in duplicate checking
+                if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC104.push(trimmedVal);
                     if (!cellSources104[trimmedVal]) {
                         cellSources104[trimmedVal] = [];
@@ -1006,7 +1038,8 @@ function validateIOAIndexFields() {
 
     currentIEC101Inputs.forEach(input => {
         const val = input.value.trim();
-        if (val !== "") {
+        // Ignore "-" and empty strings in duplicate checking
+        if (val !== "" && val !== "-") {
             globalIEC101.push(val);
             if (!cellSources101[val]) {
                 cellSources101[val] = [];
@@ -1028,7 +1061,8 @@ function validateIOAIndexFields() {
 
     currentIEC104Inputs.forEach(input => {
         const val = input.value.trim();
-        if (val !== "") {
+        // Ignore "-" and empty strings in duplicate checking
+        if (val !== "" && val !== "-") {
             globalIEC104.push(val);
             if (!cellSources104[val]) {
                 cellSources104[val] = [];
@@ -1117,4 +1151,16 @@ function findExcessiveDuplicates(array, maxAllowed) {
     }
     
     return excessive;
+}
+
+function isValidIOAValue(value) {
+    // Allow empty values (these will be caught by empty field validation)
+    if (value === "") return false;
+    
+    // Allow single dash
+    if (value === "-") return true;
+    
+    // Check if the value contains only numbers (no letters or special characters)
+    // This regex matches only digits (0-9)
+    return /^\d+$/.test(value);
 }
