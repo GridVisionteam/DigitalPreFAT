@@ -901,9 +901,16 @@ async function processDIModules(pdfDoc, currentUserData, diModulesDetails, diTes
                  iec4 = res.inputs?.[index+1];
                  dnp = res.inputs?.[index+2];
             }
-            if(iec1) try{ currentForm.getTextField(`IEC101_${j}`).setText(iec1); }catch(e){}
-            if(iec4) try{ currentForm.getTextField(`IEC104_${j}`).setText(iec4); }catch(e){}
-            if(dnp) try{ currentForm.getTextField(`DNP3_${j}`).setText(dnp); }catch(e){}
+            // Replace "-" with "N/A"
+            if(iec1) try{ 
+                currentForm.getTextField(`IEC101_${j}`).setText(iec1 === "-" ? "N/A" : iec1); 
+            }catch(e){}
+            if(iec4) try{ 
+                currentForm.getTextField(`IEC104_${j}`).setText(iec4 === "-" ? "N/A" : iec4); 
+            }catch(e){}
+            if(dnp) try{ 
+                currentForm.getTextField(`DNP3_${j}`).setText(dnp === "-" ? "N/A" : dnp); 
+            }catch(e){}
         }
         
         // Checkboxes
@@ -956,9 +963,16 @@ async function processDOModules(pdfDoc, currentUserData, doModulesDetails, doTes
             const iec1 = res.iec101Values?.[`DO_${i}_IEC101_${j}`];
             const iec4 = res.iec104Values?.[`DO_${i}_IEC104_${j}`];
             const dnp = res.dnp3Values?.[`DO_${i}_DNP3_${j}`];
-            if(iec1) try{ currentForm.getTextField(`IEC101_${j}`).setText(iec1); }catch(e){}
-            if(iec4) try{ currentForm.getTextField(`IEC104_${j}`).setText(iec4); }catch(e){}
-            if(dnp) try{ currentForm.getTextField(`DNP3_${j}`).setText(dnp); }catch(e){}
+            // Replace "-" with "N/A"
+            if(iec1) try{ 
+                currentForm.getTextField(`IEC101_${j}`).setText(iec1 === "-" ? "N/A" : iec1); 
+            }catch(e){}
+            if(iec4) try{ 
+                currentForm.getTextField(`IEC104_${j}`).setText(iec4 === "-" ? "N/A" : iec4); 
+            }catch(e){}
+            if(dnp) try{ 
+                currentForm.getTextField(`DNP3_${j}`).setText(dnp === "-" ? "N/A" : dnp); 
+            }catch(e){}
         }
 
         if(res.checkboxValues){
@@ -1042,9 +1056,10 @@ async function processAIModules(pdfDoc, currentUserData, aiModulesDetails, aiTes
             const p1 = res.iec101Values?.[`AI_${i}_IEC101_${ch}`];
             const p4 = res.iec104Values?.[`AI_${i}_IEC104_${ch}`];
             const pd = res.dnp3Values?.[`AI_${i}_DNP3_${ch}`];
-            if(p1) currentForm.getTextField(`AI_${ch}_IEC101`).setText(p1);
-            if(p4) currentForm.getTextField(`AI_${ch}_IEC104`).setText(p4);
-            if(pd) currentForm.getTextField(`AI_${ch}_DNP3`).setText(pd);
+            // Replace "-" with "N/A"
+            if(p1) currentForm.getTextField(`AI_${ch}_IEC101`).setText(p1 === "-" ? "N/A" : p1);
+            if(p4) currentForm.getTextField(`AI_${ch}_IEC104`).setText(p4 === "-" ? "N/A" : p4);
+            if(pd) currentForm.getTextField(`AI_${ch}_DNP3`).setText(pd === "-" ? "N/A" : pd);
         }
 
         await addSignatureToForm(currentForm, currentPdf);
@@ -1249,11 +1264,23 @@ async function processVirtualAlarmTest(pdfDoc, currentUserData, globalTime) {
         const item = res.virtualAlarmTests?.[`item_${i}`] || {};
         if(item.iec101 === 'OK') currentForm.getCheckBox(`Check_Box_VAT_IEC101_${i}`).check();
         else currentForm.getCheckBox(`Check_Box_VAT_IEC101_${i}`).uncheck();
-        if(item.iec101IOA) currentForm.getTextField(`VAT_IEC101_${i}`).setText(item.iec101IOA);
+        
+        // Fix: Check for empty string and set to "N/A"
+        if(item.iec101IOA && item.iec101IOA !== "") {
+            currentForm.getTextField(`VAT_IEC101_${i}`).setText(item.iec101IOA);
+        } else {
+            currentForm.getTextField(`VAT_IEC101_${i}`).setText("N/A");
+        }
 
         if(item.iec104 === 'OK') currentForm.getCheckBox(`Check_Box_VAT_IEC104_${i}`).check();
         else currentForm.getCheckBox(`Check_Box_VAT_IEC104_${i}`).uncheck();
-        if(item.iec104IOA) currentForm.getTextField(`VAT_IEC104_${i}`).setText(item.iec104IOA);
+        
+        // Fix: Check for empty string and set to "N/A"
+        if(item.iec104IOA && item.iec104IOA !== "") {
+            currentForm.getTextField(`VAT_IEC104_${i}`).setText(item.iec104IOA);
+        } else {
+            currentForm.getTextField(`VAT_IEC104_${i}`).setText("N/A");
+        }
     }
 
     await addSignatureToForm(currentForm, currentPdf);
