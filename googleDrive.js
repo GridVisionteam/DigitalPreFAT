@@ -19,10 +19,10 @@ const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 
 // FOLDER IDs FOR DIFFERENT FILE TYPES
-const JSON_FOLDER_ID = '1c2tPDiI2gX29Uh40n_vRDeqe7A_AChUA';  // JSON files folder
-const TXT_PNG_FOLDER_ID = '1iygtU_4YlLvM_Kx0XUQsGnbBsiZmCKTW';  // TXT and PNG files folder
-const PDF_FOLDER_ID = '1enQcRQDoiNXMf4La1VANdybHFvzFzMHZ';  // PDF files folder
-const GENERATED_PDF_FOLDER_ID = '1Wnl9fF4V7ZKDiAjDDkNwI3ILdP7i3TjX'; // PDF RTU Report
+const JSON_FOLDER_ID = '10o6HHTqjhDS_hBdjZzWatCXAPwEfOoMc';  // JSON files folder
+const TXT_PNG_FOLDER_ID = '1uy4EjEC866BPT9rawr5XKRuXtcCpcy0r';  // TXT and PNG files folder
+const PDF_FOLDER_ID = '1_iXnWczi8KfSCdzworIJUK3dPr28A5oQ';  // PDF BQ List files folder
+const GENERATED_PDF_FOLDER_ID = '1k1IH-XfwSgH6KdF6QbEHrw0V2qRFbdcW'; // PDF RTU Report
 
 // ============================================
 // GLOBAL VARIABLES

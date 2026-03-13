@@ -31,8 +31,7 @@ const PAGE_SEQUENCE = [
     'VirtualAlarmTest.html',
     'ChannelRedundacyTest.html',
     'LimitofAuthority.html',
-    'userdetail.html',
-    'signature.html'
+    'userdetail.html'
 ];
 
 // Function to reset all navigation completion marks

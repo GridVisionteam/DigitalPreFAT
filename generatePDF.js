@@ -49,7 +49,6 @@ async function generateFinalPDFBytes(currentUserData) {
         // Fill basic info
         form.getTextField('RTUSerialNumber').setText(rtuSerial.replace(/"/g, ''));
         form.getTextField('ContractNo').setText(contractNo.replace(/"/g, ''));
-        form.getTextField('TesterName').setText(testerName.replace(/"/g, ''));
         form.getTextField('ProjectName').setText((localStorage.getItem('session_projectName') || 'N/A').replace(/"/g, ''));
         
         // Add signature and time to front page
@@ -224,7 +223,6 @@ async function generateFinalPDF(currentUserData) {
         // Fill basic info
         form.getTextField('RTUSerialNumber').setText(rtuSerial.replace(/"/g, ''));
         form.getTextField('ContractNo').setText(contractNo.replace(/"/g, ''));
-        form.getTextField('TesterName').setText(testerName.replace(/"/g, ''));
         form.getTextField('ProjectName').setText((localStorage.getItem('session_projectName') || 'N/A').replace(/"/g, ''));
         
         // Add signature and time to front page
@@ -351,7 +349,6 @@ async function processPreRequisiteSection(pdfDoc, currentUserData, globalTime) {
         
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial') || 'N/A');
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo') || 'N/A');
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name') || 'N/A');
         
         try {
              currentForm.getTextField('Experience').setText(localStorage.getItem('session_experience') || 'N/A');
@@ -549,7 +546,6 @@ async function processRTUPanelAccessories(pdfDoc, currentUserData, globalTime) {
 
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial') || 'N/A');
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo') || 'N/A');
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name') || 'N/A');
 
         const accessories = (JSON.parse(localStorage.getItem('rtuPanelAccessoriesResults') || '{}')).accessories || {};
 
@@ -597,7 +593,6 @@ async function processPowerSupplyModules(pdfDoc, currentUserData, powerModulesDe
 
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial') || 'N/A');
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo') || 'N/A');
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name') || 'N/A');
         currentForm.getTextField('Powercount').setText(powerPage.toString());
 
         for (let i = 1; i <= powerCount; i++) {
@@ -651,7 +646,7 @@ async function processProductDeclarationSection(pdfDoc, currentUserData, globalT
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const declarations = (JSON.parse(localStorage.getItem('productDeclarationResults') || '{}')).declarations || {};
     for (let i = 1; i <= 4; i++) {
@@ -684,7 +679,7 @@ async function processTestSetup(pdfDoc, currentUserData, globalTime) {
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
     
     const results = JSON.parse(localStorage.getItem('testSetupResults') || '{}').connections || {};
     for(let i=1; i<=4; i++){
@@ -707,7 +702,7 @@ async function processPanelInformation(pdfDoc, currentUserData, globalTime) {
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const results = JSON.parse(localStorage.getItem('panelTestResults')) || {physicalInspections:{}, qualityTests:{}, measurements:{}};
     for(let i=1; i<=3; i++){
@@ -735,19 +730,53 @@ async function processSubrackInspection(pdfDoc, currentUserData, globalTime) {
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const subrackCount = parseInt(localStorage.getItem('session_subrackCount')) || 0;
     const details = JSON.parse(localStorage.getItem('subrackModulesDetails')) || [];
     const results = JSON.parse(localStorage.getItem('subrackTestResults')) || {qualityInspections:{}};
 
-    for(let i=1; i<=subrackCount; i++){
-        currentForm.getTextField(`Subrack${i}`).setText(i.toString());
-        try { currentForm.getTextField(`PN_Subrack${i}`).setText(details[i-1]?.partNo || 'N/A'); } catch(e){}
-        try { currentForm.getTextField(`SN_Subrack${i}`).setText(details[i-1]?.serial || 'N/A'); } catch(e){}
-        
-        if(results.qualityInspections[`subrack_${i}`] === 'OK') currentForm.getCheckBox(`Check_Box_Subrack_${i}_1`).check();
-        else currentForm.getCheckBox(`Check_Box_Subrack_${i}_2`).check();
+    // Maximum number of subrack fields in the PDF (assuming from your template)
+    const maxSubrackFields = 7; // Adjust this number based on your PDF template
+
+    for(let i = 1; i <= maxSubrackFields; i++){
+        if (i <= subrackCount) {
+            // Fill with actual data for existing subracks
+            currentForm.getTextField(`Subrack${i}`).setText(i.toString());
+            try { 
+                currentForm.getTextField(`PN_Subrack${i}`).setText(details[i-1]?.partNo || 'N/A'); 
+            } catch(e) {}
+            try { 
+                currentForm.getTextField(`SN_Subrack${i}`).setText(details[i-1]?.serial || 'N/A'); 
+            } catch(e) {}
+            
+            if(results.qualityInspections[`subrack_${i}`] === 'OK') {
+                currentForm.getCheckBox(`Check_Box_Subrack_${i}_1`).check();
+                currentForm.getCheckBox(`Check_Box_Subrack_${i}_2`).uncheck();
+            } else {
+                currentForm.getCheckBox(`Check_Box_Subrack_${i}_1`).uncheck();
+                currentForm.getCheckBox(`Check_Box_Subrack_${i}_2`).check();
+            }
+        } else {
+            // Fill with N/A for unused subracks
+            try { 
+                currentForm.getTextField(`Subrack${i}`).setText('N/A'); 
+            } catch(e) {}
+            try { 
+                currentForm.getTextField(`PN_Subrack${i}`).setText('N/A'); 
+            } catch(e) {}
+            try { 
+                currentForm.getTextField(`SN_Subrack${i}`).setText('N/A'); 
+            } catch(e) {}
+            
+            // Leave checkboxes blank for unused subracks
+            try { 
+                currentForm.getCheckBox(`Check_Box_Subrack_${i}_1`).uncheck(); 
+            } catch(e) {}
+            try { 
+                currentForm.getCheckBox(`Check_Box_Subrack_${i}_2`).uncheck(); 
+            } catch(e) {}
+        }
     }
     
     await addSignatureToForm(currentForm, currentPdf);
@@ -772,7 +801,6 @@ async function processProcessorModules(pdfDoc, currentUserData, processorModules
         currentForm.getTextField('ProcessorCount').setText(processorCount.toString());
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
         currentForm.getTextField('SubrackNo').setText(det.subrack || 'N/A');
         currentForm.getTextField('SlotNo').setText(det.slot || 'N/A');
         currentForm.getTextField('SN').setText(det.serial || 'N/A');
@@ -803,7 +831,7 @@ async function processProcessorInitialization(pdfDoc, currentUserData, globalTim
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const results = JSON.parse(localStorage.getItem('processorTestResults')) || {};
     
@@ -834,7 +862,6 @@ async function processCom6Modules(pdfDoc, currentUserData, globalTime) {
 
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
     currentForm.getTextField('ComCount').setText(comCount.toString());
 
     const details = JSON.parse(localStorage.getItem('comModulesDetails')) || [];
@@ -878,7 +905,6 @@ async function processDIModules(pdfDoc, currentUserData, diModulesDetails, diTes
         currentForm.getTextField('DICount').setText(DICount.toString());
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
         currentForm.getTextField('SubrackNo').setText(det.subrack || 'N/A');
         currentForm.getTextField('SlotNo').setText(det.slot || 'N/A');
         currentForm.getTextField('SN').setText(det.serial || 'N/A');
@@ -949,7 +975,6 @@ async function processDOModules(pdfDoc, currentUserData, doModulesDetails, doTes
         currentForm.getTextField('DOCount').setText(DOCount.toString());
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
         currentForm.getTextField('SubrackNo').setText(det.subrack || 'N/A');
         currentForm.getTextField('SlotNo').setText(det.slot || 'N/A');
         currentForm.getTextField('SN').setText(det.serial || 'N/A');
@@ -1002,7 +1027,7 @@ async function processDummyCesTest(pdfDoc, currentUserData, globalTime) {
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('dummyCesTestResults')) || {DummyBreakerCESFunctionalTest:{}, BuzzerTest:{}};
     for(let i=1; i<=4; i++){
@@ -1036,7 +1061,6 @@ async function processAIModules(pdfDoc, currentUserData, aiModulesDetails, aiTes
         currentForm.getTextField('AICount').setText(AICount.toString());
         currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
         currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-        currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
         currentForm.getTextField('SubrackNo').setText(det.subrack || 'N/A');
         currentForm.getTextField('SlotNo').setText(det.slot || 'N/A');
         currentForm.getTextField('SN').setText(det.serial || 'N/A');
@@ -1078,7 +1102,7 @@ async function processRTUPowerUp(pdfDoc, currentUserData, globalTime) {
     
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('rtuPowerUpTestResults')) || {RTUPowerUpTest:{}, RTUPowerUpInspection:{}};
     for(let i=1; i<=2; i++){
@@ -1110,7 +1134,7 @@ async function processParameterSetting(pdfDoc, currentUserData, globalTime) {
     // Basics
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
     
     const res = JSON.parse(localStorage.getItem('processorParamResults') || '{}');
     for(let i=1; i<=4; i++){
@@ -1135,7 +1159,7 @@ async function processDIParameterSetting(pdfDoc, currentUserData, globalTime) {
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('digitalInputParamResults') || '{}');
     for(let i=1; i<=5; i++){
@@ -1161,7 +1185,7 @@ async function processDOParameterSetting(pdfDoc, currentUserData, globalTime) {
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('digitalOutputParamResults') || '{}');
     for(let i=1; i<=3; i++){
@@ -1187,7 +1211,7 @@ async function processAIParameterSetting(pdfDoc, currentUserData, globalTime) {
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('analogInputParamResults') || '{}');
     for(let i=1; i<=3; i++){
@@ -1213,7 +1237,7 @@ async function processIEC101ParameterSetting(pdfDoc, currentUserData, globalTime
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('iec101ParamResults') || '{}');
     for(let i=1; i<=18; i++){
@@ -1235,7 +1259,7 @@ async function processIEC104ParameterSetting(pdfDoc, currentUserData, globalTime
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('iec104ParamResults') || '{}');
     for(let i=1; i<=16; i++){
@@ -1257,7 +1281,7 @@ async function processVirtualAlarmTest(pdfDoc, currentUserData, globalTime) {
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('virtualAlarmTestResults') || '{}');
     for(let i=1; i<=7; i++){
@@ -1297,8 +1321,7 @@ async function processChannelRedundancyTest(pdfDoc, currentUserData, globalTime)
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
-
+   
     const res = JSON.parse(localStorage.getItem('channelRedundancyResults') || {iec101:{}, iec104:{}});
     for(let i=1; i<=5; i++){
         if(res.iec101[`item_${i}`] === 'OK') currentForm.getCheckBox(`Check_Box_CRT_IEC101_${i}_1`).check();
@@ -1322,7 +1345,7 @@ async function processLimitOfAuthority(pdfDoc, currentUserData, globalTime) {
     const currentForm = currentPdf.getForm();
     currentForm.getTextField('RTUSerialNumber').setText(localStorage.getItem('session_rtuSerial'));
     currentForm.getTextField('ContractNo').setText(localStorage.getItem('session_contractNo'));
-    currentForm.getTextField('TesterName').setText(localStorage.getItem('session_name'));
+    
 
     const res = JSON.parse(localStorage.getItem('limitOfAuthorityResults') || '{}');
     const users = ['admin', 'operator', 'engineer', 'viewer'];
