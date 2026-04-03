@@ -683,3 +683,10 @@ function addAIIOAInputRestrictions() {
         });
     });
 }
+
+function clearAllFunctionalityWithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current AI module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAllFunctionality();
+        alert("All data has been cleared for this module.");
+    }
+}
