@@ -311,7 +311,7 @@ async function generateFinalPDF(currentUserData) {
         // Download logic
         const now = new Date();
         const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const fileName = `${dateformat}_RTU_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
+        const fileName = `FAT_Report_${localStorage.getItem('session_contractNo') || 'ContractNo'}_${localStorage.getItem('session_rtuSerial') || 'SerialNo'}.pdf`;
 
         if (typeof download === 'function') {
             download(modifiedPdfBytes, fileName, 'application/pdf');

@@ -1170,7 +1170,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Create and trigger download for JSON
             const dataStr = JSON.stringify(exportData, null, 2);
             const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            const exportFileDefaultName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
+            const exportFileDefaultName = `${dateformat}_BQFAT_BACKUP_${contractNo}_${rtuSerial}.json`;
             const linkElement = document.createElement('a');
             linkElement.setAttribute('href', dataUri);
             linkElement.setAttribute('download', exportFileDefaultName);
@@ -1181,7 +1181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Generate and download TXT file with similar naming
             const txtContent = generateTXTContent();
             const txtDataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txtContent);
-            const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
+            const txtFileName = `${dateformat}_QRFAT_TXT_${contractNo}_${rtuSerial}.txt`;
             
             const txtLinkElement = document.createElement('a');
             txtLinkElement.setAttribute('href', txtDataUri);
@@ -1633,7 +1633,7 @@ async function generateAndDownloadPDF(contractNo, rtuSerial, returnBlob = false)
 
     // --- 4. Save File ---
     const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    const filename = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+    const filename = `${dateformat}_RTUFAT_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
     
     if (returnBlob) {
         // Return PDF as blob instead of downloading
@@ -1861,7 +1861,7 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         qr.make();
         
         // Create filename
-        const filename = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+        const filename = `${dateformat}_QRFAT_CODE_${contractNo}_${rtuSerial}.png`;
         
         // Set target size for QR code
         const targetSize = 810;
@@ -2042,7 +2042,7 @@ async function generateBQPDFForDrive(contractNo, rtuSerial) {
         // Return PDF as blob
         const pdfBlob = doc.output('blob');
         const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-        const filename = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+        const filename = `${dateformat}_RTUFAT_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
         
         return {
             blob: pdfBlob,

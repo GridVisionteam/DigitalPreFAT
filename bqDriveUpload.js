@@ -65,7 +65,7 @@ async function uploadBQFiles() {
         // UPLOAD JSON FILE
         if (jsonData) {
             try {
-                const jsonFileName = `${dateformat}_BQ_BACKUP_${contractNo}_${rtuSerial}.json`;
+                const jsonFileName = `${dateformat}_BQFAT_BACKUP_${contractNo}_${rtuSerial}.json`;
                 showDriveStatus(`Uploading ${jsonFileName}...`, 'info');
                 console.log('Uploading JSON file:', jsonFileName);
                 
@@ -92,7 +92,7 @@ async function uploadBQFiles() {
         // UPLOAD TXT FILE
         if (txtContent) {
             try {
-                const txtFileName = `${dateformat}_QR_TXT_${contractNo}_${rtuSerial}.txt`;
+                const txtFileName = `${dateformat}_QRFAT_TXT_${contractNo}_${rtuSerial}.txt`;
                 showDriveStatus(`Uploading ${txtFileName}...`, 'info');
                 console.log('Uploading TXT file:', txtFileName);
                 
@@ -119,7 +119,7 @@ async function uploadBQFiles() {
         // UPLOAD PDF FILE
         if (pdfBlob) {
             try {
-                const pdfFileName = `${dateformat}_RTU_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
+                const pdfFileName = `${dateformat}_RTUFAT_SERIAL_NUMBER_LIST_${contractNo}_${rtuSerial}.pdf`;
                 showDriveStatus(`Uploading ${pdfFileName}...`, 'info');
                 console.log('Uploading PDF file:', pdfFileName);
                 
@@ -148,7 +148,7 @@ async function uploadBQFiles() {
                 const qrDataUrl = await generateQRCodeDataURL(txtContent);
                 if (qrDataUrl) {
                     const qrBlob = dataURLtoBlob(qrDataUrl);
-                    const qrFileName = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
+                    const qrFileName = `${dateformat}_QRFAT_CODE_${contractNo}_${rtuSerial}.png`;
                     showDriveStatus(`Uploading ${qrFileName}...`, 'info');
                     console.log('Uploading QR Code:', qrFileName);
                     

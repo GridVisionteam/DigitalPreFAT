@@ -174,8 +174,8 @@
                 const dateformat = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
                 const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
                 const cleanRtuSerial = rtuSerial.replace(/"/g, '').trim();
-                const pdfFileName = `${dateformat}_RTU_Report_${cleanContractNo}_${cleanRtuSerial}.pdf`;
-                const jsonFileName = `${dateformat}_RTU_Backup_${cleanContractNo}_${cleanRtuSerial}.json`;
+                const pdfFileName = `FAT_Report_${cleanContractNo}_${cleanRtuSerial}.pdf`;
+                const jsonFileName = `${dateformat}_FAT_Backup_${cleanContractNo}_${cleanRtuSerial}.json`;
                 
                 // Step 3: Get or create contract folder for JSON
                 progressBar.style.width = '40%';
