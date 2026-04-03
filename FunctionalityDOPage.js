@@ -299,7 +299,7 @@ function clearAllDO8() {
     const checkboxes = document.querySelectorAll("#do8TableBody input[type='checkbox']");
     checkboxes.forEach(cb => cb.checked = false);
 
-    const textInputs = document.querySelectorAll("#do8TableBody input[type='number']");
+    const textInputs = document.querySelectorAll("#do8TableBody .do8-test-input");
     textInputs.forEach(input => input.value = '');
 
     updateDO8SubmitButtonState();
@@ -526,7 +526,9 @@ async function handleDOTestSubmission() {
     
     if (window.currentDOModule > window.doModulesToTest) {
         // All DO modules tested, go to AI page
-        navigationGuard.markPageAsCompleted();
+        if (typeof navigationGuard !== 'undefined' && navigationGuard.markPageAsCompleted) {
+            navigationGuard.markPageAsCompleted();
+        }
         window.location.href = 'Dummy&CESFunctionalTest.html';
     } else {
         // Check module type for next module
@@ -596,7 +598,9 @@ async function handleDO8TestSubmission() {
     
     if (window.currentDOModule > window.doModulesToTest) {
         // All DO modules tested, go to AI page
-        navigationGuard.markPageAsCompleted();
+        if (typeof navigationGuard !== 'undefined' && navigationGuard.markPageAsCompleted) {
+            navigationGuard.markPageAsCompleted();
+        }
         window.location.href = 'Dummy&CESFunctionalTest.html';
     } else {
         // Check module type for next module
@@ -614,7 +618,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved test results if available
     const savedResults = localStorage.getItem('doTestResults');
     if (savedResults) {
-        window.doTestResults = JSON.parse(savedResults);
+        try {
+            window.doTestResults = JSON.parse(savedResults);
+        } catch (e) {
+            console.error('Error parsing saved results:', e);
+            window.doTestResults = {};
+        }
     }
     
     // Initialize module tracking
@@ -624,7 +633,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved module types if available
     const savedTypes = localStorage.getItem('doModuleTypes');
     if (savedTypes) {
-        window.doModuleTypes = JSON.parse(savedTypes);
+        try {
+            window.doModuleTypes = JSON.parse(savedTypes);
+        } catch (e) {
+            console.error('Error parsing module types:', e);
+            window.doModuleTypes = {};
+        }
     } else {
         window.doModuleTypes = {};
         for (let i = 1; i <= window.doModulesToTest; i++) {
@@ -1043,4 +1057,20 @@ function isValidDOIOAValue(value) {
     // Check if the value contains only numbers (no letters or special characters)
     // This regex matches only digits (0-9)
     return /^\d+$/.test(value);
+}
+
+// Confirmation wrapper for CO-16-A (main DO page) Clear All
+function clearAllWithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current DO module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAll();
+        alert("All data has been cleared for this module.");
+    }
+}
+
+// Confirmation wrapper for CO-8-A Clear All
+function clearAllDO8WithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current CO-8-A module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAllDO8();
+        alert("All data has been cleared for this module.");
+    }
 }
