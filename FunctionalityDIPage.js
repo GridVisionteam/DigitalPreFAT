@@ -167,7 +167,7 @@ function showFunctionalityDI16Page() {
     }
 }
 
-// NEW: Function to handle checkbox radio-like behavior for DI-32
+// Function to handle checkbox radio-like behavior for DI-32
 function handleCheckboxGroupClick(clickedCheckbox, groupName) {
     if (clickedCheckbox.checked) {
         // Get all checkboxes in the same group
@@ -181,7 +181,7 @@ function handleCheckboxGroupClick(clickedCheckbox, groupName) {
     }
 }
 
-// NEW: Function to handle checkbox radio-like behavior for DI-16
+// Function to handle checkbox radio-like behavior for DI-16
 function handleDI16CheckboxGroupClick(clickedCheckbox, groupName) {
     if (clickedCheckbox.checked) {
         // Get all checkboxes in the same group
@@ -264,7 +264,6 @@ function generateDIRows() {
     });
 }
 
-// Update generateDI16Rows function
 function generateDI16Rows() {
     const tableBody = document.querySelector("#di16TableBody");
     if (!tableBody) return;
@@ -314,7 +313,6 @@ function generateDI16Rows() {
     });
 }
 
-// Update SelectAll function for checkboxes (this will now select "1" for all)
 function SelectAll() {
     const tableBody = document.getElementById('tableBody');
     if (!tableBody) return;
@@ -322,15 +320,10 @@ function SelectAll() {
     const rows = tableBody.querySelectorAll('tr');
     
     // First, determine the current state pattern
-    // Check the first row's left side to see what pattern we're toggling to
     const firstRow = rows[0];
     if (!firstRow) return;
     
-    const leftCheckbox0 = firstRow.querySelector('td:nth-child(2) input[type="checkbox"][value="0"]');
-    const leftCheckbox1 = firstRow.querySelector('td:nth-child(3) input[type="checkbox"][value="1"]');
-    
     // Determine if we're setting to all 1s or criss-cross pattern
-    // If all checkboxes are already 1, toggle to criss-cross pattern
     let setToAllOne = true;
     
     // Check if currently all are 1
@@ -359,7 +352,6 @@ function SelectAll() {
         
         if (setToAllOne) {
             // Toggle to criss-cross pattern
-            // Even rows: Left=1, Right=0 | Odd rows: Left=0, Right=1
             if (index % 2 === 0) { // Even row (0-based)
                 // Left = 1, Right = 0
                 if (leftCheckbox1) leftCheckbox1.checked = false;
@@ -374,7 +366,7 @@ function SelectAll() {
                 if (rightCheckbox0) rightCheckbox0.checked = false;
             }
         } else {
-            // Set all to 1 (current behavior)
+            // Set all to 1
             if (leftCheckbox1) leftCheckbox1.checked = true;
             if (leftCheckbox0) leftCheckbox0.checked = false;
             if (rightCheckbox1) rightCheckbox1.checked = true;
@@ -385,7 +377,6 @@ function SelectAll() {
     updateSubmitButtonState();
 }
 
-// Update clearAll function
 function clearAll() {
     // Clear all checkboxes
     const checkboxes = document.querySelectorAll('.di-test-checkbox');
@@ -458,7 +449,7 @@ function clearAllDI16() {
     const checkboxes = document.querySelectorAll("#di16TableBody input[type='checkbox']");
     checkboxes.forEach(cb => cb.checked = false);
 
-    const textInputs = document.querySelectorAll("#di16TableBody input[type='number']");
+    const textInputs = document.querySelectorAll("#di16TableBody .di-test-input");
     textInputs.forEach(input => input.value = '');
 
     updateDI16SubmitButtonState();
@@ -765,7 +756,7 @@ async function handleDI16TestSubmission() {
     }
 }
 
-// New validation function for checkbox groups (DI-32)
+// Validation function for checkbox groups (DI-32)
 function validateCheckboxGroups() {
     const rows = document.querySelectorAll("#tableBody tr");
     
@@ -787,7 +778,7 @@ function validateCheckboxGroups() {
     return true;
 }
 
-// New validation function for checkbox groups (DI-16)
+// Validation function for checkbox groups (DI-16)
 function validateDI16CheckboxGroups() {
     const rows = document.querySelectorAll("#di16TableBody tr");
     
@@ -1161,6 +1152,21 @@ function isValidIOAValue(value) {
     if (value === "-") return true;
     
     // Check if the value contains only numbers (no letters or special characters)
-    // This regex matches only digits (0-9)
     return /^\d+$/.test(value);
+}
+
+// Confirmation wrapper for DI-32 Clear All
+function clearAllWithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current DI module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAll();
+        alert("All data has been cleared for this module.");
+    }
+}
+
+// Confirmation wrapper for DI-16 Clear All
+function clearAllDI16WithConfirm() {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current DI-16 module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+        clearAllDI16();
+        alert("All data has been cleared for this module.");
+    }
 }
