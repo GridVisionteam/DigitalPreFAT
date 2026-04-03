@@ -1851,71 +1851,83 @@ function generateTXTContent() {
 
 function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial) {
     try {
-        console.log("Starting QR code generation with alternative method...");
+        console.log("Starting QR code generation...");
         
         // Use qrcode-generator library
-        const typeNumber = 0; // Auto detect type
+        const typeNumber = 0;
         const errorCorrectionLevel = 'L';
         const qr = qrcode(typeNumber, errorCorrectionLevel);
         qr.addData(txtContent);
         qr.make();
         
-        // Create filename for the label
+        // Create filename
         const filename = `${dateformat}_QR_CODE_${contractNo}_${rtuSerial}.png`;
         
-        // Increase canvas size to accommodate QR code + label
-        const qrSize = 400; // QR code size
-        const cellSize = qrSize / qr.getModuleCount();
-        const margin = 2;
-        const qrTotalSize = qrSize + margin * 2 * cellSize;
+        // Set target size for QR code
+        const targetSize = 810;
+        const moduleCount = qr.getModuleCount();
         
-        // Add space for label (approximately 60px for two lines of text)
-        const labelHeight = 60;
+        // Calculate module size
+        const moduleSize = Math.floor(targetSize / moduleCount);
+        const actualQrSize = moduleSize * moduleCount;
+        
+        // Add margin (quiet zone)
+        const marginModules = 1;
+        const marginPixels = marginModules * moduleSize;
+        const qrTotalSize = actualQrSize + (marginPixels * 2);
+        
+        // Calculate label area with proper spacing
+        const line1Height = 30;      // Height for first line
+        const line2Height = 30;      // Height for second line
+        const spacingBetweenLines = 15; // SPACE BETWEEN LINES - THIS IS THE KEY
+        const labelHeight = line1Height + spacingBetweenLines + line2Height + 15; // +15 for bottom padding
+        
         const totalHeight = qrTotalSize + labelHeight;
         
-        // Create canvas with extra height for label
+        // Create canvas
         const canvas = document.createElement('canvas');
         canvas.width = qrTotalSize;
         canvas.height = totalHeight;
         const ctx = canvas.getContext('2d');
         
-        // Fill background (white)
+        // Fill background with white
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         // Draw QR code
         ctx.fillStyle = '#000000';
-        for (let row = 0; row < qr.getModuleCount(); row++) {
-            for (let col = 0; col < qr.getModuleCount(); col++) {
+        for (let row = 0; row < moduleCount; row++) {
+            for (let col = 0; col < moduleCount; col++) {
                 if (qr.isDark(row, col)) {
-                    ctx.fillRect(
-                        margin * cellSize + col * cellSize,
-                        margin * cellSize + row * cellSize,
-                        cellSize,
-                        cellSize
-                    );
+                    const x = marginPixels + (col * moduleSize);
+                    const y = marginPixels + (row * moduleSize);
+                    ctx.fillRect(Math.round(x), Math.round(y), moduleSize, moduleSize);
                 }
             }
         }
         
-        // Add label below QR code - MODIFIED FORMAT
+        // Get supplier name
+        const supplierName = document.getElementById('supplierName')?.value || 
+                            localStorage.getItem('session_supplierName') || 
+                            'Unknown Supplier';
+        
+        // Calculate starting Y position for text
+        const textStartY = qrTotalSize + 10; // 20px padding from QR code
+        
+        // Draw first line
         ctx.fillStyle = '#000000';
-        ctx.font = 'bold 12px Arial';
+        ctx.font = 'bold 35px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
+        ctx.fillText(rtuSerial, canvas.width / 2, textStartY);
         
-        // Get supplier name from the input field
-        const supplierName = document.getElementById('supplierName')?.value || localStorage.getItem('session_supplierName') || 'Unknown Supplier';
+        // Draw second line with proper spacing
+        ctx.font = 'bold 35px Arial';
+        const line2Y = textStartY + line1Height + spacingBetweenLines; // KEY: Add spacing between lines
+        ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, line2Y);
         
-        // First line: RTU Serial No
-        ctx.fillText(rtuSerial, canvas.width / 2, qrTotalSize + 10);
-        
-        // Second line: contract no. - supplier name
-        ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, qrTotalSize + 30);
-        
-        // Convert to data URL and download
-        const qrDataUrl = canvas.toDataURL('image/png');
-        
+        // Convert to PNG and download
+        const qrDataUrl = canvas.toDataURL('image/png', 1.0);
         const qrLink = document.createElement('a');
         qrLink.href = qrDataUrl;
         qrLink.download = filename;
@@ -1923,11 +1935,11 @@ function generateAndDownloadQRCode(txtContent, dateformat, contractNo, rtuSerial
         qrLink.click();
         document.body.removeChild(qrLink);
         
-        console.log("QR code generated successfully with label");
+        console.log(`QR code generated with ${spacingBetweenLines}px spacing between lines`);
         return true;
         
     } catch (error) {
-        console.error('Error generating QR code with alternative method:', error);
+        console.error('Error generating QR code:', error);
         showCustomAlert('Error generating QR code: ' + error.message);
         return false;
     }

@@ -242,68 +242,80 @@ async function generateQRCodeDataURL(txtContent) {
                 return;
             }
             
-            const typeNumber = 0; // Auto detect type
+            // Use qrcode-generator library - SAME as BQ.js
+            const typeNumber = 0;
             const errorCorrectionLevel = 'L';
             const qr = qrcode(typeNumber, errorCorrectionLevel);
             qr.addData(txtContent);
             qr.make();
             
-            // EXACT SAME DIMENSIONS AS BQ.js
-            const qrSize = 400; // QR code size
-            const cellSize = qrSize / qr.getModuleCount();
-            const margin = 2;
-            const qrTotalSize = qrSize + margin * 2 * cellSize;
+            // Set target size for QR code - SAME as BQ.js (810px)
+            const targetSize = 810;
+            const moduleCount = qr.getModuleCount();
             
-            // Add space for label - MATCH BQ.js (60px for two lines of text)
-            const labelHeight = 60;
+            // Calculate module size - SAME as BQ.js
+            const moduleSize = Math.floor(targetSize / moduleCount);
+            const actualQrSize = moduleSize * moduleCount;
+            
+            // Add margin (quiet zone) - SAME as BQ.js (marginModules = 1)
+            const marginModules = 1;
+            const marginPixels = marginModules * moduleSize;
+            const qrTotalSize = actualQrSize + (marginPixels * 2);
+            
+            // Calculate label area with proper spacing - SAME as BQ.js
+            const line1Height = 30;      // Height for first line
+            const line2Height = 30;      // Height for second line
+            const spacingBetweenLines = 15; // SPACE BETWEEN LINES
+            const labelHeight = line1Height + spacingBetweenLines + line2Height + 15; // +15 for bottom padding
+            
             const totalHeight = qrTotalSize + labelHeight;
             
-            // Create canvas with extra height for label
+            // Create canvas - SAME as BQ.js
             const canvas = document.createElement('canvas');
             canvas.width = qrTotalSize;
             canvas.height = totalHeight;
             const ctx = canvas.getContext('2d');
             
-            // Fill background (white)
+            // Fill background with white - SAME as BQ.js
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Draw QR code - EXACT SAME AS BQ.js
+            // Draw QR code - SAME as BQ.js
             ctx.fillStyle = '#000000';
-            for (let row = 0; row < qr.getModuleCount(); row++) {
-                for (let col = 0; col < qr.getModuleCount(); col++) {
+            for (let row = 0; row < moduleCount; row++) {
+                for (let col = 0; col < moduleCount; col++) {
                     if (qr.isDark(row, col)) {
-                        ctx.fillRect(
-                            margin * cellSize + col * cellSize,
-                            margin * cellSize + row * cellSize,
-                            cellSize,
-                            cellSize
-                        );
+                        const x = marginPixels + (col * moduleSize);
+                        const y = marginPixels + (row * moduleSize);
+                        ctx.fillRect(Math.round(x), Math.round(y), moduleSize, moduleSize);
                     }
                 }
             }
             
-            // Add label below QR code - EXACT SAME AS BQ.js
+            // Get supplier name and contract info - SAME as BQ.js
+            const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
+            const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
+            const supplierName = document.getElementById('supplierName')?.value || 
+                                localStorage.getItem('session_supplierName') || 
+                                'Unknown Supplier';
+            
+            // Calculate starting Y position for text - SAME as BQ.js
+            const textStartY = qrTotalSize + 10; // 10px padding from QR code
+            
+            // Draw first line - SAME as BQ.js (bold 35px Arial)
             ctx.fillStyle = '#000000';
-            ctx.font = 'bold 12px Arial';
+            ctx.font = 'bold 35px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
+            ctx.fillText(rtuSerial, canvas.width / 2, textStartY);
             
-            // Get values exactly like BQ.js
-            const rtuSerial = localStorage.getItem('session_rtuSerial') || 'SerialNo';
-            const contractNo = localStorage.getItem('session_contractNo') || 'ContractNo';
-            const supplierName = document.getElementById('supplierName')?.value || localStorage.getItem('session_supplierName') || 'Unknown Supplier';
+            // Draw second line with proper spacing - SAME as BQ.js
+            ctx.font = 'bold 35px Arial';
+            const line2Y = textStartY + line1Height + spacingBetweenLines;
+            ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, line2Y);
             
-            // First line: RTU Serial No
-            ctx.fillText(rtuSerial, canvas.width / 2, qrTotalSize + 10);
-            
-            // Second line: contract no. - supplier name
-            ctx.fillText(`${contractNo} - ${supplierName}`, canvas.width / 2, qrTotalSize + 30);
-            
-            // NO GRAY BORDER AROUND QR CODE - remove the strokeRect that was there
-            
-            // Convert to data URL
-            const dataUrl = canvas.toDataURL('image/png');
+            // Convert to data URL with high quality
+            const dataUrl = canvas.toDataURL('image/png', 1.0);
             resolve(dataUrl);
             
         } catch (error) {
