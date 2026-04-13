@@ -9,6 +9,16 @@ function showFunctionalityAIPage() {
     window.aiModulesToTest = parseInt(localStorage.getItem('aiModulesToTest')) || 0;
     window.currentAIModule = parseInt(localStorage.getItem('currentAIModule')) || 1;
     
+    // Ensure aiTestResults exists for the current module
+    if (!window.aiTestResults[window.currentAIModule]) {
+        window.aiTestResults[window.currentAIModule] = {
+            numericValues: {},
+            iec101Values: {},
+            iec104Values: {},
+            dnp3Values: {}
+        };
+    }
+    
     // Set module info
     document.getElementById("aiNoInput").textContent = window.currentAIModule;
     
@@ -46,24 +56,24 @@ function generateAIRows() {
         const row = document.createElement("tr");
 
         // Point number
-        row.innerHTML += `<td>${i + 1}</td>`;
+        row.innerHTML += `<td style="font-weight: bold;">${i + 1}</td>`;
 
         // Add rowspan cell only for first row (will span 9 rows)
         if (i === 0) {
             row.innerHTML += `<td rowspan="9" style="text-align: center; vertical-align: middle;">Result</td>`;
         }
 
-        // Current test inputs - CHECKBOX
+        // Current test inputs - NUMBER INPUTS (replacing checkboxes)
         row.innerHTML += `
-            <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_0mA_${i + 1}"></td>
-            <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_4mA_${i + 1}"></td>
-            <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_8mA_${i + 1}"></td>
-            <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_12mA_${i + 1}"></td>
-            <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_16mA_${i + 1}"></td>
-            <td style="text-align: center;"><input type="checkbox" class="ai-test-input" name="AI_${window.currentAIModule}_20mA_${i + 1}"></td>
+            <td style="text-align: center;"><input type="number" step="any" class="ai-test-input ai-number-input" name="AI_${window.currentAIModule}_0mA_${i + 1}" placeholder="Value"></td>
+            <td style="text-align: center;"><input type="number" step="any" class="ai-test-input ai-number-input" name="AI_${window.currentAIModule}_4mA_${i + 1}" placeholder="Value"></td>
+            <td style="text-align: center;"><input type="number" step="any" class="ai-test-input ai-number-input" name="AI_${window.currentAIModule}_8mA_${i + 1}" placeholder="Value"></td>
+            <td style="text-align: center;"><input type="number" step="any" class="ai-test-input ai-number-input" name="AI_${window.currentAIModule}_12mA_${i + 1}" placeholder="Value"></td>
+            <td style="text-align: center;"><input type="number" step="any" class="ai-test-input ai-number-input" name="AI_${window.currentAIModule}_16mA_${i + 1}" placeholder="Value"></td>
+            <td style="text-align: center;"><input type="number" step="any" class="ai-test-input ai-number-input" name="AI_${window.currentAIModule}_20mA_${i + 1}" placeholder="Value"></td>
         `;
 
-        // Protocol inputs (change to text type to allow dash, with input restrictions)
+        // Protocol inputs (allow dash, with input restrictions)
         row.innerHTML += `
             <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC101_${i + 1}" placeholder="Enter IOA or -"></td>
             <td><input type="text" class="ai-test-input ai-ioa-input" name="AI_${window.currentAIModule}_IEC104_${i + 1}" placeholder="Enter IOA or -"></td>
@@ -75,10 +85,10 @@ function generateAIRows() {
 }
 
 async function saveAndGoToNext() {
-    // Validate all checkboxes are ticked
-    if (!validateAICheckboxes()) {
+    // Validate all number fields are filled
+    /*if (!validateAINumberFields()) {
         return;
-    }
+    }*/
 
     // Validate all required inputs are filled
     if (!validateAIInputs()) {
@@ -87,7 +97,7 @@ async function saveAndGoToNext() {
 
     // Validate IOA index fields for IEC101 and IEC104
     if (!validateAIIOAIndexFields()) {
-        return; // Stop if validation fails
+        return;
     }
 
     // Save the current module's test data
@@ -125,41 +135,74 @@ async function saveAndGoToNext() {
 }
 
 function saveAITestData(moduleNumber) {
+    // Initialize the module object if it doesn't exist
     if (!window.aiTestResults[moduleNumber]) {
         window.aiTestResults[moduleNumber] = {
-            currentValues: {},
+            numericValues: {},
             iec101Values: {},
             iec104Values: {},
             dnp3Values: {}
         };
     }
 
+    // Ensure all required objects exist
+    if (!window.aiTestResults[moduleNumber].numericValues) {
+        window.aiTestResults[moduleNumber].numericValues = {};
+    }
+    if (!window.aiTestResults[moduleNumber].iec101Values) {
+        window.aiTestResults[moduleNumber].iec101Values = {};
+    }
+    if (!window.aiTestResults[moduleNumber].iec104Values) {
+        window.aiTestResults[moduleNumber].iec104Values = {};
+    }
+    if (!window.aiTestResults[moduleNumber].dnp3Values) {
+        window.aiTestResults[moduleNumber].dnp3Values = {};
+    }
+
     // Save all inputs
-    const inputs = document.querySelectorAll("#tableBody input");
-    
-    // Save current test values (checkboxes)
     for (let i = 1; i <= 8; i++) {
-        // Current test values (checkboxes)
-        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_0mA_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_0mA_${i}"]`)?.checked || false;
-        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_4mA_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_4mA_${i}"]`)?.checked || false;
-        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_8mA_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_8mA_${i}"]`)?.checked || false;
-        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_12mA_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_12mA_${i}"]`)?.checked || false;
-        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_16mA_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_16mA_${i}"]`)?.checked || false;
-        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_20mA_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_20mA_${i}"]`)?.checked || false;
+        // Numeric test values - save to both formats for compatibility
+        const input0mA = document.querySelector(`input[name="AI_${moduleNumber}_0mA_${i}"]`);
+        const input4mA = document.querySelector(`input[name="AI_${moduleNumber}_4mA_${i}"]`);
+        const input8mA = document.querySelector(`input[name="AI_${moduleNumber}_8mA_${i}"]`);
+        const input12mA = document.querySelector(`input[name="AI_${moduleNumber}_12mA_${i}"]`);
+        const input16mA = document.querySelector(`input[name="AI_${moduleNumber}_16mA_${i}"]`);
+        const input20mA = document.querySelector(`input[name="AI_${moduleNumber}_20mA_${i}"]`);
         
-        // Protocol values (numbers)
-        window.aiTestResults[moduleNumber].iec101Values[`AI_${moduleNumber}_IEC101_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_IEC101_${i}"]`)?.value || '';
-        window.aiTestResults[moduleNumber].iec104Values[`AI_${moduleNumber}_IEC104_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_IEC104_${i}"]`)?.value || '';
-        window.aiTestResults[moduleNumber].dnp3Values[`AI_${moduleNumber}_DNP3_${i}`] = 
-            document.querySelector(`input[name="AI_${moduleNumber}_DNP3_${i}"]`)?.value || '';
+        const val0mA = input0mA ? input0mA.value : '';
+        const val4mA = input4mA ? input4mA.value : '';
+        const val8mA = input8mA ? input8mA.value : '';
+        const val12mA = input12mA ? input12mA.value : '';
+        const val16mA = input16mA ? input16mA.value : '';
+        const val20mA = input20mA ? input20mA.value : '';
+        
+        // Save to numericValues (new format)
+        window.aiTestResults[moduleNumber].numericValues[`AI_${moduleNumber}_0mA_${i}`] = val0mA;
+        window.aiTestResults[moduleNumber].numericValues[`AI_${moduleNumber}_4mA_${i}`] = val4mA;
+        window.aiTestResults[moduleNumber].numericValues[`AI_${moduleNumber}_8mA_${i}`] = val8mA;
+        window.aiTestResults[moduleNumber].numericValues[`AI_${moduleNumber}_12mA_${i}`] = val12mA;
+        window.aiTestResults[moduleNumber].numericValues[`AI_${moduleNumber}_16mA_${i}`] = val16mA;
+        window.aiTestResults[moduleNumber].numericValues[`AI_${moduleNumber}_20mA_${i}`] = val20mA;
+        
+        // Also save to currentValues for backward compatibility
+        if (!window.aiTestResults[moduleNumber].currentValues) {
+            window.aiTestResults[moduleNumber].currentValues = {};
+        }
+        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_0mA_${i}`] = val0mA;
+        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_4mA_${i}`] = val4mA;
+        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_8mA_${i}`] = val8mA;
+        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_12mA_${i}`] = val12mA;
+        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_16mA_${i}`] = val16mA;
+        window.aiTestResults[moduleNumber].currentValues[`AI_${moduleNumber}_20mA_${i}`] = val20mA;
+        
+        // Protocol values
+        const inputIEC101 = document.querySelector(`input[name="AI_${moduleNumber}_IEC101_${i}"]`);
+        const inputIEC104 = document.querySelector(`input[name="AI_${moduleNumber}_IEC104_${i}"]`);
+        const inputDNP3 = document.querySelector(`input[name="AI_${moduleNumber}_DNP3_${i}"]`);
+        
+        if (inputIEC101) window.aiTestResults[moduleNumber].iec101Values[`AI_${moduleNumber}_IEC101_${i}`] = inputIEC101.value || '';
+        if (inputIEC104) window.aiTestResults[moduleNumber].iec104Values[`AI_${moduleNumber}_IEC104_${i}`] = inputIEC104.value || '';
+        if (inputDNP3) window.aiTestResults[moduleNumber].dnp3Values[`AI_${moduleNumber}_DNP3_${i}`] = inputDNP3.value || '';
     }
 
     localStorage.setItem('aiTestResults', JSON.stringify(window.aiTestResults));
@@ -169,47 +212,53 @@ function loadAITestData(moduleNumber) {
     const saved = window.aiTestResults[moduleNumber];
     if (!saved) return;
 
-    // Load current test values (checkboxes)
+    // Check which structure we have (supports both old and new formats)
+    const numericData = saved.numericValues || saved.currentValues || {};
+    
+    // Load numeric test values (0mA through 20mA)
     for (let i = 1; i <= 8; i++) {
-        // Current test values (checkboxes)
-        const checkbox0mA = document.querySelector(`input[name="AI_${moduleNumber}_0mA_${i}"]`);
-        const checkbox4mA = document.querySelector(`input[name="AI_${moduleNumber}_4mA_${i}"]`);
-        const checkbox8mA = document.querySelector(`input[name="AI_${moduleNumber}_8mA_${i}"]`);
-        const checkbox12mA = document.querySelector(`input[name="AI_${moduleNumber}_12mA_${i}"]`);
-        const checkbox16mA = document.querySelector(`input[name="AI_${moduleNumber}_16mA_${i}"]`);
-        const checkbox20mA = document.querySelector(`input[name="AI_${moduleNumber}_20mA_${i}"]`);
+        const input0mA = document.querySelector(`input[name="AI_${moduleNumber}_0mA_${i}"]`);
+        const input4mA = document.querySelector(`input[name="AI_${moduleNumber}_4mA_${i}"]`);
+        const input8mA = document.querySelector(`input[name="AI_${moduleNumber}_8mA_${i}"]`);
+        const input12mA = document.querySelector(`input[name="AI_${moduleNumber}_12mA_${i}"]`);
+        const input16mA = document.querySelector(`input[name="AI_${moduleNumber}_16mA_${i}"]`);
+        const input20mA = document.querySelector(`input[name="AI_${moduleNumber}_20mA_${i}"]`);
         
-        if (checkbox0mA && saved.currentValues[`AI_${moduleNumber}_0mA_${i}`] !== undefined) {
-            checkbox0mA.checked = saved.currentValues[`AI_${moduleNumber}_0mA_${i}`];
-        }
-        if (checkbox4mA && saved.currentValues[`AI_${moduleNumber}_4mA_${i}`] !== undefined) {
-            checkbox4mA.checked = saved.currentValues[`AI_${moduleNumber}_4mA_${i}`];
-        }
-        if (checkbox8mA && saved.currentValues[`AI_${moduleNumber}_8mA_${i}`] !== undefined) {
-            checkbox8mA.checked = saved.currentValues[`AI_${moduleNumber}_8mA_${i}`];
-        }
-        if (checkbox12mA && saved.currentValues[`AI_${moduleNumber}_12mA_${i}`] !== undefined) {
-            checkbox12mA.checked = saved.currentValues[`AI_${moduleNumber}_12mA_${i}`];
-        }
-        if (checkbox16mA && saved.currentValues[`AI_${moduleNumber}_16mA_${i}`] !== undefined) {
-            checkbox16mA.checked = saved.currentValues[`AI_${moduleNumber}_16mA_${i}`];
-        }
-        if (checkbox20mA && saved.currentValues[`AI_${moduleNumber}_20mA_${i}`] !== undefined) {
-            checkbox20mA.checked = saved.currentValues[`AI_${moduleNumber}_20mA_${i}`];
-        }
+        // For numeric values - if it's a boolean from old data, convert to empty string
+        let val0mA = numericData[`AI_${moduleNumber}_0mA_${i}`];
+        let val4mA = numericData[`AI_${moduleNumber}_4mA_${i}`];
+        let val8mA = numericData[`AI_${moduleNumber}_8mA_${i}`];
+        let val12mA = numericData[`AI_${moduleNumber}_12mA_${i}`];
+        let val16mA = numericData[`AI_${moduleNumber}_16mA_${i}`];
+        let val20mA = numericData[`AI_${moduleNumber}_20mA_${i}`];
         
-        // Protocol values (numbers)
+        // Convert boolean to empty string (old data compatibility)
+        if (typeof val0mA === 'boolean') val0mA = '';
+        if (typeof val4mA === 'boolean') val4mA = '';
+        if (typeof val8mA === 'boolean') val8mA = '';
+        if (typeof val12mA === 'boolean') val12mA = '';
+        if (typeof val16mA === 'boolean') val16mA = '';
+        if (typeof val20mA === 'boolean') val20mA = '';
+        
+        if (input0mA && val0mA !== undefined) input0mA.value = val0mA;
+        if (input4mA && val4mA !== undefined) input4mA.value = val4mA;
+        if (input8mA && val8mA !== undefined) input8mA.value = val8mA;
+        if (input12mA && val12mA !== undefined) input12mA.value = val12mA;
+        if (input16mA && val16mA !== undefined) input16mA.value = val16mA;
+        if (input20mA && val20mA !== undefined) input20mA.value = val20mA;
+        
+        // Protocol values - these should load correctly
         const inputIEC101 = document.querySelector(`input[name="AI_${moduleNumber}_IEC101_${i}"]`);
         const inputIEC104 = document.querySelector(`input[name="AI_${moduleNumber}_IEC104_${i}"]`);
         const inputDNP3 = document.querySelector(`input[name="AI_${moduleNumber}_DNP3_${i}"]`);
         
-        if (inputIEC101 && saved.iec101Values[`AI_${moduleNumber}_IEC101_${i}`] !== undefined) {
+        if (inputIEC101 && saved.iec101Values && saved.iec101Values[`AI_${moduleNumber}_IEC101_${i}`] !== undefined) {
             inputIEC101.value = saved.iec101Values[`AI_${moduleNumber}_IEC101_${i}`];
         }
-        if (inputIEC104 && saved.iec104Values[`AI_${moduleNumber}_IEC104_${i}`] !== undefined) {
+        if (inputIEC104 && saved.iec104Values && saved.iec104Values[`AI_${moduleNumber}_IEC104_${i}`] !== undefined) {
             inputIEC104.value = saved.iec104Values[`AI_${moduleNumber}_IEC104_${i}`];
         }
-        if (inputDNP3 && saved.dnp3Values[`AI_${moduleNumber}_DNP3_${i}`] !== undefined) {
+        if (inputDNP3 && saved.dnp3Values && saved.dnp3Values[`AI_${moduleNumber}_DNP3_${i}`] !== undefined) {
             inputDNP3.value = saved.dnp3Values[`AI_${moduleNumber}_DNP3_${i}`];
         }
     }
@@ -232,39 +281,75 @@ function goToPrevious() {
     window.currentAIModule--;
     localStorage.setItem('currentAIModule', window.currentAIModule);
     
+    // Ensure aiTestResults exists for the new module
+    if (!window.aiTestResults[window.currentAIModule]) {
+        window.aiTestResults[window.currentAIModule] = {
+            numericValues: {},
+            iec101Values: {},
+            iec104Values: {},
+            dnp3Values: {}
+        };
+    }
+    
     // Show the previous AI module
     showFunctionalityAIPage();
 }
 
-function validateAIInputs() {
-    let isValid = true;
-    const inputs = document.querySelectorAll('.ai-test-input');
+// NEW VALIDATION: Check all number fields are filled
+function validateAINumberFields() {
+    let allFilled = true;
+    const numberInputs = document.querySelectorAll('#functionalityAIPage input.ai-number-input');
     const emptyInputs = [];
     
-    inputs.forEach(input => {
-        // Skip validation for DNP3 inputs
-        if (input.name.includes('_DNP3_')) {
-            // Remove any existing error styling
-            input.parentElement.style.backgroundColor = '';
-            input.parentElement.style.border = '';
+    numberInputs.forEach(input => {
+        const value = input.value.trim();
+        if (value === "") {
+            allFilled = false;
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            emptyInputs.push(input);
+        } else if (isNaN(parseFloat(value))) {
+            allFilled = false;
+            input.style.border = '2px solid red';
+            input.style.backgroundColor = '#ffebee';
+            emptyInputs.push(input);
+        } else {
             input.style.border = '';
+            input.style.backgroundColor = '';
+        }
+    });
+    
+    if (!allFilled) {
+        if (emptyInputs.length > 0) {
+            emptyInputs[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showCustomAlert('Please fill in all numeric test fields (0mA through 20mA) for all channels before continuing.');
+    }
+    
+    return allFilled;
+}
+
+function validateAIInputs() {
+    let isValid = true;
+    // Only validate IOA text inputs (skip number inputs and DNP3)
+    const textInputs = document.querySelectorAll('.ai-ioa-input');
+    const emptyInputs = [];
+    
+    textInputs.forEach(input => {
+        // Skip DNP3 validation
+        if (input.name.includes('_DNP3_')) {
+            input.style.border = '';
+            input.style.backgroundColor = '';
             return;
         }
         
-        // For checkbox inputs - NO VALIDATION REQUIRED
-        if (input.type === 'checkbox') {
-            // Just clear any previous error styling to be safe
-            input.parentElement.style.backgroundColor = '';
-            input.parentElement.style.border = '';
-        }
-        // For text inputs (IOA) - validate they have values (now allows dash)
-        else if (input.type === 'text' && !input.value.trim()) {
+        // For text inputs (IOA) - validate they have values (allows dash)
+        if (!input.value.trim()) {
             input.style.border = '2px solid red';
             input.style.backgroundColor = '#ffebee';
-            emptyInputs.push(input.name);
+            emptyInputs.push(input);
             isValid = false;
         } else {
-            // Clear styles if valid
             input.style.border = '';
             input.style.backgroundColor = '';
         }
@@ -347,8 +432,8 @@ function validateAIIOAIndexFields() {
     let globalIEC104 = [];
     
     // Track which module AND cell each value comes from
-    let cellSources101 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
-    let cellSources104 = {}; // value -> [{module: 'X', cell: 'Y'}, ...]
+    let cellSources101 = {};
+    let cellSources104 = {};
 
     // A. Load ALL data from LocalStorage
     const rawData = localStorage.getItem('aiTestResults');
@@ -369,26 +454,15 @@ function validateAIIOAIndexFields() {
         if (moduleData.iec101Values) {
             Object.entries(moduleData.iec101Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                // Ignore "-" and empty strings in duplicate checking
                 if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC101.push(trimmedVal);
                     if (!cellSources101[trimmedVal]) {
                         cellSources101[trimmedVal] = [];
                     }
-                    // Extract channel number from the key format: "AI_X_IEC101_Y"
                     let cellName = 'Unknown Cell';
-                    // Match patterns like "AI_1_IEC101_1"
                     const match = cellKey.match(/AI_(\d+)_IEC101_(\d+)/);
                     if (match) {
-                        const moduleNum = match[1];
-                        const channelNum = match[2];
-                        cellName = `IEC101-NO: ${channelNum}`;
-                    } else if (cellKey.includes('IEC101')) {
-                        // Try alternative pattern
-                        const altMatch = cellKey.match(/_(\d+)$/);
-                        if (altMatch) {
-                            cellName = `IEC101-NO: ${altMatch[1]}`;
-                        }
+                        cellName = `IEC101-NO: ${match[2]}`;
                     }
                     cellSources101[trimmedVal].push({module: `Module ${modKey}`, cell: cellName});
                 }
@@ -399,24 +473,15 @@ function validateAIIOAIndexFields() {
         if (moduleData.iec104Values) {
             Object.entries(moduleData.iec104Values).forEach(([cellKey, val]) => {
                 const trimmedVal = String(val).trim();
-                // Ignore "-" and empty strings in duplicate checking
                 if (trimmedVal !== "" && trimmedVal !== "-") {
                     globalIEC104.push(trimmedVal);
                     if (!cellSources104[trimmedVal]) {
                         cellSources104[trimmedVal] = [];
                     }
-                    // Extract channel number from the key format: "AI_X_IEC104_Y"
                     let cellName = 'Unknown Cell';
                     const match = cellKey.match(/AI_(\d+)_IEC104_(\d+)/);
                     if (match) {
-                        const moduleNum = match[1];
-                        const channelNum = match[2];
-                        cellName = `IEC104-NO: ${channelNum}`;
-                    } else if (cellKey.includes('IEC104')) {
-                        const altMatch = cellKey.match(/_(\d+)$/);
-                        if (altMatch) {
-                            cellName = `IEC104-NO: ${altMatch[1]}`;
-                        }
+                        cellName = `IEC104-NO: ${match[2]}`;
                     }
                     cellSources104[trimmedVal].push({module: `Module ${modKey}`, cell: cellName});
                 }
@@ -424,30 +489,18 @@ function validateAIIOAIndexFields() {
         }
     }
 
-    // D. Add the LIVE data from the current screen with cell tracking
+    // D. Add the LIVE data from the current screen
     currentIEC101Inputs.forEach(input => {
         const val = input.value.trim();
-        // Ignore "-" and empty strings in duplicate checking
         if (val !== "" && val !== "-") {
             globalIEC101.push(val);
             if (!cellSources101[val]) {
                 cellSources101[val] = [];
             }
-            // Get cell name from input name - format: "AI_X_IEC101_Y"
             let cellName = 'Current Cell';
-            const inputName = input.name || '';
-            // Match patterns like "AI_1_IEC101_1"
-            const match = inputName.match(/AI_(\d+)_IEC101_(\d+)/);
+            const match = input.name.match(/AI_(\d+)_IEC101_(\d+)/);
             if (match) {
-                const moduleNum = match[1];
-                const channelNum = match[2];
-                cellName = `IEC101-NO: ${channelNum}`;
-            } else if (inputName.includes('IEC101')) {
-                // Try alternative pattern
-                const altMatch = inputName.match(/_(\d+)$/);
-                if (altMatch) {
-                    cellName = `IEC101-NO: ${altMatch[1]}`;
-                }
+                cellName = `IEC101-NO: ${match[2]}`;
             }
             cellSources101[val].push({module: `Current Module (${currentModKey})`, cell: cellName});
         }
@@ -455,25 +508,15 @@ function validateAIIOAIndexFields() {
 
     currentIEC104Inputs.forEach(input => {
         const val = input.value.trim();
-        // Ignore "-" and empty strings in duplicate checking
         if (val !== "" && val !== "-") {
             globalIEC104.push(val);
             if (!cellSources104[val]) {
                 cellSources104[val] = [];
             }
-            // Get cell name from input name - format: "AI_X_IEC104_Y"
             let cellName = 'Current Cell';
-            const inputName = input.name || '';
-            const match = inputName.match(/AI_(\d+)_IEC104_(\d+)/);
+            const match = input.name.match(/AI_(\d+)_IEC104_(\d+)/);
             if (match) {
-                const moduleNum = match[1];
-                const channelNum = match[2];
-                cellName = `IEC104-NO: ${channelNum}`;
-            } else if (inputName.includes('IEC104')) {
-                const altMatch = inputName.match(/_(\d+)$/);
-                if (altMatch) {
-                    cellName = `IEC104-NO: ${altMatch[1]}`;
-                }
+                cellName = `IEC104-NO: ${match[2]}`;
             }
             cellSources104[val].push({module: `Current Module (${currentModKey})`, cell: cellName});
         }
@@ -483,7 +526,7 @@ function validateAIIOAIndexFields() {
     let isValid = true;
     let errorMessages = [];
 
-    const excessiveIEC101 = findExcessiveDuplicates(globalIEC101, 1); // Max 1 for AI
+    const excessiveIEC101 = findExcessiveDuplicates(globalIEC101, 1);
     if (excessiveIEC101.length > 0) {
         isValid = false;
         excessiveIEC101.forEach(duplicateValue => {
@@ -491,12 +534,7 @@ function validateAIIOAIndexFields() {
             const sourceDetails = sources.map((source, index) => 
                 `     ${index + 1}. ${source.module} - ${source.cell}`
             ).join('\n');
-            
-            const locationText = sources.length > 0 ? 
-                `Found in:\n${sourceDetails}` : 
-                'Location not identified';
-            
-            errorMessages.push(`IEC101: Value "${duplicateValue}" appears more than once.\n${locationText}`);
+            errorMessages.push(`IEC101: Value "${duplicateValue}" appears more than once.\n${sourceDetails}`);
         });
         
         currentIEC101Inputs.forEach(input => {
@@ -507,7 +545,7 @@ function validateAIIOAIndexFields() {
         });
     }
 
-    const excessiveIEC104 = findExcessiveDuplicates(globalIEC104, 1); // Max 1 for AI
+    const excessiveIEC104 = findExcessiveDuplicates(globalIEC104, 1);
     if (excessiveIEC104.length > 0) {
         isValid = false;
         excessiveIEC104.forEach(duplicateValue => {
@@ -515,12 +553,7 @@ function validateAIIOAIndexFields() {
             const sourceDetails = sources.map((source, index) => 
                 `     ${index + 1}. ${source.module} - ${source.cell}`
             ).join('\n');
-            
-            const locationText = sources.length > 0 ? 
-                `Found in:\n${sourceDetails}` : 
-                'Location not identified';
-            
-            errorMessages.push(`IEC104: Value "${duplicateValue}" appears more than once.\n${locationText}`);
+            errorMessages.push(`IEC104: Value "${duplicateValue}" appears more than once.\n${sourceDetails}`);
         });
         
         currentIEC104Inputs.forEach(input => {
@@ -532,7 +565,7 @@ function validateAIIOAIndexFields() {
     }
 
     if (!isValid) {
-        const alertMessage = `IOA/Index Validation Failed - Duplicate Values Found:\n\n${errorMessages.join('\n\n')}\n\n⚠️  For AI modules, each IOA value must be UNIQUE across ALL AI modules.\nPlease change duplicate values to unique ones.`;
+        const alertMessage = `IOA/Index Validation Failed - Duplicate Values Found:\n\n${errorMessages.join('\n\n')}\n\n⚠️ For AI modules, each IOA value must be UNIQUE across ALL AI modules.\nPlease change duplicate values to unique ones.`;
         alert(alertMessage);
         return false;
     }
@@ -540,7 +573,6 @@ function validateAIIOAIndexFields() {
     return true;
 }
 
-// Helper function to find values that appear more than maxAllowed times
 function findExcessiveDuplicates(array, maxAllowed) {
     const countMap = {};
     const excessive = [];
@@ -585,73 +617,32 @@ document.addEventListener('DOMContentLoaded', function() {
     showFunctionalityAIPage();
 });
 
-
-function validateAICheckboxes() {
-    let allChecked = true;
-    const checkboxes = document.querySelectorAll('#functionalityAIPage input[type="checkbox"].ai-test-input');
-    const emptyCheckboxes = [];
-    
-    checkboxes.forEach(checkbox => {
-        if (!checkbox.checked) {
-            allChecked = false;
-            emptyCheckboxes.push(checkbox);
-            // Highlight unchecked checkboxes
-            checkbox.parentElement.style.backgroundColor = '#ffebee';
-            checkbox.parentElement.style.border = '2px solid red';
-        } else {
-            // Clear styles if checked
-            checkbox.parentElement.style.backgroundColor = '';
-            checkbox.parentElement.style.border = '';
-        }
-    });
-    
-    if (!allChecked) {
-        // Scroll to first unchecked checkbox
-        if (emptyCheckboxes.length > 0) {
-            emptyCheckboxes[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        showCustomAlert('Please tick all checkboxes (0mA, 4mA, 8mA, 12mA, 16mA, 20mA) for all channels before continuing.');
-    }
-    
-    return allChecked;
-}
 function isValidAIIOAValue(value) {
-    // Allow empty values (these will be caught by empty field validation)
     if (value === "") return false;
-    
-    // Allow single dash
     if (value === "-") return true;
-    
-    // Check if the value contains only numbers (no letters or special characters)
-    // This regex matches only digits (0-9)
     return /^\d+$/.test(value);
 }
 
-// Add input restriction function
 function restrictAIIOAInput(event) {
     const input = event.target;
     const value = input.value;
-    
-    // Allow backspace, delete, tab, escape, enter, etc.
     const key = event.key;
+    
     if (event.keyCode === 8 || event.keyCode === 46 || event.keyCode === 9 || 
         event.keyCode === 27 || event.keyCode === 13 || event.keyCode === 37 || 
         event.keyCode === 39 || event.keyCode === 35 || event.keyCode === 36) {
         return true;
     }
     
-    // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
     if (event.ctrlKey && (key === 'a' || key === 'c' || key === 'v' || key === 'x')) {
         return true;
     }
     
-    // Allow numbers and dash
     if (!/^[\d-]$/.test(key)) {
         event.preventDefault();
         return false;
     }
     
-    // Prevent multiple dashes
     if (key === '-' && value.includes('-')) {
         event.preventDefault();
         return false;
@@ -660,18 +651,14 @@ function restrictAIIOAInput(event) {
     return true;
 }
 
-// Add input restrictions for AI IOA inputs
 function addAIIOAInputRestrictions() {
     document.querySelectorAll('.ai-ioa-input').forEach(input => {
         input.addEventListener('keydown', restrictAIIOAInput);
         
-        // Also validate on paste
         input.addEventListener('paste', function(e) {
             e.preventDefault();
             const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-            // Only allow numbers and dash
             if (/^[\d-]+$/.test(pastedText)) {
-                // Prevent multiple dashes
                 if (pastedText.includes('-') && pastedText.indexOf('-') !== pastedText.lastIndexOf('-')) {
                     alert('Only one dash character is allowed per field');
                     return;
@@ -685,8 +672,52 @@ function addAIIOAInputRestrictions() {
 }
 
 function clearAllFunctionalityWithConfirm() {
-    if (confirm("⚠️ WARNING: This will clear ALL test data for the current AI module.\n\nThis includes:\n- All checkbox selections\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
+    if (confirm("⚠️ WARNING: This will clear ALL test data for the current AI module.\n\nThis includes:\n- All numeric measured values (0mA through 20mA)\n- All IOA/Index field entries (IEC101, IEC104, DNP3)\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?")) {
         clearAllFunctionality();
         alert("All data has been cleared for this module.");
     }
+}
+
+function clearAllFunctionality() {
+    // Clear number inputs
+    const numberInputs = document.querySelectorAll('#tableBody input.ai-number-input');
+    numberInputs.forEach(input => {
+        input.value = '';
+        input.style.border = '';
+        input.style.backgroundColor = '';
+    });
+    
+    // Clear IOA inputs
+    const ioaInputs = document.querySelectorAll('#tableBody .ai-ioa-input');
+    ioaInputs.forEach(input => {
+        input.value = '';
+        input.style.border = '';
+        input.style.backgroundColor = '';
+    });
+}
+
+function selectAllFunctionality() {
+    // This function now populates demo numeric values instead of checking checkboxes
+    const numberInputs = document.querySelectorAll('#tableBody input.ai-number-input');
+    const demoValues = {
+        '0mA': '-2500',
+        '4mA': '0',
+        '8mA': '2500',
+        '12mA': '5000',
+        '16mA': '7475',
+        '20mA': '10000'
+    };
+    
+    numberInputs.forEach(input => {
+        for (const [key, value] of Object.entries(demoValues)) {
+            if (input.name.includes(`_${key}_`)) {
+                input.value = value;
+                input.style.border = '';
+                input.style.backgroundColor = '';
+                break;
+            }
+        }
+    });
+    
+    alert("Demo values populated. Please adjust if needed and fill IOA fields.");
 }

@@ -1066,24 +1066,64 @@ async function processAIModules(pdfDoc, currentUserData, aiModulesDetails, aiTes
         currentForm.getTextField('SN').setText(det.serial || 'N/A');
         currentForm.getTextField('PartNo').setText(det.partNo || 'N/A');
 
-        if(res.qualityInspections?.quality1 === 'OK') currentForm.getCheckBox('QI1_OK').check(); else currentForm.getCheckBox('QI1_NO').check();
-        if(res.qualityInspections?.quality2 === 'OK') currentForm.getCheckBox('QI2_OK').check(); else currentForm.getCheckBox('QI2_NO').check();
+        // Quality inspections - keep as checkboxes
+        if(res.qualityInspections?.quality1 === 'OK') {
+            try { currentForm.getCheckBox('QI1_OK').check(); } catch(e) {}
+            try { currentForm.getCheckBox('QI1_NO').uncheck(); } catch(e) {}
+        } else {
+            try { currentForm.getCheckBox('QI1_OK').uncheck(); } catch(e) {}
+            try { currentForm.getCheckBox('QI1_NO').check(); } catch(e) {}
+        }
 
-        // 8 channels, values for 0mA-20mA are checkboxes now
+        if(res.qualityInspections?.quality2 === 'OK') {
+            try { currentForm.getCheckBox('QI2_OK').check(); } catch(e) {}
+            try { currentForm.getCheckBox('QI2_NO').uncheck(); } catch(e) {}
+        } else {
+            try { currentForm.getCheckBox('QI2_OK').uncheck(); } catch(e) {}
+            try { currentForm.getCheckBox('QI2_NO').check(); } catch(e) {}
+        }
+
+        // 8 channels, values for 0mA-20mA - NOW USING TEXT FIELDS instead of checkboxes
         const currents = ['0mA', '4mA', '8mA', '12mA', '16mA', '20mA'];
         for(let ch=1; ch<=8; ch++){
             currents.forEach(c => {
-                 const val = res.currentValues?.[`AI_${i}_${c}_${ch}`];
-                 if(val === 'OK' || val === true) currentForm.getCheckBox(`AI_${ch}_${c}`).check();
-                 else currentForm.getCheckBox(`AI_${ch}_${c}`).uncheck();
+                const val = res.currentValues?.[`AI_${i}_${c}_${ch}`];
+                // Use getTextField() instead of getCheckBox()
+                try {
+                    const field = currentForm.getTextField(`AI_${ch}_${c}`);
+                    // Set the actual mA value (number) as text
+                    if (val && val !== 'OK' && val !== true && val !== false) {
+                        // If val is a number or string representation of number
+                        field.setText(val.toString());
+                    } else if (val === 'OK' || val === true) {
+                        // If it's just an OK/true indicator, maybe set a default
+                        field.setText("OK");
+                    }
+                } catch(e) {
+                    console.warn(`Could not set AI_${ch}_${c} as text field:`, e);
+                }
             });
+            
+            // Protocol values
             const p1 = res.iec101Values?.[`AI_${i}_IEC101_${ch}`];
             const p4 = res.iec104Values?.[`AI_${i}_IEC104_${ch}`];
             const pd = res.dnp3Values?.[`AI_${i}_DNP3_${ch}`];
-            // Replace "-" with "N/A"
-            if(p1) currentForm.getTextField(`AI_${ch}_IEC101`).setText(p1 === "-" ? "N/A" : p1);
-            if(p4) currentForm.getTextField(`AI_${ch}_IEC104`).setText(p4 === "-" ? "N/A" : p4);
-            if(pd) currentForm.getTextField(`AI_${ch}_DNP3`).setText(pd === "-" ? "N/A" : pd);
+            
+            if(p1) {
+                try { 
+                    currentForm.getTextField(`AI_${ch}_IEC101`).setText(p1 === "-" ? "N/A" : p1); 
+                } catch(e) { console.warn(`Could not set AI_${ch}_IEC101:`, e); }
+            }
+            if(p4) {
+                try { 
+                    currentForm.getTextField(`AI_${ch}_IEC104`).setText(p4 === "-" ? "N/A" : p4); 
+                } catch(e) { console.warn(`Could not set AI_${ch}_IEC104:`, e); }
+            }
+            if(pd) {
+                try { 
+                    currentForm.getTextField(`AI_${ch}_DNP3`).setText(pd === "-" ? "N/A" : pd); 
+                } catch(e) { console.warn(`Could not set AI_${ch}_DNP3:`, e); }
+            }
         }
 
         await addSignatureToForm(currentForm, currentPdf);

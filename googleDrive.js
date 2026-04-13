@@ -1,22 +1,11 @@
 // googleDrive.js - Google Drive Integration
 
 // ============================================
-/*
-// CONFIGURATION - UPDATE THESE VALUES  (amin99boyz@gmail.com)
-// ============================================
-const GOOGLE_API_KEY = 'AIzaSyA9I3SyapNGGv3y26Jk-bo37XQ4zUKo5qs';
-const GOOGLE_CLIENT_ID = '656211138338-35iq6or29q9ea6583v80ofq746hinlha.apps.googleusercontent.com';
-const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
-*/
-//------------------------------------------------------------------------------------------------------------
-// CONFIGURATION - UPDATE THESE VALUES  (testingdigitalform@gmail.com)
+// CONFIGURATION - UPDATE THESE VALUES (testingdigitalform@gmail.com)
 // ============================================
 const GOOGLE_API_KEY = 'AIzaSyDmEfrpPBRaPvQO6LrDLw2SOuUGCW17DxY';
 const GOOGLE_CLIENT_ID = '266459609799-r2daskhooeeboqgaq58pr8u8nsei3vdf.apps.googleusercontent.com';
 const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
-
-//--------------------------------------------------------------------------------------------------------------
-
 
 // FOLDER IDs FOR DIFFERENT FILE TYPES
 const JSON_FOLDER_ID = '10o6HHTqjhDS_hBdjZzWatCXAPwEfOoMc';  // JSON files folder
@@ -206,6 +195,12 @@ async function checkExistingToken() {
         console.log('No existing token found');
     }
     return null;
+}
+
+function clearAuthCache() {
+    cachedAccessToken = null;
+    console.log('Auth cache cleared');
+    updateDriveStatusIfAvailable('Authentication cache cleared. Please sign in again when needed.', false);
 }
 
 // ============================================
@@ -408,6 +403,9 @@ async function uploadToDriveFolder(fileData, fileName, mimeType = 'application/p
     }
 }
 
+// Alias for backward compatibility
+const uploadToDrive = uploadToDriveFolder;
+
 async function uploadToContractFolderBasedOnType(fileData, fileName, mimeType) {
     try {
         const contractNo = localStorage.getItem('session_contractNo') || '';
@@ -602,6 +600,88 @@ async function uploadOrReplaceInContractFolder(fileData, fileName, mimeType = 'a
 }
 
 // ============================================
+// SHAREABLE LINK FUNCTIONS
+// ============================================
+
+async function createShareableLink(fileId) {
+    try {
+        const accessToken = await getAccessToken();
+        
+        // First, make the file publicly readable
+        const permission = {
+            type: 'anyone',
+            role: 'reader'
+        };
+        
+        const permissionResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(permission)
+            }
+        );
+        
+        if (!permissionResponse.ok) {
+            console.warn('Could not set public permission, file may not be publicly accessible');
+        }
+        
+        // Get the file info to construct the link
+        const fileResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,webViewLink`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            }
+        );
+        
+        if (!fileResponse.ok) {
+            throw new Error('Failed to get file info');
+        }
+        
+        const fileInfo = await fileResponse.json();
+        const shareableLink = fileInfo.webViewLink || `https://drive.google.com/file/d/${fileId}/view`;
+        
+        console.log('Shareable link created:', shareableLink);
+        return shareableLink;
+        
+    } catch (error) {
+        console.error('Error creating shareable link:', error);
+        // Return a basic link even if permission setting fails
+        return `https://drive.google.com/file/d/${fileId}/view`;
+    }
+}
+
+// ============================================
+// BATCH UPLOAD FUNCTION
+// ============================================
+
+async function batchUploadToDrive(files) {
+    const results = [];
+    
+    for (const file of files) {
+        try {
+            let result;
+            if (file.folderId) {
+                result = await uploadOrReplaceFile(file.data, file.name, file.mimeType, file.folderId);
+            } else {
+                result = await uploadOrReplaceInContractFolder(file.data, file.name, file.mimeType);
+            }
+            results.push({ success: true, fileName: file.name, result });
+        } catch (error) {
+            console.error(`Failed to upload ${file.name}:`, error);
+            results.push({ success: false, fileName: file.name, error: error.message });
+        }
+    }
+    
+    return results;
+}
+
+// ============================================
 // HELPER FUNCTIONS
 // ============================================
 
@@ -661,9 +741,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// EXPORT FUNCTIONS
+// EXPORT FUNCTIONS (Global scope)
 // ============================================
 window.uploadToDrive = uploadToDrive;
+window.uploadToDriveFolder = uploadToDriveFolder;
 window.createShareableLink = createShareableLink;
 window.validateGoogleConfig = validateGoogleConfig;
 window.loadGoogleAPIs = loadGoogleAPIs;
@@ -673,6 +754,6 @@ window.checkFileExists = checkFileExists;
 window.deleteFile = deleteFile;
 window.uploadOrReplaceFile = uploadOrReplaceFile;
 window.getContractFolderInParent = getContractFolderInParent;
-window.uploadToDriveFolder = uploadToDriveFolder;
 window.uploadToContractFolderBasedOnType = uploadToContractFolderBasedOnType;
 window.uploadOrReplaceInContractFolder = uploadOrReplaceInContractFolder;
+window.getAccessToken = getAccessToken; // Export for external use

@@ -1033,6 +1033,153 @@ function generateSoftwareRecordRows() {
     });
 }
 
+// NEW FUNCTION: Validate calibration dates for measuring equipment
+function validateCalibrationDates() {
+    let isValid = true;
+    let missingRows = [];
+    
+    // Clear previous error styles
+    document.querySelectorAll('.cal-date-input, .cal-due-date-input').forEach(el => {
+        el.style.borderColor = '';
+    });
+    
+    // Check rows 1, 2, 3 - ALWAYS required (must have both dates)
+    for (let row = 1; row <= 3; row++) {
+        const calDateInput = document.querySelector(`input[name="measuring_${row}_calDate"]`);
+        const calDueDateInput = document.querySelector(`input[name="measuring_${row}_calDueDate"]`);
+        
+        if (calDateInput && calDueDateInput) {
+            const calDateValue = calDateInput.value;
+            const calDueDateValue = calDueDateInput.value;
+            
+            // Both dates are required for rows 1-3
+            if (!calDateValue || !calDateValue.trim() === '' || !calDueDateValue || !calDueDateValue.trim() === '') {
+                if (!calDateValue || calDateValue.trim() === '') {
+                    calDateInput.style.borderColor = 'red';
+                }
+                if (!calDueDateValue || calDueDateValue.trim() === '') {
+                    calDueDateInput.style.borderColor = 'red';
+                }
+                isValid = false;
+                missingRows.push(row);
+            }
+        }
+    }
+    
+    // Check row 4 - ONLY required if item field has a value
+    const item4Input = document.querySelector(`input[name="measuring_4_item"], select[name="measuring_4_item"]`);
+    let item4Value = '';
+    if (item4Input) {
+        item4Value = item4Input.value ? item4Input.value.trim() : '';
+    }
+    
+    if (item4Value && item4Value !== '') {
+        const calDate4 = document.querySelector(`input[name="measuring_4_calDate"]`);
+        const calDueDate4 = document.querySelector(`input[name="measuring_4_calDueDate"]`);
+        
+        if (calDate4 && calDueDate4) {
+            const hasCalDate = calDate4.value && calDate4.value.trim() !== '';
+            const hasCalDueDate = calDueDate4.value && calDueDate4.value.trim() !== '';
+            
+            if (!hasCalDate || !hasCalDueDate) {
+                if (!hasCalDate) calDate4.style.borderColor = 'red';
+                if (!hasCalDueDate) calDueDate4.style.borderColor = 'red';
+                isValid = false;
+                missingRows.push(4);
+            }
+        }
+    }
+    
+    // Show specific error message if validation fails
+    if (!isValid) {
+        const rowMessage = missingRows.join(', ');
+        alert(`Please fill in both Calibration Date and Calibration Due Date for:\n- Measuring Equipment Row(s): ${rowMessage}`);
+    }
+    
+    return isValid;
+}
+
+// Modified validateRequiredFields to include calibration date validation
+function validateRequiredFields() {
+    let isValid = true;
+    
+    // Reset all error styles first
+    document.querySelectorAll('input, select').forEach(element => {
+        element.style.borderColor = '';
+    });
+
+    // Validate Approved Drawings - ALL checkboxes must be checked
+    for (let i = 1; i <= 6; i++) {
+        const okCheckbox = document.querySelector(`input[name="approvedDrawing_ok_${i}"]`);
+        
+        if (!okCheckbox) continue; // Skip if element doesn't exist
+        
+        if (!okCheckbox.checked) {
+            okCheckbox.parentElement.style.border = '1px solid red';
+            isValid = false;
+        } else {
+            // If checkbox is checked, also validate the revision and date fields
+            const revision = document.querySelector(`input[name="approvedDrawing_revision_${i}"]`);
+            const date = document.querySelector(`input[name="approvedDrawing_date_${i}"]`);
+            
+            if (revision && !revision.value) {
+                revision.style.borderColor = 'red';
+                isValid = false;
+            }
+            if (date && !date.value) {
+                date.style.borderColor = 'red';
+                isValid = false;
+            }
+        }
+    }
+
+    // Validate Panel IP Certificate - At least one must be selected
+    const panelIPRadios = document.querySelectorAll('input[name="panelIPCertificate_applicable"]');
+    let panelIPSelected = false;
+    
+    panelIPRadios.forEach(radio => {
+        if (radio.checked) {
+            panelIPSelected = true;
+        }
+    });
+    
+    if (!panelIPSelected) {
+        panelIPRadios.forEach(radio => {
+            radio.parentElement.style.border = '1px solid red';
+            radio.parentElement.style.padding = '2px';
+        });
+        isValid = false;
+    } else {
+        panelIPRadios.forEach(radio => {
+            radio.parentElement.style.border = '';
+            radio.parentElement.style.padding = '';
+        });
+    }
+
+    // Validate Software Record - both must be OK
+    const softwareOk1 = document.querySelector('input[name="software_ok_1"]');
+    const softwareOk2 = document.querySelector('input[name="software_ok_2"]');
+    
+    if (softwareOk1 && softwareOk2) {
+        if (!softwareOk1.checked || !softwareOk2.checked) {
+            if (!softwareOk1.checked) softwareOk1.parentElement.style.border = '1px solid red';
+            if (!softwareOk2.checked) softwareOk2.parentElement.style.border = '1px solid red';
+            isValid = false;
+        } else {
+            document.querySelectorAll('input[name^="software_ok_"]').forEach(el => {
+                el.parentElement.style.border = '';
+            });
+        }
+    }
+
+    // NEW: Validate calibration dates
+    if (!validateCalibrationDates()) {
+        isValid = false;
+    }
+
+    return isValid;
+}
+
 // Save pre-requisite test data - FIXED VERSION
 function savePreRequisiteTestData() {
     console.log('Saving pre-requisite test data...');
@@ -1042,7 +1189,7 @@ function savePreRequisiteTestData() {
         window.preRequisiteTestResults = {
             approvedDrawings: [],
             panelIPCertificate: [],
-            testEquipmentRecord: [], // This exists but needs to be populated
+            testEquipmentRecord: [],
             measuringEquipmentRecord: [],
             softwareRecord: [],
         };
@@ -1051,7 +1198,7 @@ function savePreRequisiteTestData() {
     // Clear arrays before saving new data (but preserve the structure)
     window.preRequisiteTestResults.approvedDrawings = [];
     window.preRequisiteTestResults.panelIPCertificate = [];
-    window.preRequisiteTestResults.testEquipmentRecord = []; // ADDED: Clear this array too
+    window.preRequisiteTestResults.testEquipmentRecord = [];
     window.preRequisiteTestResults.measuringEquipmentRecord = [];
     window.preRequisiteTestResults.softwareRecord = [];
 
@@ -1080,8 +1227,8 @@ function savePreRequisiteTestData() {
         });
     }
 
-    // === ADD THIS SECTION: Save Test Equipment Record data ===
-    for (let i = 1; i <= 3; i++) { // Assuming there are 3 rows based on your generateTestEquipmentRecordRows function
+    // Save Test Equipment Record data
+    for (let i = 1; i <= 3; i++) {
         const itemInput = document.querySelector(`input[name="testEquipment_item_${i}"]`);
         const brandInput = document.querySelector(`input[name="testEquipment_brand_${i}"]`);
         const modelInput = document.querySelector(`input[name="testEquipment_model_${i}"]`);
@@ -1096,9 +1243,7 @@ function savePreRequisiteTestData() {
             });
         }
     }
-    // === END OF ADDED SECTION ===
 
-    // FIXED: Correct selector for Measuring Equipment Record
     // Save Measuring Equipment Record data
     for (let i = 1; i <= 4; i++) {
         // Item could be input or select
@@ -1166,9 +1311,12 @@ function goToPreviousPage() {
 function goToNext() {
     console.log('Going to next page...');
     
-    // First validate the form
+    // First validate the form (includes calibration date validation)
     if (!validateRequiredFields()) {
-        alert('Please complete all required fields before continuing & Pre-FAT Result must be passed.');
+        // Alert message already shown in validateCalibrationDates
+        if (!document.querySelector('.cal-date-input[style*="border-color: red"], .cal-due-date-input[style*="border-color: red"]')) {
+            alert('Please complete all required fields before continuing & Pre-FAT Result must be passed.');
+        }
         return; // Stop navigation if validation fails
     }
     
@@ -1198,92 +1346,6 @@ function clearAll() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
-}
-
-// this function to validate required fields
-// this function to validate required fields
-function validateRequiredFields() {
-    let isValid = true;
-    
-    // Reset all error styles first
-    document.querySelectorAll('input, select').forEach(element => {
-        element.style.borderColor = '';
-    });
-
-    // Validate Approved Drawings - ALL checkboxes must be checked
-    for (let i = 1; i <= 6; i++) {
-        const okCheckbox = document.querySelector(`input[name="approvedDrawing_ok_${i}"]`);
-        
-        if (!okCheckbox) continue; // Skip if element doesn't exist
-        
-        if (!okCheckbox.checked) {
-            okCheckbox.parentElement.style.border = '1px solid red';
-            isValid = false;
-        } else {
-            // If checkbox is checked, also validate the revision and date fields
-            const revision = document.querySelector(`input[name="approvedDrawing_revision_${i}"]`);
-            const date = document.querySelector(`input[name="approvedDrawing_date_${i}"]`);
-            
-            if (revision && !revision.value) {
-                revision.style.borderColor = 'red';
-                isValid = false;
-            }
-            if (date && !date.value) {
-                date.style.borderColor = 'red';
-                isValid = false;
-            }
-        }
-    }
-
-    // === NEW VALIDATION: Panel IP Certificate - At least one must be selected ===
-    const panelIPRadios = document.querySelectorAll('input[name="panelIPCertificate_applicable"]');
-    let panelIPSelected = false;
-    
-    panelIPRadios.forEach(radio => {
-        if (radio.checked) {
-            panelIPSelected = true;
-        }
-    });
-    
-    if (!panelIPSelected) {
-        // Highlight all radio buttons or their container to indicate error
-        const panelIPContainer = document.querySelector('.Panel-IP-Certificate');
-        // Also highlight each radio button
-        panelIPRadios.forEach(radio => {
-            radio.parentElement.style.border = '1px solid red';
-            radio.parentElement.style.padding = '2px';
-        });
-        isValid = false;
-    } else {
-        // Remove error styling if valid
-        const panelIPContainer = document.querySelector('.Panel-IP-Certificate');
-        if (panelIPContainer) {
-            panelIPContainer.style.border = '';
-            panelIPContainer.style.padding = '';
-        }
-        panelIPRadios.forEach(radio => {
-            radio.parentElement.style.border = '';
-            radio.parentElement.style.padding = '';
-        });
-    }
-
-    // Validate Software Record - both must be OK
-    const softwareOk1 = document.querySelector('input[name="software_ok_1"]');
-    const softwareOk2 = document.querySelector('input[name="software_ok_2"]');
-    
-    if (softwareOk1 && softwareOk2) {
-        if (!softwareOk1.checked || !softwareOk2.checked) {
-            if (!softwareOk1.checked) softwareOk1.parentElement.style.border = '1px solid red';
-            if (!softwareOk2.checked) softwareOk2.parentElement.style.border = '1px solid red';
-            isValid = false;
-        } else {
-            document.querySelectorAll('input[name^="software_ok_"]').forEach(el => {
-                el.parentElement.style.border = '';
-            });
-        }
-    }
-
-    return isValid;
 }
 
 // Function to update Measuring Tape row based on brand selection
